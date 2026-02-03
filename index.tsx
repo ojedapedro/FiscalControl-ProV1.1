@@ -49,19 +49,24 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 }
 
 const rootElement = document.getElementById('root');
+
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  console.error("FATAL: No root element found");
+} else {
+  try {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </ErrorBoundary>
+      </React.StrictMode>
+    );
+    console.log("React mount initiated successfully");
+  } catch (err) {
+    console.error("Error during React mounting:", err);
+    rootElement.innerHTML = `<div style="padding: 20px; color: red;">Error mounting React app: ${err}</div>`;
+  }
 }
-
-console.log("Iniciando aplicación...");
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </ErrorBoundary>
-  </React.StrictMode>
-);

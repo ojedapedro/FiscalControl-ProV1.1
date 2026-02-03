@@ -18,6 +18,26 @@
       }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Manejador de errores global para capturar fallos antes de que React cargue -->
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error("Global Error:", message, "at", source, ":", lineno);
+        // Si el root está vacío después de 2 segundos, mostrar el error en pantalla
+        setTimeout(() => {
+          const root = document.getElementById('root');
+          if (root && root.innerHTML.trim() === '') {
+            document.body.innerHTML = `
+              <div style="color: #ef4444; background: #1a1a1a; padding: 20px; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h1>Error Crítico de Inicialización</h1>
+                <p>La aplicación no pudo iniciarse.</p>
+                <pre style="background: #000; padding: 15px; border-radius: 5px; overflow: auto; max-width: 90%;">${message}</pre>
+                <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">Recargar</button>
+              </div>
+            `;
+          }
+        }, 2000);
+      };
+    </script>
   <script type="importmap">
 {
   "imports": {
@@ -26,8 +46,8 @@
     "react/": "https://esm.sh/react@^19.2.4/",
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
     "recharts": "https://esm.sh/recharts@^3.7.0",
-    "jspdf-autotable": "https://esm.sh/jspdf-autotable@^5.0.7",
-    "jspdf": "https://esm.sh/jspdf@^4.1.0"
+    "jspdf": "https://esm.sh/jspdf@^4.1.0",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@^5.0.7"
   }
 }
 </script>
