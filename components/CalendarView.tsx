@@ -1,16 +1,97 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, DollarSign, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
-import { Payment, PaymentStatus } from '../types';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Calendar as CalendarIcon, 
+  CheckCircle2, 
+  Landmark, 
+  AlertOctagon,
+  FileText
+} from 'lucide-react';
+import { Payment, PaymentStatus, Category } from '../types';
 
 interface CalendarViewProps {
   payments: Payment[];
 }
 
+// Definición de Obligación Estatutaria (Basada en el cuadro)
+interface StatutoryDeadline {
+  id: string;
+  day: number | 'end'; // Día específico o fin de mes
+  month?: number; // Si es anual, el índice del mes (0 = Enero)
+  title: string;
+  category: Category;
+  description: string;
+  frequency: 'Mensual' | 'Anual' | 'Bi-anual';
+}
+
+// Configuración de Reglas Fiscales (Alcaldía)
+const TAX_RULES: StatutoryDeadline[] = [
+  {
+    id: 'rule-decl-patente',
+    day: 5,
+    title: 'Límite Declaración Ventas',
+    category: Category.MUNICIPAL_TAX,
+    description: 'Declarar antes del 5to día (Patente 1.1.2 - 1.1.7)',
+    frequency: 'Mensual'
+  },
+  {
+    id: 'rule-pago-patente',
+    day: 19,
+    title: 'Vencimiento Pago Patente',
+    category: Category.MUNICIPAL_TAX,
+    description: 'Pago mensual códigos 1.1.2 al 1.1.7',
+    frequency: 'Mensual'
+  },
+  {
+    id: 'rule-aseo',
+    day: 'end', // Fin de mes
+    title: 'IMA Aseo Urbano (1.3)',
+    category: Category.UTILITY,
+    description: 'Pago mensual tarifa aseo',
+    frequency: 'Mensual'
+  },
+  // Anuales (Asumiremos Marzo como mes fiscal común para anuales, ajustable)
+  {
+    id: 'rule-anual-visto-bueno',
+    day: 31,
+    month: 2, // Marzo
+    title: 'Visto Bueno (1.2) & Bomberos (1.7)',
+    category: Category.MUNICIPAL_TAX,
+    description: 'Renovación anual de permisos y tasas',
+    frequency: 'Anual'
+  },
+  {
+    id: 'rule-anual-inmueble',
+    day: 31,
+    month: 2, // Marzo
+    title: 'Impuesto Inmobiliario (1.5)',
+    category: Category.MUNICIPAL_TAX,
+    description: 'Pago anual impuesto inmueble',
+    frequency: 'Anual'
+  },
+  {
+    id: 'rule-anual-pub',
+    day: 31,
+    month: 2, // Marzo
+    title: 'Publicidad (1.6)',
+    category: Category.MUNICIPAL_TAX,
+    description: 'Pago anual derechos publicidad',
+    frequency: 'Anual'
+  }
+];
+
 export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedPayments, setSelectedPayments] = useState<Payment[]>([]);
+  
+  // Estado combinado para la vista lateral
+  const [dayEvents, setDayEvents] = useState<{
+    realPayments: Payment[];
+    deadlines: StatutoryDeadline[];
+  }>({ realPayments: [], deadlines: [] });
 
   // Helpers de Fecha
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -27,20 +108,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-  // Filtrar pagos cuando cambia la fecha seleccionada
+  // Obtener obligaciones para un día específico
+  const getDeadlinesForDate = (date: Date): StatutoryDeadline[] => {
+    const day = date.getDate();
+    const month = date.getMonth();
+    const lastDayOfMonth = getDaysInMonth(date);
+
+    return TAX_RULES.filter(rule => {
+      // Chequeo de mes (si es anual)
+      if (rule.month !== undefined && rule.month !== month) return false;
+
+      // Chequeo de día
+      if (rule.day === 'end') {
+        return day === lastDayOfMonth;
+      }
+      return rule.day === day;
+    });
+  };
+
+  // Efecto para actualizar el panel lateral al cambiar fecha
   useEffect(() => {
-    const formattedDate = selectedDate.toISOString().split('T')[0];
-    // Nota: En un entorno real, asegurar que las zonas horarias coincidan. 
-    // Aquí asumimos string comparison simple para el ejemplo.
-    
-    // Convertir selectedDate a formato YYYY-MM-DD local manual para coincidir con strings de payments
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const localDateString = `${year}-${month}-${day}`;
 
-    const filtered = payments.filter(p => p.dueDate === localDateString);
-    setSelectedPayments(filtered);
+    const real = payments.filter(p => p.dueDate === localDateString);
+    const statutory = getDeadlinesForDate(selectedDate);
+
+    setDayEvents({ realPayments: real, deadlines: statutory });
   }, [selectedDate, payments]);
 
   // Generación de Grid
@@ -51,7 +147,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
 
     // Padding para días vacíos al inicio
     for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 bg-transparent"></div>);
+      days.push(<div key={`empty-${i}`} className="h-24 bg-transparent border-b border-r border-slate-100 dark:border-slate-800/50"></div>);
     }
 
     // Días del mes
@@ -62,49 +158,51 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
       const isSelected = selectedDate.toDateString() === currentDayDate.toDateString();
       const isToday = new Date().toDateString() === currentDayDate.toDateString();
       
-      // Buscar pagos para este día
+      // Buscar datos
       const dayPayments = payments.filter(p => p.dueDate === dayString);
+      const dayDeadlines = getDeadlinesForDate(currentDayDate);
+      
       const hasOverdue = dayPayments.some(p => p.status === PaymentStatus.OVERDUE);
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
-      const hasApproved = dayPayments.some(p => p.status === PaymentStatus.APPROVED);
-
+      
       days.push(
         <div 
           key={day}
           onClick={() => setSelectedDate(currentDayDate)}
-          className={`relative h-24 sm:h-28 border border-slate-100 dark:border-slate-800 p-2 transition-all cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 flex flex-col justify-between rounded-xl ${
-            isSelected ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500 border-transparent' : 'bg-white dark:bg-slate-900'
+          className={`relative h-24 sm:h-28 border-b border-r border-slate-100 dark:border-slate-800 p-2 transition-all cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 flex flex-col justify-between ${
+            isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-slate-900'
           }`}
         >
           <div className="flex justify-between items-start">
-            <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+            <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
               isToday 
                 ? 'bg-blue-600 text-white' 
                 : isSelected 
-                  ? 'text-blue-600 dark:text-blue-400 font-bold' 
+                  ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-900/50' 
                   : 'text-slate-700 dark:text-slate-300'
             }`}>
               {day}
             </span>
-            {dayPayments.length > 0 && (
-                 <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md">
-                    {dayPayments.length}
-                 </span>
-            )}
           </div>
 
-          {/* Indicadores de Eventos */}
-          <div className="flex gap-1 mt-1 flex-wrap content-end">
-            {hasOverdue && <div className="w-full h-1.5 rounded-full bg-red-500 mb-1" title="Vencidos"></div>}
-            {hasPending && <div className="w-full h-1.5 rounded-full bg-yellow-400 mb-1" title="Pendientes"></div>}
-            {hasApproved && <div className="w-full h-1.5 rounded-full bg-green-500 mb-1" title="Pagados"></div>}
-            
-            {/* Texto de resumen para pantallas grandes */}
-            {dayPayments.length > 0 && (
-                <div className="hidden sm:block w-full text-[10px] text-slate-400 truncate mt-1">
-                    ${dayPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString()}
+          {/* Indicadores Visuales */}
+          <div className="flex flex-col gap-1 mt-1">
+             {/* Indicadores de Pagos Reales */}
+            <div className="flex gap-1 flex-wrap">
+                {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
+                {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
+                {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !hasOverdue && !hasPending && 
+                    <div className="w-2 h-2 rounded-full bg-green-500" title="Pagado"></div>
+                }
+            </div>
+
+            {/* Indicadores de Reglas Fiscales (Alcaldía) */}
+            {dayDeadlines.map((rule, idx) => (
+                <div key={idx} className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] px-1.5 py-0.5 rounded truncate font-medium border border-purple-200 dark:border-purple-800/50 flex items-center gap-1">
+                    <Landmark size={8} />
+                    {rule.title}
                 </div>
-            )}
+            ))}
           </div>
         </div>
       );
@@ -112,19 +210,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
     return days;
   };
 
-  const totalAmountForDay = selectedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalAmountForDay = dayEvents.realPayments.reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
       {/* Calendar Grid Section */}
       <div className="flex-1 p-4 lg:p-8 flex flex-col h-full overflow-y-auto no-scrollbar">
-        <header className="flex justify-between items-center mb-6">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Organice sus obligaciones por fecha de vencimiento.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones municipales y pagos.</p>
           </div>
-          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
             <button onClick={prevMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
                 <ChevronLeft size={20} />
             </button>
@@ -137,72 +235,104 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
           </div>
         </header>
 
-        {/* Days Header */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
-          {daysOfWeek.map(d => (
-            <div key={d} className="text-center text-xs font-bold text-slate-400 py-2">
-              {d}
+        {/* Calendar Grid Container */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col flex-1">
+            {/* Days Header */}
+            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            {daysOfWeek.map(d => (
+                <div key={d} className="text-center text-xs font-bold text-slate-500 dark:text-slate-400 py-3">
+                {d}
+                </div>
+            ))}
             </div>
-          ))}
-        </div>
 
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2 lg:gap-3 flex-1 auto-rows-fr">
-          {renderCalendarDays()}
+            {/* Calendar Cells */}
+            <div className="grid grid-cols-7 auto-rows-fr flex-1">
+            {renderCalendarDays()}
+            </div>
         </div>
         
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Vencido</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Pendiente</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Aprobado / Pagado</div>
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400 px-2">
+            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
+            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
+            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
         </div>
       </div>
 
       {/* Details Sidebar */}
-      <div className="w-full lg:w-96 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 p-6 flex flex-col shadow-xl z-10 h-[400px] lg:h-auto overflow-hidden">
+      <div className="w-full lg:w-96 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 p-6 flex flex-col shadow-xl z-10 h-[500px] lg:h-auto overflow-hidden">
         <div className="mb-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <CalendarIcon size={20} className="text-blue-500" />
                 {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
             </h2>
-            {selectedPayments.length > 0 ? (
-                <div className="mt-2 text-sm text-slate-500 dark:text-slate-400 flex justify-between items-center">
-                    <span>{selectedPayments.length} Eventos</span>
-                    <span className="font-bold text-slate-900 dark:text-white">Total: ${totalAmountForDay.toLocaleString()}</span>
-                </div>
-            ) : (
-                <p className="mt-2 text-sm text-slate-400">No hay eventos programados para este día.</p>
-            )}
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {dayEvents.realPayments.length + dayEvents.deadlines.length} Eventos para hoy
+            </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-            {selectedPayments.map(payment => (
-                <div key={payment.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
-                    <div className="flex justify-between items-start mb-2">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${
-                             payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                             payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                             'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}>
-                            {payment.status}
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
-                    </div>
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">{payment.specificType}</h3>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="truncate max-w-[150px]">{payment.storeName}</span>
-                    </div>
-                    {payment.notes && (
-                        <div className="mt-3 text-xs bg-white dark:bg-slate-800 p-2 rounded text-slate-500 dark:text-slate-400 italic border border-slate-200 dark:border-slate-700">
-                            "{payment.notes}"
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+            
+            {/* Sección de Obligaciones Estatutarias */}
+            {dayEvents.deadlines.length > 0 && (
+                <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                        <Landmark size={12} /> Recordatorios Alcaldía
+                    </h3>
+                    {dayEvents.deadlines.map((rule, idx) => (
+                        <div key={idx} className="p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 bg-purple-50 dark:bg-purple-900/10">
+                            <div className="flex justify-between items-start mb-1">
+                                <span className="text-purple-700 dark:text-purple-300 font-bold text-sm">{rule.title}</span>
+                                <span className="text-[10px] bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full">{rule.frequency}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">{rule.description}</p>
+                            <div className="mt-2 flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                                <AlertOctagon size={10} />
+                                Fecha Límite Estricta
+                            </div>
                         </div>
-                    )}
+                    ))}
                 </div>
-            ))}
+            )}
 
-            {selectedPayments.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
+            {/* Separador si hay ambos tipos */}
+            {dayEvents.deadlines.length > 0 && dayEvents.realPayments.length > 0 && (
+                <div className="border-t border-slate-100 dark:border-slate-800 my-2"></div>
+            )}
+
+            {/* Sección de Pagos Reales */}
+            {dayEvents.realPayments.length > 0 && (
+                 <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                        <FileText size={12} /> Pagos Registrados
+                    </h3>
+                    {dayEvents.realPayments.map(payment => (
+                        <div key={payment.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${
+                                    payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                    payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                }`}>
+                                    {payment.status}
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
+                            </div>
+                            <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">{payment.specificType}</h3>
+                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                <span className="truncate max-w-[150px]">{payment.storeName}</span>
+                            </div>
+                        </div>
+                    ))}
+                    <div className="text-right text-sm font-bold text-slate-900 dark:text-white pt-2">
+                        Total en pagos: ${totalAmountForDay.toLocaleString()}
+                    </div>
+                 </div>
+            )}
+
+            {dayEvents.realPayments.length === 0 && dayEvents.deadlines.length === 0 && (
+                <div className="h-40 flex flex-col items-center justify-center text-slate-400 opacity-50">
                     <CheckCircle2 size={48} className="mb-2" />
                     <p className="text-sm">Día libre de impuestos</p>
                 </div>
