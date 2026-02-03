@@ -8,9 +8,12 @@ import {
   Settings, 
   LogOut,
   Building2,
-  BellRing
+  BellRing,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Role } from '../types';
+import { useTheme } from './ThemeContext';
 
 interface SidebarProps {
   currentView: string;
@@ -20,9 +23,9 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, currentRole, onChangeRole }) => {
+  const { theme, toggleTheme } = useTheme();
   
   const navItems = [
-    // Dashboard eliminado para simplificar navegación
     { id: 'payments', label: 'Pagos', icon: FileText, roles: [Role.ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR] },
@@ -35,9 +38,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
   const filteredItems = navItems.filter(item => item.roles.includes(currentRole));
 
   return (
-    <div className="h-screen w-20 lg:w-64 bg-slate-900 text-white flex flex-col fixed left-0 top-0 z-50 transition-all duration-300">
+    <div className="h-screen w-20 lg:w-64 bg-slate-900 text-white flex flex-col fixed left-0 top-0 z-50 transition-all duration-300 border-r border-slate-800">
       <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
           <span className="font-bold text-xl">F</span>
         </div>
         <span className="font-bold text-xl hidden lg:block tracking-tight">FiscalCtl</span>
@@ -64,9 +67,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="mb-4 px-2">
-          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block hidden lg:block">Vista de Rol Actual</label>
+      <div className="p-4 border-t border-slate-800 space-y-4">
+        {/* Theme Toggle */}
+        <button 
+          onClick={toggleTheme}
+          className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white transition-colors group"
+        >
+           <div className="flex items-center gap-3">
+             {theme === 'dark' ? <Moon size={20} className="text-blue-400" /> : <Sun size={20} className="text-yellow-400" />}
+             <span className="hidden lg:block font-medium text-sm">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+           </div>
+        </button>
+
+        <div className="px-2 hidden lg:block">
+          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block">Rol Actual</label>
           <select 
             value={currentRole}
             onChange={(e) => onChangeRole(e.target.value as Role)}
@@ -77,6 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
             ))}
           </select>
         </div>
+        
         <button className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors">
           <LogOut size={20} />
           <span className="hidden lg:block font-medium">Cerrar Sesión</span>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   TrendingUp, 
@@ -24,33 +25,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
   const getIconForType = (type: string) => {
     // Adjusted logic for Spanish terms
     if (type.includes('Impuesto')) return <BuildingIcon />;
-    if (type.includes('Electricidad')) return <Zap className="text-yellow-600" />;
-    if (type.includes('Internet')) return <Wifi className="text-purple-600" />;
-    if (type.includes('Agua')) return <Droplets className="text-blue-600" />;
-    return <FileText className="text-slate-600" />;
+    if (type.includes('Electricidad')) return <Zap className="text-yellow-600 dark:text-yellow-400" />;
+    if (type.includes('Internet')) return <Wifi className="text-purple-600 dark:text-purple-400" />;
+    if (type.includes('Agua')) return <Droplets className="text-blue-600 dark:text-blue-400" />;
+    return <FileText className="text-slate-600 dark:text-slate-400" />;
   };
 
   const getBgForType = (type: string) => {
-    if (type.includes('Impuesto')) return 'bg-blue-100';
-    if (type.includes('Electricidad')) return 'bg-yellow-100';
-    if (type.includes('Internet')) return 'bg-purple-100';
-    if (type.includes('Agua')) return 'bg-blue-50';
-    return 'bg-slate-100';
+    if (type.includes('Impuesto')) return 'bg-blue-100 dark:bg-blue-900/30';
+    if (type.includes('Electricidad')) return 'bg-yellow-100 dark:bg-yellow-900/30';
+    if (type.includes('Internet')) return 'bg-purple-100 dark:bg-purple-900/30';
+    if (type.includes('Agua')) return 'bg-blue-50 dark:bg-blue-900/20';
+    return 'bg-slate-100 dark:bg-slate-800';
   };
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Gestión de Pagos</h1>
-          <p className="text-slate-500 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
         <div className="flex gap-4">
-            <button className="p-2 bg-white rounded-full shadow-sm relative">
-                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+            <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
+                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
                 <span className="text-xl">🔔</span>
             </button>
-            <div className="w-10 h-10 bg-orange-200 rounded-full flex items-center justify-center text-orange-600 font-bold shadow-sm">
+            <div className="w-10 h-10 bg-orange-200 dark:bg-orange-900/50 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm">
                 JD
             </div>
         </div>
@@ -58,41 +59,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <DollarSign size={18} className="text-blue-500" />
               Total por Pagar
             </div>
-            <div className="text-4xl font-bold text-slate-900">${totalDue.toLocaleString()}</div>
-            <div className="flex items-center gap-1 text-green-600 text-sm font-semibold mt-3 bg-green-50 w-fit px-2 py-1 rounded-lg">
+            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString()}</div>
+            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingUp size={14} />
               +12% vs semana pasada
             </div>
           </div>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-50 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <AlertTriangle size={18} className="text-red-500" />
               Crítico / Vencido
             </div>
-            <div className="text-4xl font-bold text-slate-900">${(850).toLocaleString()}</div>
-             <div className="flex items-center gap-1 text-red-600 text-sm font-semibold mt-3 bg-red-50 w-fit px-2 py-1 rounded-lg">
+            <div className="text-4xl font-bold text-slate-900 dark:text-white">${(850).toLocaleString()}</div>
+             <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingDown size={14} />
               -5% tasa de recuperación
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-red-50 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
       </div>
 
       {/* Action Button */}
       <button 
         onClick={onNewPayment}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 font-semibold text-lg transition-transform active:scale-[0.99]"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 flex items-center justify-center gap-2 font-semibold text-lg transition-transform active:scale-[0.99]"
       >
         <Plus size={24} />
         Cargar Nuevo Pago
@@ -101,33 +102,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
       {/* Recent Payments List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">Transacciones Recientes</h2>
-            <div className="flex bg-slate-100 p-1 rounded-lg">
-                <button className="px-4 py-1 bg-slate-900 text-white rounded-md text-sm font-medium shadow-sm">Todos</button>
-                <button className="px-4 py-1 text-slate-600 rounded-md text-sm font-medium hover:bg-white hover:shadow-sm">Pendientes</button>
-                <button className="px-4 py-1 text-slate-600 rounded-md text-sm font-medium hover:bg-white hover:shadow-sm">Vencidos</button>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button className="px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm">Todos</button>
+                <button className="px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm">Pendientes</button>
+                <button className="px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm">Vencidos</button>
             </div>
         </div>
 
         <div className="space-y-3">
           {payments.map((payment) => (
-            <div key={payment.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-blue-200 transition-colors">
+            <div key={payment.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
                   {getIconForType(payment.specificType)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900">{payment.specificType}</h3>
-                  <p className="text-slate-500 text-sm">Vence: {payment.dueDate}</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {payment.dueDate}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
-                <span className="font-bold text-lg">${payment.amount.toFixed(2)}</span>
+                <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toFixed(2)}</span>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    payment.status === PaymentStatus.PENDING ? 'bg-orange-100 text-orange-700' :
-                    payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700' :
-                    payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700' :
-                    'bg-blue-100 text-blue-700'
+                    payment.status === PaymentStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                    payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                 }`}>
                     {payment.status}
                 </span>
@@ -141,7 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
 };
 
 const BuildingIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-blue-600">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-blue-600 dark:text-blue-400">
     <path d="M3 21h18" />
     <path d="M5 21V7l8-4 8 4v14" />
     <path d="M17 21v-8.8" />
