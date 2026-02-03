@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -8,82 +9,274 @@ import {
   Tooltip, 
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { REPORT_DATA } from '../constants';
-import { Download, Calendar, ArrowUpRight } from 'lucide-react';
+import { Payment, PaymentStatus } from '../types';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp } from 'lucide-react';
 
-export const Reports: React.FC = () => {
+interface ReportsProps {
+  payments: Payment[];
+}
+
+export const Reports: React.FC<ReportsProps> = ({ payments }) => {
+  
+  // KPI Calculations
+  const totalApproved = payments
+    .filter(p => p.status === PaymentStatus.APPROVED)
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalRejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
+  const totalPendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+  
+  const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
+  const rejectedPayments = payments.filter(p => p.status === PaymentStatus.REJECTED);
+
+  // Chart Data Preparation (Approved vs Rejected Count)
+  const statusData = [
+    { name: 'Aprobados', value: approvedPayments.length, color: '#22c55e' },
+    { name: 'Rechazados', value: rejectedPayments.length, color: '#ef4444' },
+    { name: 'Pendientes', value: totalPendingCount, color: '#eab308' },
+  ];
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(41, 128, 185);
+    doc.text("Reporte de Control Fiscal", 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
+    doc.text("Presidencia - Auditoría de Pagos", 14, 33);
+
+    // Summary Section
+    doc.setDrawColor(200);
+    doc.line(14, 40, 196, 40);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Resumen Ejecutivo:", 14, 48);
+    
+    const summaryData = [
+        [`Total Aprobado ($): $${totalApproved.toLocaleString()}`, `Transacciones Aprobadas: ${approvedPayments.length}`],
+        [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
+    ];
+
+    autoTable(doc, {
+        startY: 52,
+        body: summaryData,
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 1 },
+        columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
+    });
+
+    // Approved Table
+    doc.setFontSize(12);
+    doc.setTextColor(34, 197, 94); // Green
+    let finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.text("Detalle de Pagos Aprobados", 14, finalY);
+
+    autoTable(doc, {
+        startY: finalY + 4,
+        head: [['Ref', 'Tienda', 'Concepto', 'Fecha', 'Monto ($)']],
+        body: approvedPayments.map(p => [
+            p.id, 
+            p.storeName, 
+            p.specificType, 
+            p.dueDate, 
+            p.amount.toLocaleString()
+        ]),
+        headStyles: { fillColor: [34, 197, 94] },
+        styles: { fontSize: 8 },
+    });
+
+    // Rejected Table
+    doc.setFontSize(12);
+    doc.setTextColor(239, 68, 68); // Red
+    finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Check if page break is needed
+    if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+    }
+
+    doc.text("Detalle de Pagos Rechazados", 14, finalY);
+
+    autoTable(doc, {
+        startY: finalY + 4,
+        head: [['Ref', 'Tienda', 'Motivo Rechazo', 'Monto ($)']],
+        body: rejectedPayments.map(p => [
+            p.id, 
+            p.storeName, 
+            p.rejectionReason || 'N/A', 
+            p.amount.toLocaleString()
+        ]),
+        headStyles: { fillColor: [239, 68, 68] },
+        styles: { fontSize: 8 },
+    });
+
+    doc.save(`reporte_fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 lg:p-8">
       {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
-             <button className="p-2 hover:bg-slate-800 rounded-full text-slate-400">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
-             </button>
-             <h1 className="text-2xl font-bold">Informe Fiscal Anual</h1>
+             <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                <TrendingUp size={24} />
+             </div>
+             <div>
+                <h1 className="text-2xl font-bold">Panel de Presidencia</h1>
+                <p className="text-slate-400 text-sm">Supervisión de Auditoría y Flujo de Caja</p>
+             </div>
         </div>
-        <button className="text-yellow-500 hover:text-yellow-400 transition-colors">
-            <Download size={24} />
+        <button 
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold px-4 py-2 rounded-lg transition-colors shadow-lg shadow-yellow-500/20"
+        >
+            <Download size={18} />
+            <span>Descargar PDF</span>
         </button>
       </header>
 
-      <div className="mb-8">
-        <button className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-lg text-sm border border-slate-700 hover:bg-slate-700 transition-colors">
-            <Calendar size={16} className="text-yellow-500" />
-            <span>Año Fiscal 2023</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Approved Money */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+              <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-green-500/20 rounded-lg text-green-500">
+                          <CheckCircle2 size={24} />
+                      </div>
+                      <span className="text-xs font-bold bg-green-900/50 text-green-300 px-2 py-1 rounded border border-green-800">
+                          AUDITADO
+                      </span>
+                  </div>
+                  <div className="text-slate-400 text-sm font-medium">Monto Aprobado</div>
+                  <div className="text-3xl font-bold text-white mt-1">${totalApproved.toLocaleString()}</div>
+              </div>
+              <div className="absolute right-0 bottom-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
+          </div>
+
+          {/* Rejected Count */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+              <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-red-500/20 rounded-lg text-red-500">
+                          <XCircle size={24} />
+                      </div>
+                  </div>
+                  <div className="text-slate-400 text-sm font-medium">Pagos Rechazados</div>
+                  <div className="text-3xl font-bold text-white mt-1">{totalRejectedCount}</div>
+                  <p className="text-xs text-red-400 mt-2">Requieren corrección inmediata</p>
+              </div>
+              <div className="absolute right-0 bottom-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
+          </div>
+
+           {/* Pending Count */}
+           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+              <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-yellow-500/20 rounded-lg text-yellow-500">
+                          <Clock size={24} />
+                      </div>
+                  </div>
+                  <div className="text-slate-400 text-sm font-medium">Pendientes de Revisión</div>
+                  <div className="text-3xl font-bold text-white mt-1">{totalPendingCount}</div>
+                   <p className="text-xs text-yellow-400 mt-2">En cola del auditor</p>
+              </div>
+              <div className="absolute right-0 bottom-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl group-hover:bg-yellow-500/20 transition-all"></div>
+          </div>
       </div>
 
-      {/* Hero Card */}
-      <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-3xl p-8 mb-8 relative overflow-hidden shadow-2xl shadow-blue-900/20">
-        <div className="relative z-10">
-            <div className="flex items-center gap-2 text-blue-200 text-sm font-semibold tracking-wider mb-2">
-                <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
-                GASTO TOTAL
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+         {/* Table of Rejected/Approved recent */}
+         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col">
+            <h3 className="text-lg font-bold text-white mb-4">Bitácora de Auditoría Reciente</h3>
+            <div className="overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                {payments.filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED).length === 0 ? (
+                    <div className="text-center text-slate-500 py-10">No hay registros auditados aún.</div>
+                ) : (
+                    <div className="space-y-3">
+                        {payments
+                          .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
+                          .sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
+                          .slice(0, 10) // Show last 10
+                          .map(p => (
+                            <div key={p.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    {p.status === PaymentStatus.APPROVED ? (
+                                        <CheckCircle2 size={18} className="text-green-500" />
+                                    ) : (
+                                        <XCircle size={18} className="text-red-500" />
+                                    )}
+                                    <div>
+                                        <div className="text-sm font-bold text-slate-200">{p.storeName}</div>
+                                        <div className="text-xs text-slate-500">{p.specificType}</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-bold text-slate-200">${p.amount.toLocaleString()}</div>
+                                    <div className="text-[10px] text-slate-500">{new Date(p.submittedDate).toLocaleDateString()}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
-            <div className="text-5xl font-bold text-white mb-4">$12,450,000</div>
-            <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-200 px-3 py-1 rounded-full text-sm font-medium border border-blue-400/30">
-                <ArrowUpRight size={14} />
-                +5.2% vs año anterior
-            </div>
-        </div>
-        <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none">
-            <svg width="300" height="200" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm3-2v-2h3v2Zm5 0v-2h3v2Zm5 0v-2h3v2ZM9 4h10v14h-3v-2h-3v2H9Z" />
-            </svg>
-        </div>
+         </div>
+
+         {/* Distribution Chart */}
+         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center">
+             <h3 className="text-lg font-bold text-white mb-2 self-start w-full">Distribución de Estatus</h3>
+             <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={statusData}
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                        >
+                            {statusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                        </Pie>
+                        <Tooltip 
+                            contentStyle={{backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff'}}
+                            itemStyle={{color: '#fff'}}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+             </div>
+             <div className="flex justify-center gap-4 text-xs">
+                {statusData.map(item => (
+                    <div key={item.name} className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></span>
+                        <span className="text-slate-300">{item.name} ({item.value})</span>
+                    </div>
+                ))}
+             </div>
+         </div>
       </div>
 
-      {/* Compliance Score */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-8">
-        <div className="flex justify-between items-start mb-6">
-            <div>
-                <h3 className="text-slate-400 text-sm font-medium">Cumplimiento a Tiempo</h3>
-                <div className="text-4xl font-bold text-white mt-1">98.4%</div>
-            </div>
-            <div className="bg-green-500/20 p-2 rounded-full text-green-500">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-        </div>
-        <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-            <div className="h-full bg-gradient-to-r from-green-400 to-emerald-600 w-[98.4%] rounded-full"></div>
-        </div>
-        <p className="text-xs text-slate-500">Top 1% del estándar de la industria</p>
-      </div>
-
-      {/* Main Chart */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-8">
+      {/* Historical Trend (Static Mock for now, but context aware) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
          <div className="flex justify-between items-center mb-6">
             <div>
-                <h3 className="font-bold text-lg">Impuestos vs Servicios</h3>
-                <p className="text-slate-500 text-sm">Análisis de tendencia mensual</p>
-            </div>
-            <div className="text-right">
-                <div className="font-bold text-xl">$1.2M</div>
-                <div className="text-slate-500 text-xs uppercase">Prom / Mes</div>
+                <h3 className="font-bold text-lg">Proyección Anual de Gasto</h3>
+                <p className="text-slate-500 text-sm">Basado en históricos y presupuesto</p>
             </div>
          </div>
          
@@ -112,45 +305,6 @@ export const Reports: React.FC = () => {
                 </AreaChart>
             </ResponsiveContainer>
          </div>
-         
-         <div className="flex justify-center gap-6 mt-4">
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-                <span className="w-3 h-3 rounded-full bg-blue-500"></span> Servicios
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-                <span className="w-3 h-3 rounded-full bg-yellow-500"></span> Impuestos
-            </div>
-         </div>
-      </div>
-
-      {/* Top Stores List */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center text-sm font-semibold mb-2">
-            <h3>Top 5 Tiendas por Gasto</h3>
-            <button className="text-yellow-500 hover:text-yellow-400">Ver Todas</button>
-        </div>
-
-        {[
-            { name: 'Sede Principal Caracas', loc: 'Caracas, DC', id: '#1092', amount: '$4.2M', trend: '+12%', trendColor: 'text-red-400' },
-            { name: 'Boutique Las Mercedes', loc: 'Caracas, DC', id: '#2105', amount: '$2.8M', trend: '-2.4%', trendColor: 'text-green-400' },
-            { name: 'Centro Sambil', loc: 'Valencia, CA', id: '#3044', amount: '$2.1M', trend: '+5.1%', trendColor: 'text-red-400' },
-        ].map((store, idx) => (
-            <div key={idx} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center hover:bg-slate-800 transition-colors">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-blue-400">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4 8 4v14M17 21v-8.8M9 10a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11"/></svg>
-                    </div>
-                    <div>
-                        <div className="font-bold text-slate-200">{store.name}</div>
-                        <div className="text-xs text-slate-500">{store.loc} • ID: {store.id}</div>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <div className="font-bold text-white">{store.amount}</div>
-                    <div className={`text-xs ${store.trendColor}`}>{store.trend}</div>
-                </div>
-            </div>
-        ))}
       </div>
     </div>
   );
