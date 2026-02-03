@@ -119,6 +119,33 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   }, [category, muniGroup, muniItem]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+        // Validación de tamaño (5MB = 5 * 1024 * 1024 bytes)
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            setErrors(prev => ({...prev, file: 'El archivo excede el límite de 5MB.'}));
+            setFile(null);
+            return;
+        }
+        
+        // Validación de tipo (Extra check)
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!allowedTypes.includes(selectedFile.type)) {
+             setErrors(prev => ({...prev, file: 'Formato no soportado. Use PDF, JPG o PNG.'}));
+             setFile(null);
+             return;
+        }
+
+        setFile(selectedFile);
+        setErrors(prev => {
+            const newErrs = {...prev};
+            delete newErrs.file;
+            return newErrs;
+        });
+    }
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
@@ -134,7 +161,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    if (!file) newErrors.file = "Comprobante requerido";
+    
+    // Validación final de archivo
+    if (!file) {
+        newErrors.file = "Comprobante requerido";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -408,7 +439,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 </>
                             )}
                         </div>
-                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                        <input 
+                            type="file" 
+                            className="hidden" 
+                            accept=".pdf,.jpg,.jpeg,.png" 
+                            onChange={handleFileChange} 
+                        />
                     </label>
                     {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
                 </div>
@@ -431,7 +467,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         {Object.keys(errors).length > 0 && (
             <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-bottom-2">
                 <AlertCircle size={20} className="shrink-0" />
-                <span className="text-sm font-medium">Hay campos requeridos incompletos. Por favor revise el formulario.</span>
+                <span className="text-sm font-medium">Hay campos requeridos incompletos o errores. Por favor revise el formulario.</span>
             </div>
         )}
 
