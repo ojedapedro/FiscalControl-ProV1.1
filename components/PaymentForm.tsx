@@ -9,7 +9,11 @@ import {
   ChevronDown, 
   CheckCircle2,
   AlertCircle,
-  Calculator
+  Calculator,
+  MapPin,
+  FileText,
+  DollarSign,
+  Info
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -122,15 +126,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     
     // Validar subcategorías municipales
     if (category === Category.MUNICIPAL_TAX) {
-        if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal (ej. Patente)";
-        if (!muniItem) newErrors.muniItem = "Seleccione el concepto específico";
+        if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal";
+        if (!muniItem) newErrors.muniItem = "Seleccione el concepto";
     }
 
-    if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Se requiere un monto válido";
-    if (!dueDate) newErrors.dueDate = "La fecha de vencimiento es obligatoria";
-    if (!paymentDate) newErrors.paymentDate = "La fecha de pago es obligatoria";
-    if (!specificType) newErrors.specificType = "La descripción del tipo es obligatoria";
-    if (!file) newErrors.file = "El comprobante de pago (recibo) es obligatorio";
+    if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Monto inválido";
+    if (!dueDate) newErrors.dueDate = "Fecha requerida";
+    if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
+    if (!specificType) newErrors.specificType = "Descripción requerida";
+    if (!file) newErrors.file = "Comprobante requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -159,94 +163,109 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        <button onClick={onCancel} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <div>
-            <h1 className="text-2xl font-bold text-slate-900">Cargar Pago</h1>
-            <p className="text-slate-500 text-sm">Módulo de Ingreso de Administrador</p>
+    <div className="p-6 lg:p-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+            <button onClick={onCancel} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cargar Nuevo Pago</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Registre los detalles de la transacción para auditoría.</p>
+            </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Store Selection */}
-        <div className="space-y-2">
-            <div className="flex justify-between">
-                <label className="text-sm font-semibold text-slate-900">Seleccionar Tienda</label>
-                {errors.store && <span className="text-red-500 text-xs font-medium">{errors.store}</span>}
-            </div>
-            <div className="relative">
-                <select 
-                    value={store}
-                    onChange={(e) => setStore(e.target.value)}
-                    className={`w-full appearance-none bg-white border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-4 shadow-sm outline-none transition-all`}
-                >
-                    <option value="">Elegir ubicación</option>
-                    {STORES.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                    <ChevronDown size={20} />
+        
+        {/* Section 1: Origen y Clasificación */}
+        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                <MapPin size={16} /> Ubicación y Tipo
+            </h2>
+            
+            <div className="space-y-6">
+                {/* Store Selection */}
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
+                    <div className="relative group">
+                        <select 
+                            value={store}
+                            onChange={(e) => setStore(e.target.value)}
+                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none`}
+                        >
+                            <option value="">Seleccionar ubicación...</option>
+                            {STORES.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                    </div>
+                    {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
+                </div>
+
+                {/* Category Grid */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                            { id: Category.NATIONAL_TAX, label: 'Impuesto Nacional', icon: Landmark, color: 'blue' },
+                            { id: Category.MUNICIPAL_TAX, label: 'Impuesto Municipal', icon: Building2, color: 'indigo' },
+                            { id: Category.UTILITY, label: 'Servicio Público', icon: Zap, color: 'yellow' },
+                        ].map((cat) => {
+                            const Icon = cat.icon;
+                            const isSelected = category === cat.id;
+                            return (
+                                <button
+                                    key={cat.id}
+                                    type="button"
+                                    onClick={() => setCategory(cat.id)}
+                                    className={`relative overflow-hidden flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 group ${
+                                        isSelected 
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
+                                        : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <div className={`p-2 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
+                                        <Icon size={24} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
+                                    </div>
+                                    <span className="text-sm font-bold">{cat.label}</span>
+                                    {isSelected && <div className="absolute top-2 right-2 text-blue-500"><CheckCircle2 size={16} /></div>}
+                                </button>
+                            )
+                        })}
+                    </div>
+                     {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
                 </div>
             </div>
-        </div>
-
-        {/* Categories */}
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <label className="text-sm font-semibold text-slate-900">Categoría de Pago</label>
-            {errors.category && <span className="text-red-500 text-xs font-medium">{errors.category}</span>}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[
-                { id: Category.NATIONAL_TAX, label: 'Impuesto Nacional', icon: Landmark },
-                { id: Category.MUNICIPAL_TAX, label: 'Impuesto Municipal', icon: Building2 },
-                { id: Category.UTILITY, label: 'Servicio Público', icon: Zap },
-            ].map((cat) => {
-                const Icon = cat.icon;
-                const isSelected = category === cat.id;
-                return (
-                    <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setCategory(cat.id)}
-                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                            isSelected 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                            : 'border-slate-100 bg-white hover:border-blue-100 hover:bg-slate-50'
-                        }`}
-                    >
-                        <Icon size={24} className={isSelected ? 'text-blue-600' : 'text-slate-400'} />
-                        <span className="text-sm font-medium">{cat.label}</span>
-                    </button>
-                )
-            })}
-          </div>
-        </div>
+        </section>
 
         {/* Dynamic Municipal Tax Section */}
         {category === Category.MUNICIPAL_TAX && (
-            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 space-y-4 animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 text-blue-800 font-bold mb-1">
-                    <Calculator size={18} />
-                    <h3>Desglose Alcaldía</h3>
+            <section className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800 animate-in slide-in-from-top-4 duration-300 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Calculator size={120} />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Municipal Group (1.1, 1.2, etc.) */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-blue-700 uppercase">Rubro / Grupo</label>
+                <h3 className="text-blue-800 dark:text-blue-300 font-bold mb-4 flex items-center gap-2 relative z-10">
+                    <Calculator size={18} />
+                    Desglose Alcaldía
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase ml-1">Rubro / Grupo</label>
                         <div className="relative">
                             <select
                                 value={muniGroup}
                                 onChange={(e) => {
                                     setMuniGroup(e.target.value);
-                                    setMuniItem(''); // Reset item when group changes
+                                    setMuniItem('');
                                 }}
-                                className={`w-full bg-white border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200'} text-slate-800 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none`}
+                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none transition-colors`}
                             >
                                 <option value="">Seleccione Rubro...</option>
                                 {Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => (
@@ -257,18 +276,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 <ChevronDown size={16} />
                             </div>
                         </div>
-                        {errors.muniGroup && <p className="text-red-500 text-xs">{errors.muniGroup}</p>}
                     </div>
 
-                    {/* Municipal Item (1.1.1, 1.1.2, etc.) */}
-                    <div className="space-y-2">
-                         <label className="text-xs font-bold text-blue-700 uppercase">Concepto Específico</label>
+                    <div className="space-y-1">
+                         <label className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase ml-1">Concepto Específico</label>
                          <div className="relative">
                             <select
                                 value={muniItem}
                                 onChange={(e) => setMuniItem(e.target.value)}
                                 disabled={!muniGroup}
-                                className={`w-full bg-white border ${errors.muniItem ? 'border-red-300' : 'border-blue-200'} text-slate-800 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:text-slate-400`}
+                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniItem ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 transition-colors`}
                             >
                                 <option value="">Seleccione Concepto...</option>
                                 {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
@@ -281,133 +298,169 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 <ChevronDown size={16} />
                             </div>
                         </div>
-                         {errors.muniItem && <p className="text-red-500 text-xs">{errors.muniItem}</p>}
                     </div>
                 </div>
-            </div>
+            </section>
         )}
 
-        {/* Specific Type (Read-only for Municipal, Editable for others) */}
-        <div className="space-y-2">
-             <div className="flex justify-between">
-                <label className="text-sm font-semibold text-slate-900">Descripción Final</label>
-                {errors.specificType && <span className="text-red-500 text-xs font-medium">{errors.specificType}</span>}
-             </div>
-             <input
-                type="text"
-                placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz"}
-                value={specificType}
-                readOnly={category === Category.MUNICIPAL_TAX}
-                onChange={(e) => setSpecificType(e.target.value)}
-                className={`bg-white border ${errors.specificType ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none ${category === Category.MUNICIPAL_TAX ? 'bg-slate-50 text-slate-600' : ''}`}
-             />
-        </div>
+        {/* Section 2: Detalles Financieros */}
+        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                <DollarSign size={16} /> Detalles Financieros
+            </h2>
 
-        {/* Amount & Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-900">Monto</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 font-bold">$</div>
-                    <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className={`bg-white border ${errors.amount ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono`}
-                    />
+            <div className="space-y-6">
+                {/* Specific Type */}
+                <div>
+                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
+                     <div className="relative group">
+                        <input
+                            type="text"
+                            placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
+                            value={specificType}
+                            readOnly={category === Category.MUNICIPAL_TAX}
+                            onChange={(e) => setSpecificType(e.target.value)}
+                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        />
+                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                     </div>
+                     {errors.specificType && <p className="text-red-500 text-xs mt-1 ml-1">{errors.specificType}</p>}
                 </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-900">Fecha de Vencimiento</label>
-                <div className="relative">
-                    <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className={`bg-white border ${errors.dueDate ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none`}
-                    />
-                    <CalendarIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
-                </div>
-            </div>
-             <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-900">Fecha de Pago</label>
-                <div className="relative">
-                    <input
-                        type="date"
-                        value={paymentDate}
-                        onChange={(e) => setPaymentDate(e.target.value)}
-                        className={`bg-white border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none`}
-                    />
-                    <CalendarIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
-                </div>
-            </div>
-        </div>
 
-        {/* File Upload */}
-        <div className="space-y-2">
-            <div className="flex justify-between">
-                <label className="text-sm font-semibold text-slate-900">Comprobante de Pago</label>
-                {errors.file && <span className="text-red-500 text-xs font-medium">{errors.file}</span>}
-            </div>
-            <div className="flex items-center justify-center w-full">
-                <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors ${file ? 'border-green-400 bg-green-50' : errors.file ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-slate-50'}`}>
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        {file ? (
-                            <>
-                                <CheckCircle2 className="w-10 h-10 text-green-500 mb-3" />
-                                <p className="text-sm text-green-700 font-medium">{file.name}</p>
-                                <p className="text-xs text-green-600">{(file.size / 1024 / 1024).toFixed(2)} MB - Clic para cambiar</p>
-                            </>
-                        ) : (
-                            <>
-                                <div className="p-3 bg-blue-100 rounded-full mb-3 text-blue-500">
-                                    <Upload size={24} />
-                                </div>
-                                <p className="mb-2 text-sm text-slate-700"><span className="font-semibold">Clic para subir recibo</span></p>
-                                <p className="text-xs text-slate-500">PDF, JPG o PNG (máx. 5MB)</p>
-                            </>
-                        )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Amount */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monto Total</label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-blue-500 font-bold transition-colors">$</div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
+                            />
+                        </div>
+                        {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
                     </div>
-                    <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                </label>
-            </div>
-        </div>
 
-        {/* Notes */}
-        <div className="space-y-2">
-             <label className="text-sm font-semibold text-slate-400">Notas (Opcional)</label>
-             <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Añadir detalles para el auditor..."
-                className="bg-white border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none resize-none"
-             ></textarea>
-        </div>
+                    {/* Due Date */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
+                        <div className="relative group">
+                            <input
+                                type="date"
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all`}
+                            />
+                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                        </div>
+                        {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
+                    </div>
+
+                     {/* Payment Date */}
+                     <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha de Pago</label>
+                        <div className="relative group">
+                            <input
+                                type="date"
+                                value={paymentDate}
+                                onChange={(e) => setPaymentDate(e.target.value)}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all`}
+                            />
+                            <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors" size={20} />
+                        </div>
+                        {errors.paymentDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.paymentDate}</p>}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {/* Section 3: Soportes y Notas */}
+        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                <Upload size={16} /> Soportes y Notas
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* File Upload */}
+                <div>
+                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
+                     <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group ${file ? 'border-green-400 bg-green-50 dark:bg-green-900/10' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'}`}>
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                            {file ? (
+                                <>
+                                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
+                                        <CheckCircle2 size={24} />
+                                    </div>
+                                    <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full">{file.name}</p>
+                                    <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Listo</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={`p-3 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
+                                        <Upload size={24} />
+                                    </div>
+                                    <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir imagen o PDF</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-500">Máximo 5MB</p>
+                                </>
+                            )}
+                        </div>
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+                </div>
+
+                {/* Notes */}
+                <div className="flex flex-col">
+                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
+                     <div className="relative h-full">
+                         <textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Añada notas adicionales para el auditor..."
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-40 p-4 shadow-sm outline-none resize-none transition-all"
+                         ></textarea>
+                     </div>
+                </div>
+            </div>
+        </section>
 
         {Object.keys(errors).length > 0 && (
-            <div className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-xl">
-                <AlertCircle size={20} />
-                <span className="text-sm font-medium">Por favor corrija los errores anteriores antes de enviar.</span>
+            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-bottom-2">
+                <AlertCircle size={20} className="shrink-0" />
+                <span className="text-sm font-medium">Hay campos requeridos incompletos. Por favor revise el formulario.</span>
             </div>
         )}
 
-        <button 
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-        >
-            {isSubmitting ? (
-                <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Guardando Pago...
-                </>
-            ) : (
-                'Enviar a Auditoría'
-            )}
-        </button>
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse md:flex-row gap-4">
+            <button 
+                type="button"
+                onClick={onCancel}
+                className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+                Cancelar
+            </button>
+            <button 
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full md:flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+                {isSubmitting ? (
+                    <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Procesando...
+                    </>
+                ) : (
+                    <>
+                        <span>Enviar a Auditoría</span>
+                        <CheckCircle2 size={20} />
+                    </>
+                )}
+            </button>
+        </div>
       </form>
     </div>
   );
