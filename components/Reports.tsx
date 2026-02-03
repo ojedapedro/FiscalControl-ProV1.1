@@ -46,15 +46,15 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
     try {
-        // Importación dinámica para prevenir errores de carga inicial si fallan los módulos
-        const jsPDFModule = await import('jspdf');
-        const autoTableModule = await import('jspdf-autotable');
+        // Importación dinámica
+        const jsPDFModule: any = await import('jspdf');
+        const autoTableModule: any = await import('jspdf-autotable');
         
-        // Manejar exportaciones por defecto de ESM
-        const JsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF || jsPDFModule;
+        // Obtener el constructor correcto
+        const JsPDF = jsPDFModule.default || jsPDFModule.jsPDF || jsPDFModule;
         const autoTable = autoTableModule.default || autoTableModule;
 
-        const doc = new (JsPDF as any)();
+        const doc = new JsPDF();
 
         // Header
         doc.setFontSize(20);
