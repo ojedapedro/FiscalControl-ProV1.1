@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -14,18 +14,17 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { REPORT_DATA } from '../constants';
 import { Payment, PaymentStatus } from '../types';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2 } from 'lucide-react';
 
 interface ReportsProps {
   payments: Payment[];
 }
 
 export const Reports: React.FC<ReportsProps> = ({ payments }) => {
-  
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
   // KPI Calculations
   const totalApproved = payments
     .filter(p => p.status === PaymentStatus.APPROVED)
@@ -44,87 +43,106 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     { name: 'Pendientes', value: totalPendingCount, color: '#eab308' },
   ];
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPdf(true);
+    try {
+        // Importación dinámica para prevenir errores de carga inicial si fallan los módulos
+        const jsPDFModule = await import('jspdf');
+        const autoTableModule = await import('jspdf-autotable');
+        
+        // Manejar exportaciones por defecto de ESM
+        const JsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF || jsPDFModule;
+        const autoTable = autoTableModule.default || autoTableModule;
 
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(41, 128, 185);
-    doc.text("Reporte de Control Fiscal", 14, 22);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
-    doc.text("Presidencia - Auditoría de Pagos", 14, 33);
+        const doc = new (JsPDF as any)();
 
-    // Summary Section
-    doc.setDrawColor(200);
-    doc.line(14, 40, 196, 40);
-    
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text("Resumen Ejecutivo:", 14, 48);
-    
-    const summaryData = [
-        [`Total Aprobado ($): $${totalApproved.toLocaleString()}`, `Transacciones Aprobadas: ${approvedPayments.length}`],
-        [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
-    ];
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(41, 128, 185);
+        doc.text("Reporte de Control Fiscal", 14, 22);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
+        doc.text("Presidencia - Auditoría de Pagos", 14, 33);
 
-    autoTable(doc, {
-        startY: 52,
-        body: summaryData,
-        theme: 'plain',
-        styles: { fontSize: 10, cellPadding: 1 },
-        columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
-    });
+        // Summary Section
+        doc.setDrawColor(200);
+        doc.line(14, 40, 196, 40);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text("Resumen Ejecutivo:", 14, 48);
+        
+        const summaryData = [
+            [`Total Aprobado ($): $${totalApproved.toLocaleString()}`, `Transacciones Aprobadas: ${approvedPayments.length}`],
+            [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
+        ];
 
-    // Approved Table
-    doc.setFontSize(12);
-    doc.setTextColor(34, 197, 94); // Green
-    let finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text("Detalle de Pagos Aprobados", 14, finalY);
+        // Usar autoTable
+        if (typeof autoTable === 'function') {
+             autoTable(doc, {
+                startY: 52,
+                body: summaryData,
+                theme: 'plain',
+                styles: { fontSize: 10, cellPadding: 1 },
+                columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
+            });
 
-    autoTable(doc, {
-        startY: finalY + 4,
-        head: [['Ref', 'Tienda', 'Concepto', 'Fecha', 'Monto ($)']],
-        body: approvedPayments.map(p => [
-            p.id, 
-            p.storeName, 
-            p.specificType, 
-            p.dueDate, 
-            p.amount.toLocaleString()
-        ]),
-        headStyles: { fillColor: [34, 197, 94] },
-        styles: { fontSize: 8 },
-    });
+            // Approved Table
+            doc.setFontSize(12);
+            doc.setTextColor(34, 197, 94); // Green
+            let finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 10 : 60;
+            doc.text("Detalle de Pagos Aprobados", 14, finalY);
 
-    // Rejected Table
-    doc.setFontSize(12);
-    doc.setTextColor(239, 68, 68); // Red
-    finalY = (doc as any).lastAutoTable.finalY + 10;
-    
-    // Check if page break is needed
-    if (finalY > 250) {
-        doc.addPage();
-        finalY = 20;
+            autoTable(doc, {
+                startY: finalY + 4,
+                head: [['Ref', 'Tienda', 'Concepto', 'Fecha', 'Monto ($)']],
+                body: approvedPayments.map(p => [
+                    p.id, 
+                    p.storeName, 
+                    p.specificType, 
+                    p.dueDate, 
+                    p.amount.toLocaleString()
+                ]),
+                headStyles: { fillColor: [34, 197, 94] },
+                styles: { fontSize: 8 },
+            });
+
+            // Rejected Table
+            doc.setFontSize(12);
+            doc.setTextColor(239, 68, 68); // Red
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+            
+            // Check if page break is needed
+            if (finalY > 250) {
+                doc.addPage();
+                finalY = 20;
+            }
+
+            doc.text("Detalle de Pagos Rechazados", 14, finalY);
+
+            autoTable(doc, {
+                startY: finalY + 4,
+                head: [['Ref', 'Tienda', 'Motivo Rechazo', 'Monto ($)']],
+                body: rejectedPayments.map(p => [
+                    p.id, 
+                    p.storeName, 
+                    p.rejectionReason || 'N/A', 
+                    p.amount.toLocaleString()
+                ]),
+                headStyles: { fillColor: [239, 68, 68] },
+                styles: { fontSize: 8 },
+            });
+        }
+
+        doc.save(`reporte_fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+        console.error("Error generando PDF:", error);
+        alert("Hubo un error cargando el módulo de reportes. Por favor intente nuevamente.");
+    } finally {
+        setIsGeneratingPdf(false);
     }
-
-    doc.text("Detalle de Pagos Rechazados", 14, finalY);
-
-    autoTable(doc, {
-        startY: finalY + 4,
-        head: [['Ref', 'Tienda', 'Motivo Rechazo', 'Monto ($)']],
-        body: rejectedPayments.map(p => [
-            p.id, 
-            p.storeName, 
-            p.rejectionReason || 'N/A', 
-            p.amount.toLocaleString()
-        ]),
-        headStyles: { fillColor: [239, 68, 68] },
-        styles: { fontSize: 8 },
-    });
-
-    doc.save(`reporte_fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   return (
@@ -142,10 +160,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         </div>
         <button 
             onClick={handleDownloadPDF}
-            className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold px-4 py-2 rounded-lg transition-colors shadow-lg shadow-yellow-500/20"
+            disabled={isGeneratingPdf}
+            className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-slate-900 font-bold px-4 py-2 rounded-lg transition-colors shadow-lg shadow-yellow-500/20"
         >
-            <Download size={18} />
-            <span>Descargar PDF</span>
+            {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            <span>{isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}</span>
         </button>
       </header>
 
@@ -271,7 +290,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
          </div>
       </div>
 
-      {/* Historical Trend (Static Mock for now, but context aware) */}
+      {/* Historical Trend */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
          <div className="flex justify-between items-center mb-6">
             <div>
