@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -43,18 +43,19 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     { name: 'Pendientes', value: totalPendingCount, color: '#eab308' },
   ];
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
     try {
-        // Importación dinámica
-        const jsPDFModule: any = await import('jspdf');
-        const autoTableModule: any = await import('jspdf-autotable');
+        // Acceder a jspdf desde el objeto global window (inyectado en index.html)
+        // Esto evita que Vercel/Rollup intente resolver el paquete 'jspdf' durante el build
+        const w = window as any;
         
-        // Obtener el constructor correcto
-        const JsPDF = jsPDFModule.default || jsPDFModule.jsPDF || jsPDFModule;
-        const autoTable = autoTableModule.default || autoTableModule;
+        if (!w.jspdf) {
+            throw new Error("La librería de PDF no se ha cargado correctamente.");
+        }
 
-        const doc = new JsPDF();
+        const { jsPDF } = w.jspdf;
+        const doc = new jsPDF();
 
         // Header
         doc.setFontSize(20);
@@ -79,9 +80,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
         ];
 
-        // Usar autoTable
-        if (typeof autoTable === 'function') {
-             autoTable(doc, {
+        // autoTable se adjunta al prototipo de jsPDF cuando se carga el script globalmente
+        if (doc.autoTable) {
+             doc.autoTable({
                 startY: 52,
                 body: summaryData,
                 theme: 'plain',
@@ -92,10 +93,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             // Approved Table
             doc.setFontSize(12);
             doc.setTextColor(34, 197, 94); // Green
-            let finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 10 : 60;
+            let finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 60;
             doc.text("Detalle de Pagos Aprobados", 14, finalY);
 
-            autoTable(doc, {
+            doc.autoTable({
                 startY: finalY + 4,
                 head: [['Ref', 'Tienda', 'Concepto', 'Fecha', 'Monto ($)']],
                 body: approvedPayments.map(p => [
@@ -112,7 +113,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             // Rejected Table
             doc.setFontSize(12);
             doc.setTextColor(239, 68, 68); // Red
-            finalY = (doc as any).lastAutoTable.finalY + 10;
+            finalY = doc.lastAutoTable.finalY + 10;
             
             // Check if page break is needed
             if (finalY > 250) {
@@ -122,7 +123,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
 
             doc.text("Detalle de Pagos Rechazados", 14, finalY);
 
-            autoTable(doc, {
+            doc.autoTable({
                 startY: finalY + 4,
                 head: [['Ref', 'Tienda', 'Motivo Rechazo', 'Monto ($)']],
                 body: rejectedPayments.map(p => [
@@ -134,12 +135,14 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 headStyles: { fillColor: [239, 68, 68] },
                 styles: { fontSize: 8 },
             });
+        } else {
+             console.warn("AutoTable plugin not loaded");
         }
 
         doc.save(`reporte_fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
         console.error("Error generando PDF:", error);
-        alert("Hubo un error cargando el módulo de reportes. Por favor intente nuevamente.");
+        alert("Hubo un error generando el PDF. Asegúrese de tener conexión a internet para cargar las librerías.");
     } finally {
         setIsGeneratingPdf(false);
     }
