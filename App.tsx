@@ -216,7 +216,7 @@ function App() {
       case 'network':
         return <StoreStatus />;
       case 'calendar':
-        return <CalendarView />;
+        return <CalendarView payments={payments} />;
       case 'settings':
         return <div className="p-10 text-center text-slate-400 dark:text-slate-500">Módulo de Configuración (Próximamente)</div>;
       default:
