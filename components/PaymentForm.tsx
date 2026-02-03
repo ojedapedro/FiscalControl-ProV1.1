@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Landmark, 
@@ -7,10 +8,69 @@ import {
   Calendar as CalendarIcon, 
   ChevronDown, 
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Calculator
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
+
+// Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
+const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'PATENTE': {
+    label: '1.1 PATENTE',
+    items: [
+      { code: '1.1.1', name: 'RENOVACION DE PATENTE', amount: 150.00 },
+      { code: '1.1.2', name: 'CODIGO 1 AL MAYOR DE PINTURA', amount: 20.00 },
+      { code: '1.1.3', name: 'CODIGO 2 AL DETAL DE PINTURA', amount: 20.00 },
+      { code: '1.1.4', name: 'CODIGO 3 AL MAYOR DE FERRETERIA', amount: 20.00 },
+      { code: '1.1.5', name: 'CODIGO 4 AL DETAL DE FERRETERIA', amount: 20.00 },
+      { code: '1.1.6', name: 'CODIGO 5 SERVICIOS OBRAS', amount: 20.00 },
+      { code: '1.1.7', name: 'PORCENTAJE DE VENTAS TOTALES', isVariable: true },
+    ]
+  },
+  'VISTO_BUENO': {
+    label: '1.2 VISTO BUENO',
+    items: [
+      { code: '1.2.1', name: 'INVEPINCA (TRAMITE)', amount: 150.00 }
+    ]
+  },
+  'IMA': {
+    label: '1.3 IMA (ASEO URBANO)',
+    items: [
+      { code: '1.3.1', name: 'INVEPINCA (TARIFA ASEO)', amount: 50.00 }
+    ]
+  },
+  'CATASTRO': {
+    label: '1.4 CEDULA CATASTRAL',
+    items: [
+      { code: '1.4.1', name: 'INVEPINCA (CATASTRO)', amount: 150.00 }
+    ]
+  },
+  'INMOBILIARIO': {
+    label: '1.5 IMPUESTO INMOBILIARIO',
+    items: [
+      { code: '1.5.1', name: 'INVEPINCA (INMUEBLE)', amount: 400.00 }
+    ]
+  },
+  'PUBLICIDAD': {
+    label: '1.6 PUBLICIDAD',
+    items: [
+      { code: '1.6.1', name: 'PUBLICIDAD SUCURSAL 1', amount: 100.00 },
+      { code: '1.6.2', name: 'PUBLICIDAD SUCURSAL 2', amount: 100.00 }
+    ]
+  },
+  'BOMBEROS': {
+    label: '1.7 BOMBEROS',
+    items: [
+      { code: '1.7.1', name: 'PLAN DE EMERGENCIA', amount: 50.00 },
+      { code: '1.7.2', name: 'PAGO DE ARANCELES PLAN', amount: 120.00 },
+      { code: '1.7.3', name: 'EXTINTORES', amount: 350.00 },
+      { code: '1.7.4', name: 'CONTRATO DE MANTENIMIENTO', amount: 100.00 },
+      { code: '1.7.5', name: 'PAGO DE ARANCELES USO CONFORME', amount: 80.00 },
+      { code: '1.7.6', name: 'USO CONFORME', amount: 0.00 },
+    ]
+  }
+};
 
 interface PaymentFormProps {
   onSubmit: (data: any) => void;
@@ -20,6 +80,11 @@ interface PaymentFormProps {
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) => {
   const [store, setStore] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
+  
+  // States for Municipal Tax Logic
+  const [muniGroup, setMuniGroup] = useState('');
+  const [muniItem, setMuniItem] = useState('');
+
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -29,10 +94,38 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Auto-fill logic based on municipal selection
+  useEffect(() => {
+    if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
+      const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
+      const itemData = groupData?.items.find(i => i.code === muniItem);
+      
+      if (itemData) {
+        setSpecificType(`${itemData.code} - ${itemData.name}`);
+        if (itemData.amount !== undefined && !itemData.isVariable) {
+          setAmount(itemData.amount.toString());
+        } else if (itemData.isVariable) {
+           setAmount(''); // Reset for manual input
+        }
+      }
+    } else if (category !== Category.MUNICIPAL_TAX) {
+        // Reset sub-selections if category changes
+        setMuniGroup('');
+        setMuniItem('');
+    }
+  }, [category, muniGroup, muniItem]);
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
+    
+    // Validar subcategorías municipales
+    if (category === Category.MUNICIPAL_TAX) {
+        if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal (ej. Patente)";
+        if (!muniItem) newErrors.muniItem = "Seleccione el concepto específico";
+    }
+
     if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Se requiere un monto válido";
     if (!dueDate) newErrors.dueDate = "La fecha de vencimiento es obligatoria";
     if (!paymentDate) newErrors.paymentDate = "La fecha de pago es obligatoria";
@@ -134,18 +227,79 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
           </div>
         </div>
 
-        {/* Specific Type */}
+        {/* Dynamic Municipal Tax Section */}
+        {category === Category.MUNICIPAL_TAX && (
+            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 space-y-4 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 text-blue-800 font-bold mb-1">
+                    <Calculator size={18} />
+                    <h3>Desglose Alcaldía</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Municipal Group (1.1, 1.2, etc.) */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-blue-700 uppercase">Rubro / Grupo</label>
+                        <div className="relative">
+                            <select
+                                value={muniGroup}
+                                onChange={(e) => {
+                                    setMuniGroup(e.target.value);
+                                    setMuniItem(''); // Reset item when group changes
+                                }}
+                                className={`w-full bg-white border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200'} text-slate-800 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none`}
+                            >
+                                <option value="">Seleccione Rubro...</option>
+                                {Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => (
+                                    <option key={key} value={key}>{config.label}</option>
+                                ))}
+                            </select>
+                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                <ChevronDown size={16} />
+                            </div>
+                        </div>
+                        {errors.muniGroup && <p className="text-red-500 text-xs">{errors.muniGroup}</p>}
+                    </div>
+
+                    {/* Municipal Item (1.1.1, 1.1.2, etc.) */}
+                    <div className="space-y-2">
+                         <label className="text-xs font-bold text-blue-700 uppercase">Concepto Específico</label>
+                         <div className="relative">
+                            <select
+                                value={muniItem}
+                                onChange={(e) => setMuniItem(e.target.value)}
+                                disabled={!muniGroup}
+                                className={`w-full bg-white border ${errors.muniItem ? 'border-red-300' : 'border-blue-200'} text-slate-800 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:text-slate-400`}
+                            >
+                                <option value="">Seleccione Concepto...</option>
+                                {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
+                                    <option key={item.code} value={item.code}>
+                                        {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                <ChevronDown size={16} />
+                            </div>
+                        </div>
+                         {errors.muniItem && <p className="text-red-500 text-xs">{errors.muniItem}</p>}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Specific Type (Read-only for Municipal, Editable for others) */}
         <div className="space-y-2">
              <div className="flex justify-between">
-                <label className="text-sm font-semibold text-slate-900">Descripción / Tipo</label>
+                <label className="text-sm font-semibold text-slate-900">Descripción Final</label>
                 {errors.specificType && <span className="text-red-500 text-xs font-medium">{errors.specificType}</span>}
              </div>
              <input
                 type="text"
-                placeholder="ej. IVA Octubre, ISLR, Factura Luz"
+                placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz"}
                 value={specificType}
+                readOnly={category === Category.MUNICIPAL_TAX}
                 onChange={(e) => setSpecificType(e.target.value)}
-                className={`bg-white border ${errors.specificType ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none`}
+                className={`bg-white border ${errors.specificType ? 'border-red-300' : 'border-slate-200'} text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-4 shadow-sm outline-none ${category === Category.MUNICIPAL_TAX ? 'bg-slate-50 text-slate-600' : ''}`}
              />
         </div>
 
