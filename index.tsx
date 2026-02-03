@@ -5,11 +5,11 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
 
-// Componente para capturar errores y mostrar algo útil en lugar de pantalla blanca
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any, errorInfo: any}> {
+// Componente para capturar errores de renderizado (Error Boundary)
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
   constructor(props: any) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: any) {
@@ -17,44 +17,38 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error("CRITICAL APP ERROR:", error, errorInfo);
-    this.setState({ errorInfo });
+    console.error("React Error Boundary caught:", error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center font-sans">
-          <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl max-w-2xl">
-            <h1 className="text-2xl font-bold text-red-400 mb-4">Algo salió mal</h1>
-            <p className="mb-4 text-slate-300">La aplicación ha encontrado un error crítico al iniciarse.</p>
-            <div className="bg-black/50 p-4 rounded-lg text-left overflow-auto max-h-60 text-xs font-mono mb-4 text-red-200">
-              {this.state.error && this.state.error.toString()}
-              <br />
-              {this.state.errorInfo && this.state.errorInfo.componentStack}
-            </div>
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
+          <div className="bg-red-900/20 border border-red-500/50 p-6 rounded-xl max-w-lg">
+            <h1 className="text-xl font-bold text-red-400 mb-2">Error de Aplicación</h1>
+            <p className="text-sm text-slate-300 mb-4">La aplicación encontró un problema inesperado.</p>
+            <pre className="text-xs bg-black/50 p-4 rounded text-left overflow-auto max-h-40 text-red-200 font-mono">
+              {this.state.error?.toString()}
+            </pre>
             <button 
               onClick={() => window.location.reload()} 
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition-colors"
+              className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold transition-colors"
             >
-              Recargar Aplicación
+              Intentar Recargar
             </button>
           </div>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
 
-const rootElement = document.getElementById('root');
+const container = document.getElementById('root');
 
-if (!rootElement) {
-  console.error("FATAL: No root element found");
-} else {
+if (container) {
   try {
-    const root = ReactDOM.createRoot(rootElement);
+    const root = ReactDOM.createRoot(container);
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
@@ -64,9 +58,11 @@ if (!rootElement) {
         </ErrorBoundary>
       </React.StrictMode>
     );
-    console.log("React mount initiated successfully");
-  } catch (err) {
-    console.error("Error during React mounting:", err);
-    rootElement.innerHTML = `<div style="padding: 20px; color: red;">Error mounting React app: ${err}</div>`;
+    console.log("React app mounted successfully.");
+  } catch (e) {
+    console.error("Failed to mount React app:", e);
+    container.innerHTML = '<div style="color:red; padding:20px;">Fatal Error: Failed to mount application. Check console.</div>';
   }
+} else {
+  console.error("FATAL: Element with id 'root' not found in the document.");
 }
