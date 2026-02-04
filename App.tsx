@@ -9,7 +9,7 @@ import { StoreStatus } from './components/StoreStatus';
 import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
 import { INITIAL_PAYMENTS, STORES } from './constants';
-import { Payment, PaymentStatus, Role } from './types';
+import { Payment, PaymentStatus, Role, AuditLog } from './types';
 import { X, BellRing, Bell } from 'lucide-react';
 
 function App() {
@@ -137,6 +137,13 @@ function App() {
   };
 
   const handleNewPayment = (paymentData: any) => {
+    const initialLog: AuditLog = {
+      date: new Date().toISOString(),
+      action: 'CREACION',
+      actorName: 'Usuario Actual', // En una app real vendría del auth
+      role: currentRole
+    };
+
     const newPayment: Payment = {
       id: `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
@@ -149,7 +156,8 @@ function App() {
       paymentDate: paymentData.paymentDate,
       status: PaymentStatus.PENDING, // Por defecto entra como pendiente
       submittedDate: new Date().toISOString(),
-      notes: paymentData.notes
+      notes: paymentData.notes,
+      history: [initialLog]
     };
 
     setPayments(prev => [newPayment, ...prev]);
@@ -159,13 +167,47 @@ function App() {
   };
 
   const handleApprove = (id: string) => {
-      setPayments(prev => prev.map(p => p.id === id ? { ...p, status: PaymentStatus.APPROVED } : p));
+      const log: AuditLog = {
+        date: new Date().toISOString(),
+        action: 'APROBACION',
+        actorName: 'Auditor en Turno',
+        role: Role.AUDITOR
+      };
+
+      setPayments(prev => prev.map(p => {
+        if (p.id === id) {
+          return {
+            ...p,
+            status: PaymentStatus.APPROVED,
+            history: p.history ? [...p.history, log] : [log]
+          };
+        }
+        return p;
+      }));
       setNotification(`Pago ${id} Aprobado`);
       setTimeout(() => setNotification(null), 3000);
   };
 
   const handleReject = (id: string, reason: string) => {
-      setPayments(prev => prev.map(p => p.id === id ? { ...p, status: PaymentStatus.REJECTED, rejectionReason: reason } : p));
+      const log: AuditLog = {
+        date: new Date().toISOString(),
+        action: 'RECHAZO',
+        actorName: 'Auditor en Turno',
+        role: Role.AUDITOR,
+        note: reason
+      };
+
+      setPayments(prev => prev.map(p => {
+        if (p.id === id) {
+          return {
+            ...p,
+            status: PaymentStatus.REJECTED,
+            rejectionReason: reason,
+            history: p.history ? [...p.history, log] : [log]
+          };
+        }
+        return p;
+      }));
       setNotification(`Pago ${id} Rechazado`);
       setTimeout(() => setNotification(null), 3000);
   };

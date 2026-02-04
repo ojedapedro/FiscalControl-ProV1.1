@@ -1,5 +1,5 @@
 
-import { Category, Payment, PaymentStatus, Store, AlertItem } from './types';
+import { Category, Payment, PaymentStatus, Store, AlertItem, Role } from './types';
 
 export const STORES: Store[] = [
   { id: 'S101', name: 'Tienda 101 - Principal', location: 'Caracas, DC', status: 'En Regla', nextDeadline: '2023-11-15', matrixId: 'HQ-01' },
@@ -22,7 +22,10 @@ export const INITIAL_PAYMENTS: Payment[] = [
     paymentDate: '2023-10-24',
     status: PaymentStatus.PENDING,
     submittedDate: '2023-10-24T10:00:00',
-    notes: 'Por favor revisar pronto, fecha límite acercándose.'
+    notes: 'Por favor revisar pronto, fecha límite acercándose.',
+    history: [
+      { date: '2023-10-24T10:00:00', action: 'CREACION', actorName: 'Juan Pérez', role: Role.ADMIN, note: 'Carga inicial del documento' }
+    ]
   },
   {
     id: 'PAG-8833',
@@ -35,6 +38,10 @@ export const INITIAL_PAYMENTS: Payment[] = [
     dueDate: '2023-10-20',
     status: PaymentStatus.OVERDUE,
     submittedDate: '2023-10-15T09:30:00',
+    history: [
+      { date: '2023-10-15T09:30:00', action: 'CREACION', actorName: 'Maria Rodriguez', role: Role.ADMIN },
+      { date: '2023-10-21T08:00:00', action: 'ACTUALIZACION', actorName: 'Sistema', role: Role.ADMIN, note: 'Marcado como vencido automáticamente' }
+    ]
   },
   {
     id: 'PAG-8834',
@@ -48,6 +55,9 @@ export const INITIAL_PAYMENTS: Payment[] = [
     paymentDate: '2023-10-22',
     status: PaymentStatus.PENDING,
     submittedDate: '2023-10-22T14:15:00',
+    history: [
+      { date: '2023-10-22T14:15:00', action: 'CREACION', actorName: 'Juan Pérez', role: Role.ADMIN }
+    ]
   },
   {
     id: 'PAG-8835',
@@ -61,6 +71,10 @@ export const INITIAL_PAYMENTS: Payment[] = [
     paymentDate: '2023-10-20',
     status: PaymentStatus.APPROVED,
     submittedDate: '2023-10-20T11:00:00',
+    history: [
+      { date: '2023-10-20T11:00:00', action: 'CREACION', actorName: 'Pedro Gomez', role: Role.ADMIN },
+      { date: '2023-10-20T14:30:00', action: 'APROBACION', actorName: 'Auditor Jefe', role: Role.AUDITOR, note: 'Comprobante verificado con banco' }
+    ]
   },
   {
     id: 'PAG-8836',
@@ -74,6 +88,9 @@ export const INITIAL_PAYMENTS: Payment[] = [
     paymentDate: '2023-10-23',
     status: PaymentStatus.UPLOADED,
     submittedDate: '2023-10-23T16:45:00',
+    history: [
+      { date: '2023-10-23T16:45:00', action: 'CREACION', actorName: 'Juan Pérez', role: Role.ADMIN }
+    ]
   }
 ];
 

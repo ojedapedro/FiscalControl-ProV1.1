@@ -15,7 +15,11 @@ import {
   Filter, 
   Building2, 
   Download,
-  CheckSquare
+  CheckSquare,
+  History,
+  User,
+  FileCheck,
+  FileX
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -79,6 +83,15 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
           onApprove(selectedId);
           setSelectedId(null);
       }
+  };
+
+  const renderHistoryIcon = (action: string) => {
+    switch(action) {
+      case 'APROBACION': return <CheckCircle2 size={16} className="text-green-500" />;
+      case 'RECHAZO': return <XCircle size={16} className="text-red-500" />;
+      case 'CREACION': return <FileCheck size={16} className="text-blue-500" />;
+      default: return <Clock size={16} className="text-slate-400" />;
+    }
   };
 
   return (
@@ -302,6 +315,54 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                             <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">{item}</span>
                                         </label>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* NUEVA SECCIÓN: HISTORIAL DE AUDITORÍA */}
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <History size={16} className="text-slate-400" />
+                                    Historial de Auditoría
+                                </h3>
+                                
+                                <div className="space-y-4 relative pl-2">
+                                    {/* Linea vertical conectora */}
+                                    <div className="absolute top-2 bottom-2 left-5 w-px bg-slate-200 dark:bg-slate-800"></div>
+
+                                    {selectedPayment.history && selectedPayment.history.length > 0 ? (
+                                        [...selectedPayment.history].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index) => (
+                                            <div key={index} className="relative pl-8">
+                                                <div className="absolute left-0 top-0.5 p-1 bg-white dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 z-10">
+                                                    {renderHistoryIcon(log.action)}
+                                                </div>
+                                                
+                                                <div className="flex flex-col">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{log.action}</span>
+                                                        <span className="text-[10px] text-slate-400 font-mono">
+                                                            {new Date(log.date).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                        <User size={10} />
+                                                        <span>{log.actorName}</span>
+                                                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{log.role}</span>
+                                                    </div>
+
+                                                    {log.note && (
+                                                        <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 p-2 rounded border border-red-100 dark:border-red-800/30">
+                                                            {log.note}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-4 text-xs text-slate-400 italic">
+                                            Sin registros históricos disponibles.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

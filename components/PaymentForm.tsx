@@ -7,13 +7,14 @@ import {
   Upload, 
   Calendar as CalendarIcon, 
   ChevronDown, 
-  CheckCircle2,
+  CheckCircle2, 
   AlertCircle,
   Calculator,
   MapPin,
   FileText,
   DollarSign,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -96,7 +97,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Estados de carga
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
+  const [isFileScanning, setIsFileScanning] = useState(false);
 
   // Auto-fill logic based on municipal selection
   useEffect(() => {
@@ -119,7 +124,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   }, [category, muniGroup, muniItem]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
         // Validación de tamaño (5MB = 5 * 1024 * 1024 bytes)
@@ -137,7 +142,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
              return;
         }
 
+        // Simular escaneo y carga del archivo
+        setIsFileScanning(true);
+        setFile(null); // Limpiar visualmente mientras carga
+        
+        // Simulación de delay (e.g. subida a S3 o escaneo de virus)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         setFile(selectedFile);
+        setIsFileScanning(false);
+
         setErrors(prev => {
             const newErrs = {...prev};
             delete newErrs.file;
@@ -163,7 +177,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     if (!specificType) newErrors.specificType = "Descripción requerida";
     
     // Validación final de archivo
-    if (!file) {
+    if (!file && !isFileScanning) {
         newErrors.file = "Comprobante requerido";
     }
 
@@ -174,11 +188,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (isFileScanning) return; // Prevenir envío si el archivo se está procesando
 
     setIsSubmitting(true);
     
-    // Simular retraso de API
+    // Simular proceso de carga en pasos
+    setLoadingText('Subiendo comprobante...');
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    setLoadingText('Verificando datos...');
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setLoadingText('Guardando transacción...');
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     onSubmit({
       storeId: store,
@@ -191,6 +213,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
       notes
     });
     setIsSubmitting(false);
+    setLoadingText('');
   };
 
   return (
@@ -199,7 +222,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-            <button onClick={onCancel} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+            <button onClick={onCancel} disabled={isSubmitting} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-50">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <div>
@@ -225,7 +248,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                         <select 
                             value={store}
                             onChange={(e) => setStore(e.target.value)}
-                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none`}
+                            disabled={isSubmitting}
+                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
                         >
                             <option value="">Seleccionar ubicación...</option>
                             {STORES.map(s => (
@@ -253,12 +277,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 <button
                                     key={cat.id}
                                     type="button"
+                                    disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
                                     className={`relative overflow-hidden flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 group ${
                                         isSelected 
                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
                                         : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                    }`}
+                                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <div className={`p-2 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
                                         <Icon size={24} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
@@ -296,7 +321,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                     setMuniGroup(e.target.value);
                                     setMuniItem('');
                                 }}
-                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none transition-colors`}
+                                disabled={isSubmitting}
+                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none transition-colors disabled:opacity-50`}
                             >
                                 <option value="">Seleccione Rubro...</option>
                                 {Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => (
@@ -315,8 +341,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             <select
                                 value={muniItem}
                                 onChange={(e) => setMuniItem(e.target.value)}
-                                disabled={!muniGroup}
-                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniItem ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 transition-colors`}
+                                disabled={!muniGroup || isSubmitting}
+                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniItem ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 transition-colors disabled:opacity-50`}
                             >
                                 <option value="">Seleccione Concepto...</option>
                                 {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
@@ -349,9 +375,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             type="text"
                             placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
                             value={specificType}
-                            readOnly={category === Category.MUNICIPAL_TAX}
+                            readOnly={category === Category.MUNICIPAL_TAX || isSubmitting}
                             onChange={(e) => setSpecificType(e.target.value)}
-                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                         />
                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                      </div>
@@ -369,8 +395,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 step="0.01"
                                 placeholder="0.00"
                                 value={amount}
+                                disabled={isSubmitting}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
                             />
                         </div>
                         {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
@@ -383,8 +410,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             <input
                                 type="date"
                                 value={dueDate}
+                                disabled={isSubmitting}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all`}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all disabled:opacity-50`}
                             />
                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                         </div>
@@ -398,8 +426,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             <input
                                 type="date"
                                 value={paymentDate}
+                                disabled={isSubmitting}
                                 onChange={(e) => setPaymentDate(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all`}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all disabled:opacity-50`}
                             />
                             <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors" size={20} />
                         </div>
@@ -419,15 +448,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                 {/* File Upload */}
                 <div>
                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
-                     <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group ${file ? 'border-green-400 bg-green-50 dark:bg-green-900/10' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'}`}>
+                     <label className={`relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
+                         isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                     } ${
+                         file ? 'border-green-400 bg-green-50 dark:bg-green-900/10' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                     }`}>
+                        
+                        {/* Overlay de Carga de Archivo */}
+                        {isFileScanning && (
+                            <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Escaneando documento...</span>
+                            </div>
+                        )}
+
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                             {file ? (
                                 <>
                                     <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
                                         <CheckCircle2 size={24} />
                                     </div>
-                                    <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full">{file.name}</p>
-                                    <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Listo</p>
+                                    <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full px-4">{file.name}</p>
+                                    <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Verificado</p>
                                 </>
                             ) : (
                                 <>
@@ -444,6 +486,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             className="hidden" 
                             accept=".pdf,.jpg,.jpeg,.png" 
                             onChange={handleFileChange} 
+                            disabled={isSubmitting || isFileScanning}
                         />
                     </label>
                     {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
@@ -456,8 +499,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                          <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
+                            disabled={isSubmitting}
                             placeholder="Añada notas adicionales para el auditor..."
-                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-40 p-4 shadow-sm outline-none resize-none transition-all"
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-40 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
                          ></textarea>
                      </div>
                 </div>
@@ -475,19 +519,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
             <button 
                 type="button"
                 onClick={onCancel}
-                className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                disabled={isSubmitting || isFileScanning}
+                className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
             >
                 Cancelar
             </button>
             <button 
                 type="submit"
-                disabled={isSubmitting}
-                className={`w-full md:flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                disabled={isSubmitting || isFileScanning}
+                className={`w-full md:flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
                 {isSubmitting ? (
                     <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Procesando...
+                        <Loader2 size={20} className="animate-spin" />
+                        <span>{loadingText || 'Procesando...'}</span>
+                    </>
+                ) : isFileScanning ? (
+                    <>
+                         <Loader2 size={20} className="animate-spin" />
+                         <span>Escaneando archivo...</span>
                     </>
                 ) : (
                     <>

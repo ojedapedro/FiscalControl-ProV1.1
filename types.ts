@@ -38,6 +38,14 @@ export interface Store {
   matrixId: string; // Enlace relacional a Casa Matriz
 }
 
+export interface AuditLog {
+  date: string;
+  action: 'CREACION' | 'APROBACION' | 'RECHAZO' | 'ACTUALIZACION';
+  actorName: string;
+  role: Role;
+  note?: string;
+}
+
 export interface Payment {
   id: string;
   storeId: string; // Clave foránea a Tienda
@@ -53,6 +61,7 @@ export interface Payment {
   notes?: string; // Notas del cargador
   rejectionReason?: string; // Notas del auditor
   submittedDate: string;
+  history?: AuditLog[]; // Nuevo campo para trazabilidad
 }
 
 export interface ChartData {
