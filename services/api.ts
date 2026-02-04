@@ -3,7 +3,7 @@ import { Payment } from '../types';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbz_XXXXXXXXX_PLACEHOLDER_URL/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwq8E_Ka79WHqCMAUHppoxwwr5Kb1xgMQNcgTcbFqpoZfmKtWaUt3W5nELQ_bfwgp2XVg/exec';
 
 export const api = {
   // Inicializar estructura de hojas
