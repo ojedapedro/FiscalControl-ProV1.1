@@ -7,6 +7,7 @@ import {
   Clock, 
   Calendar,
   ChevronRight,
+  ChevronDown,
   Bell,
   Smartphone,
   MessageSquare,
@@ -25,12 +26,17 @@ interface NotificationsViewProps {
   onManage: (paymentId: string) => void; // Callback para el botón gestionar
 }
 
+const ITEMS_PER_PAGE = 6;
+
 export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, payments, onManage }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   
+  // Paginación State
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+
   // Settings State
   const [config, setConfig] = useState<SystemSettings>({
       whatsappEnabled: false,
@@ -94,6 +100,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       });
   }, [payments, config.daysBeforeWarning]);
 
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [filter, payments]);
+
   // Cargar configuración al abrir la vista de settings
   useEffect(() => {
     if (showSettings) {
@@ -135,6 +146,10 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
     }
   };
 
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+  };
+
   const getSeverityIcon = (severity: AlertSeverity) => {
     switch (severity) {
       case 'critical': return <AlertTriangle size={18} />;
@@ -144,10 +159,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
     }
   };
 
-  // Filtrado visual
+  // Filtrado visual y Paginación
   const filteredAlerts = filter === 'all'
     ? alerts
     : alerts.filter(alert => alert.severity === filter);
+
+  const visibleAlerts = filteredAlerts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAlerts.length;
 
   if (showSettings) {
       return (
@@ -330,50 +348,68 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                 <p className="text-slate-500 dark:text-slate-500">No hay alertas con el filtro seleccionado.</p>
             </div>
         ) : (
-            filteredAlerts.map((alert) => (
-                <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden">
-                    {/* Status Strip */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+            <>
+                {visibleAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Status Strip */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
 
-                    <div className="flex-1 flex gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                            alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
-                            alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
-                            'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
-                        }`}>
-                            {getSeverityIcon(alert.severity)}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
-                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
-                            <p className={`text-sm font-medium ${
-                                alert.severity === 'critical' ? 'text-red-600' : 
-                                alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
+                        <div className="flex-1 flex gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
+                                alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                                'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
                             }`}>
-                                {alert.timeLabel} • Vence: {alert.dueDate}
-                            </p>
+                                {getSeverityIcon(alert.severity)}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
+                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
+                                <p className={`text-sm font-medium ${
+                                    alert.severity === 'critical' ? 'text-red-600' : 
+                                    alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
+                                }`}>
+                                    {alert.timeLabel} • Vence: {alert.dueDate}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
+                            <div className="text-right">
+                                <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
+                                <span className="text-xs text-slate-400">Monto estimado</span>
+                            </div>
+                            <button 
+                                onClick={() => onManage(alert.id)}
+                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                            >
+                                <span>Gestionar</span>
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
                     </div>
-
-                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
-                        <div className="text-right">
-                            <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
-                            <span className="text-xs text-slate-400">Monto estimado</span>
-                        </div>
+                ))}
+                
+                {/* Botón de Cargar Más / Paginación */}
+                {hasMore && (
+                    <div className="flex flex-col items-center pt-4 animate-in fade-in">
+                        <p className="text-xs text-slate-400 mb-2">
+                            Mostrando {visibleAlerts.length} de {filteredAlerts.length} alertas
+                        </p>
                         <button 
-                            onClick={() => onManage(alert.id)}
-                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                            onClick={handleLoadMore}
+                            className="flex items-center gap-2 px-6 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-95"
                         >
-                            <span>Gestionar</span>
-                            <ChevronRight size={16} />
+                            <span>Cargar más alertas</span>
+                            <ChevronDown size={16} />
                         </button>
                     </div>
-                </div>
-            ))
+                )}
+            </>
         )}
       </div>
     </div>
