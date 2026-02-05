@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Settings, 
@@ -10,12 +10,18 @@ import {
   ChevronRight,
   Plus,
   Bell,
-  Check,
   Smartphone,
-  Mail
+  Mail,
+  Save,
+  MessageSquare,
+  Link as LinkIcon,
+  PlayCircle,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
-import { AlertItem, AlertSeverity } from '../types';
+import { AlertItem, AlertSeverity, SystemSettings } from '../types';
 import { MOCK_ALERTS } from '../constants';
+import { api } from '../services/api';
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -24,255 +30,295 @@ interface NotificationsViewProps {
 export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
   const [showSettings, setShowSettings] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   
   // Settings State
-  const [config, setConfig] = useState({
-      pushEnabled: true,
-      emailEnabled: true,
-      smsEnabled: false,
+  const [config, setConfig] = useState<SystemSettings>({
+      whatsappEnabled: false,
+      whatsappPhone: '',
+      whatsappGatewayUrl: '',
       daysBeforeWarning: 3,
       daysBeforeCritical: 1,
-      autoRemind: true
+      emailEnabled: true
   });
 
-  const filteredAlerts = MOCK_ALERTS.filter(alert => 
-    filter === 'all' ? true : alert.severity === filter
-  );
+  // Cargar configuración al abrir la vista de settings
+  useEffect(() => {
+    if (showSettings) {
+      const fetchSettings = async () => {
+        try {
+            const saved = await api.getSettings();
+            if (saved) {
+                setConfig(saved);
+            }
+        } catch (e) {
+            console.error("Error loading settings", e);
+        }
+      };
+      fetchSettings();
+    }
+  }, [showSettings]);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await api.saveSettings(config);
+      alert('✅ Configuración guardada. Recuerda configurar el activador temporal en Apps Script.');
+    } catch (e) {
+      alert('❌ Error guardando configuración');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    setIsTesting(true);
+    try {
+      const res = await api.triggerNotificationCheck();
+      alert(`Resultado prueba: ${res.message}`);
+    } catch (e) {
+      alert('Error ejecutando prueba');
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const getSeverityColor = (severity: AlertSeverity) => {
     switch (severity) {
-      case 'critical': return 'text-red-500 bg-red-500/10 border-red-500';
-      case 'upcoming': return 'text-orange-500 bg-orange-500/10 border-orange-500';
-      case 'scheduled': return 'text-green-500 bg-green-500/10 border-green-500';
+      case 'critical': return 'bg-red-500 text-white border-red-600';
+      case 'upcoming': return 'bg-yellow-500 text-white border-yellow-600';
+      case 'scheduled': return 'bg-blue-500 text-white border-blue-600';
+      default: return 'bg-slate-500 text-white';
     }
   };
 
-  const getSectionTitle = (severity: AlertSeverity) => {
-     switch (severity) {
-      case 'critical': return (
-          <div className="flex items-center gap-2 text-red-500 mb-4 mt-2">
-              <AlertTriangle size={20} />
-              <h3 className="font-bold text-lg">Vencidas</h3>
-              <span className="ml-auto text-xs bg-red-500/20 px-2 py-1 rounded-full">{filteredAlerts.filter(a => a.severity === 'critical').length} Alertas</span>
-          </div>
-      );
-      case 'upcoming': return (
-          <div className="flex items-center gap-2 text-orange-500 mb-4 mt-8">
-              <Clock size={20} />
-              <h3 className="font-bold text-lg">Vencen Pronto (48h)</h3>
-          </div>
-      );
-      case 'scheduled': return (
-          <div className="flex items-center gap-2 text-green-500 mb-4 mt-8">
-              <Calendar size={20} />
-              <h3 className="font-bold text-lg">Programadas</h3>
-          </div>
-      );
+  const getSeverityIcon = (severity: AlertSeverity) => {
+    switch (severity) {
+      case 'critical': return <AlertTriangle size={18} />;
+      case 'upcoming': return <Clock size={18} />;
+      case 'scheduled': return <Calendar size={18} />;
+      default: return <Bell size={18} />;
     }
   };
 
-  // Render just the list items for a specific severity
-  const renderAlertList = (severity: AlertSeverity) => {
-      const items = filteredAlerts.filter(a => a.severity === severity);
-      if (items.length === 0) return null;
-
-      return (
-          <div className="animate-in slide-in-from-bottom-4 duration-500">
-              {getSectionTitle(severity)}
-              <div className="space-y-4">
-                  {items.map(alert => (
-                      <div key={alert.id} className={`bg-slate-800 rounded-xl p-5 border-l-4 ${getSeverityColor(alert.severity).split(' ')[2]} flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden group`}>
-                          <div className="z-10 w-full md:w-auto">
-                                <div className="flex justify-between md:justify-start items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                    <span>{alert.storeName}</span>
-                                    <span>•</span>
-                                    <span>{alert.category}</span>
-                                    {/* Mobile Badge */}
-                                    <span className={`md:hidden ml-auto px-2 py-1 rounded text-[10px] ${alert.severity === 'critical' ? 'bg-red-500/20 text-red-400' : alert.severity === 'upcoming' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'}`}>
-                                        {alert.timeLabel}
-                                    </span>
-                                </div>
-                                <h4 className="text-xl font-bold text-slate-100 mb-1">{alert.title}</h4>
-                                <div className="text-slate-400 font-mono">${alert.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                          </div>
-                          
-                          <div className="z-10 w-full md:w-auto flex flex-col items-end gap-3">
-                                {/* Desktop Badge */}
-                                <span className={`hidden md:block px-3 py-1 rounded-md text-sm font-medium ${alert.severity === 'critical' ? 'bg-red-500/20 text-red-400' : alert.severity === 'upcoming' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'}`}>
-                                    {alert.timeLabel}
-                                </span>
-                                
-                                {alert.severity !== 'scheduled' ? (
-                                    <button className="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-900/50">
-                                        <CreditCard size={16} />
-                                        Pagar Ahora
-                                    </button>
-                                ) : (
-                                    <button className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
-                                        <ChevronRight size={20} />
-                                    </button>
-                                )}
-                          </div>
-
-                          {/* Hover Effect */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-700/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                      </div>
-                  ))}
-              </div>
-          </div>
-      );
-  };
+  // Mock filtering for visual purposes
+  const filteredAlerts = filter === 'all'
+    ? MOCK_ALERTS
+    : MOCK_ALERTS.filter(alert => alert.severity === filter);
 
   if (showSettings) {
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 p-4 lg:p-8 animate-in fade-in duration-300">
-             <header className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Configuración</h1>
-                        <p className="text-slate-400 text-sm">Personaliza tus reglas de alerta</p>
-                    </div>
-                </div>
-            </header>
+          <div className="p-6 lg:p-10 max-w-4xl mx-auto animate-in slide-in-from-right duration-300">
+              <div className="flex items-center gap-4 mb-8">
+                  <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                      <ArrowLeft size={24} className="text-slate-600 dark:text-slate-300" />
+                  </button>
+                  <div>
+                      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Configuración de Automatización</h1>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">Gestiona los canales de envío y frecuencias de alerta.</p>
+                  </div>
+              </div>
 
-            <div className="max-w-2xl mx-auto space-y-6">
-                {/* Channels */}
-                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Bell size={18} /> Canales de Notificación</h3>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Smartphone size={20}/></div>
-                                <div>
-                                    <div className="font-medium">Notificaciones Push</div>
-                                    <div className="text-xs text-slate-500">Alertas en navegador y móvil</div>
-                                </div>
-                            </div>
-                            <Toggle checked={config.pushEnabled} onChange={() => setConfig({...config, pushEnabled: !config.pushEnabled})} />
-                        </div>
-                        <div className="flex justify-between items-center">
-                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg"><Mail size={20}/></div>
-                                <div>
-                                    <div className="font-medium">Correo Electrónico</div>
-                                    <div className="text-xs text-slate-500">Resumen diario y críticas</div>
-                                </div>
-                            </div>
-                            <Toggle checked={config.emailEnabled} onChange={() => setConfig({...config, emailEnabled: !config.emailEnabled})} />
-                        </div>
-                    </div>
-                </div>
+              <div className="space-y-6">
+                  {/* WhatsApp Configuration */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                          <div className="p-3 bg-green-100 dark:bg-green-900/20 text-green-600 rounded-xl">
+                              <MessageSquare size={24} />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-slate-900 dark:text-white">Integración WhatsApp</h3>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Envío automático mediante Gateway API (CallMeBot, Twilio, etc)</p>
+                          </div>
+                          <div className="ml-auto">
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={config.whatsappEnabled}
+                                    onChange={(e) => setConfig({...config, whatsappEnabled: e.target.checked})} 
+                                  />
+                                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-green-500"></div>
+                              </label>
+                          </div>
+                      </div>
 
-                {/* Thresholds */}
-                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Clock size={18} /> Tiempos de Alerta</h3>
-                    
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-400 mb-2">Advertencia Preventiva (Días antes)</label>
-                        <div className="flex items-center gap-4">
-                            <input 
-                                type="range" min="1" max="7" 
-                                value={config.daysBeforeWarning} 
-                                onChange={(e) => setConfig({...config, daysBeforeWarning: parseInt(e.target.value)})}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                            />
-                            <span className="font-mono bg-slate-800 px-3 py-1 rounded border border-slate-700">{config.daysBeforeWarning}d</span>
-                        </div>
-                    </div>
+                      <div className={`space-y-4 transition-all ${config.whatsappEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">URL del Gateway / API</label>
+                              <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={config.whatsappGatewayUrl}
+                                    onChange={(e) => setConfig({...config, whatsappGatewayUrl: e.target.value})}
+                                    placeholder="https://api.gateway.com/send?phone=[PHONE]&text=[MESSAGE]..." 
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white font-mono"
+                                  />
+                                  <LinkIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                              </div>
+                              <p className="text-[10px] text-slate-500 mt-1.5 ml-1">
+                                  Soporta variables: <code>[PHONE]</code> y <code>[MESSAGE]</code>. Si usa CallMeBot, coloque la URL completa con su API Key.
+                              </p>
+                          </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-2">Alerta Crítica (Días antes)</label>
-                         <div className="flex items-center gap-4">
-                            <input 
-                                type="range" min="0" max="3" 
-                                value={config.daysBeforeCritical} 
-                                onChange={(e) => setConfig({...config, daysBeforeCritical: parseInt(e.target.value)})}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-red-500"
-                            />
-                            <span className="font-mono bg-slate-800 px-3 py-1 rounded border border-slate-700">{config.daysBeforeCritical}d</span>
-                        </div>
-                    </div>
-                </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Número Destino (Admin)</label>
+                              <div className="relative">
+                                  <input 
+                                    type="text"
+                                    value={config.whatsappPhone}
+                                    onChange={(e) => setConfig({...config, whatsappPhone: e.target.value})} 
+                                    placeholder="+58 412 1234567" 
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white font-mono"
+                                  />
+                                  <Smartphone size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
 
-                 <button 
-                    onClick={() => setShowSettings(false)}
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-[0.99]"
-                >
-                    Guardar Cambios
-                </button>
-            </div>
-        </div>
-      )
+                  {/* Frequency Settings */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                       <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                           <Clock size={20} className="text-blue-500" />
+                           Frecuencia de Alertas
+                       </h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Días antes (Aviso Preventivo)</label>
+                               <input 
+                                  type="number" 
+                                  value={config.daysBeforeWarning}
+                                  onChange={(e) => setConfig({...config, daysBeforeWarning: Number(e.target.value)})}
+                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                               />
+                           </div>
+                           <div>
+                               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Días antes (Aviso Crítico)</label>
+                               <input 
+                                  type="number" 
+                                  value={config.daysBeforeCritical}
+                                  onChange={(e) => setConfig({...config, daysBeforeCritical: Number(e.target.value)})}
+                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white"
+                               />
+                           </div>
+                       </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col-reverse sm:flex-row gap-4 pt-4">
+                       <button 
+                        onClick={handleTestNotification}
+                        disabled={isTesting || !config.whatsappEnabled}
+                        className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                       >
+                           {isTesting ? <Loader2 className="animate-spin" size={20} /> : <PlayCircle size={20} />}
+                           Probar Envío Manual
+                       </button>
+                       <button 
+                        onClick={handleSaveSettings}
+                        disabled={isSaving}
+                        className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                       >
+                           {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                           Guardar Cambios
+                       </button>
+                  </div>
+              </div>
+          </div>
+      );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 p-4 lg:p-8 font-sans">
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                <ArrowLeft size={24} />
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <ArrowLeft size={24} className="text-slate-600 dark:text-slate-300" />
             </button>
             <div>
-                <h1 className="text-3xl font-bold text-white">Alertas de Vencimiento</h1>
-                <p className="text-slate-400 mt-1">Manténgase al día con sus obligaciones fiscales y de gastos.</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Centro de Notificaciones</h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">Alertas automatizadas y recordatorios de pago.</p>
             </div>
         </div>
         <button 
             onClick={() => setShowSettings(true)}
-            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors text-slate-300"
+            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg"
         >
-            <Settings size={24} />
+            <Settings size={18} />
+            <span>Configurar Automatización</span>
         </button>
       </header>
 
-      {/* Tabs / Filters */}
-      <div className="flex gap-2 mb-8 bg-slate-900/50 p-1 rounded-xl w-fit">
+      {/* Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {[
-            { id: 'all', label: 'Todas' },
-            { id: 'critical', label: 'Críticas' },
-            { id: 'upcoming', label: 'Próximas' },
+            { id: 'all', label: 'Todas las Alertas' },
+            { id: 'critical', label: 'Críticas (Vencidas)' },
+            { id: 'upcoming', label: 'Próximas (5 días)' },
             { id: 'scheduled', label: 'Programadas' }
-        ].map(tab => (
+        ].map(item => (
             <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id as any)}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filter === tab.id 
-                    ? 'bg-slate-800 text-white shadow-sm border border-slate-700' 
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                key={item.id}
+                onClick={() => setFilter(item.id as any)}
+                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                    filter === item.id 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+                    : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
             >
-                {tab.label}
+                {item.label}
             </button>
         ))}
       </div>
 
-      {/* Content */}
-      <div className="max-w-4xl">
-        {(filter === 'all' || filter === 'critical') && renderAlertList('critical')}
-        {(filter === 'all' || filter === 'upcoming') && renderAlertList('upcoming')}
-        {(filter === 'all' || filter === 'scheduled') && renderAlertList('scheduled')}
+      {/* Alerts List */}
+      <div className="grid grid-cols-1 gap-4">
+        {filteredAlerts.map((alert) => (
+            <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden">
+                {/* Status Strip */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+
+                <div className="flex-1 flex gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                        alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
+                        alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                        'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
+                    }`}>
+                        {getSeverityIcon(alert.severity)}
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
+                        <p className={`text-sm font-medium ${
+                            alert.severity === 'critical' ? 'text-red-600' : 
+                            alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
+                        }`}>
+                            {alert.timeLabel} • Vence: {alert.dueDate}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
+                     <div className="text-right">
+                        <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
+                        <span className="text-xs text-slate-400">Monto estimado</span>
+                     </div>
+                     <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
+                        <span>Gestionar</span>
+                        <ChevronRight size={16} />
+                     </button>
+                </div>
+            </div>
+        ))}
       </div>
-
-      {/* Floating Action Button */}
-      <button className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-2xl shadow-blue-500/30 flex items-center justify-center transition-transform hover:scale-105">
-          <Plus size={28} />
-      </button>
-
     </div>
   );
 };
-
-// Helper Toggle Component
-const Toggle = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
-    <button 
-        onClick={onChange}
-        className={`w-12 h-6 rounded-full p-1 transition-colors relative ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}
-    >
-        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
-    </button>
-);

@@ -83,3 +83,13 @@ export interface AlertItem {
   timeLabel: string; // e.g., "Overdue 2 days", "Due in 5h"
   dueDate: string;
 }
+
+// Configuración Global del Sistema
+export interface SystemSettings {
+  whatsappEnabled: boolean;
+  whatsappPhone: string; // Número destino (e.g., +58...)
+  whatsappGatewayUrl: string; // URL de API (CallMeBot, Twilio, etc)
+  daysBeforeWarning: number;
+  daysBeforeCritical: number;
+  emailEnabled: boolean;
+}
