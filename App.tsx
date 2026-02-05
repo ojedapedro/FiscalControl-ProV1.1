@@ -191,6 +191,20 @@ function App() {
       }
   };
 
+  // Manejador para el botón "Gestionar" de las notificaciones
+  const handleManageNotification = (paymentId: string) => {
+    // Si soy auditor, voy a aprobaciones
+    if (currentRole === Role.AUDITOR) {
+      setCurrentView('approvals');
+    } else {
+      // Si soy admin, voy al dashboard
+      setCurrentView('payments');
+    }
+    // Opcional: Podríamos añadir lógica para resaltar el pago en la lista destino
+    setNotification(`Gestionando pago ${paymentId}...`);
+    setTimeout(() => setNotification(null), 2000);
+  };
+
   const renderContent = () => {
     if (isLoading && payments.length === 0) {
         return (
@@ -213,7 +227,13 @@ function App() {
       case 'calendar':
         return <CalendarView payments={payments} />;
       case 'notifications':
-        return <NotificationsView onBack={() => setCurrentView('payments')} />;
+        return (
+          <NotificationsView 
+            onBack={() => setCurrentView('payments')} 
+            payments={payments}
+            onManage={handleManageNotification}
+          />
+        );
       case 'settings':
         return (
           <div className="p-10 text-white animate-in fade-in">

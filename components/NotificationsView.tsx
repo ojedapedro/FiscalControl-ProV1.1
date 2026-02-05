@@ -1,33 +1,31 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, 
   Settings, 
-  CreditCard, 
   AlertTriangle, 
   Clock, 
   Calendar,
   ChevronRight,
-  Plus,
   Bell,
   Smartphone,
-  Mail,
-  Save,
   MessageSquare,
   Link as LinkIcon,
   PlayCircle,
   Loader2,
+  Save,
   CheckCircle2
 } from 'lucide-react';
-import { AlertItem, AlertSeverity, SystemSettings } from '../types';
-import { MOCK_ALERTS } from '../constants';
+import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus } from '../types';
 import { api } from '../services/api';
 
 interface NotificationsViewProps {
   onBack: () => void;
+  payments: Payment[]; // Recibe los datos reales
+  onManage: (paymentId: string) => void; // Callback para el botón gestionar
 }
 
-export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) => {
+export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, payments, onManage }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +40,59 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
       daysBeforeCritical: 1,
       emailEnabled: true
   });
+
+  // Generar Alertas dinámicamente basadas en los Pagos reales
+  const alerts: AlertItem[] = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return payments
+      .filter(p => p.status !== PaymentStatus.APPROVED && p.status !== PaymentStatus.REJECTED) // Solo pendientes/vencidos/cargados
+      .map(p => {
+        const dueDate = new Date(p.dueDate + 'T00:00:00'); // Asegurar formato ISO
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let severity: AlertSeverity = 'scheduled';
+        let timeLabel = '';
+
+        if (diffDays < 0) {
+            severity = 'critical';
+            timeLabel = `Vencido hace ${Math.abs(diffDays)} día(s)`;
+        } else if (diffDays === 0) {
+            severity = 'critical';
+            timeLabel = 'Vence HOY';
+        } else if (diffDays <= (config.daysBeforeWarning || 5)) {
+            severity = 'upcoming';
+            timeLabel = `Vence en ${diffDays} día(s)`;
+        } else {
+            severity = 'scheduled';
+            timeLabel = `Programado (${diffDays} días)`;
+        }
+
+        // Si ya está cargado (Uploaded), baja la severidad visual aunque esté cerca la fecha
+        if (p.status === PaymentStatus.UPLOADED) {
+            severity = 'scheduled';
+            timeLabel = 'En revisión por auditoría';
+        }
+
+        return {
+            id: p.id,
+            storeName: p.storeName,
+            category: p.category,
+            title: p.specificType,
+            amount: p.amount,
+            severity,
+            timeLabel,
+            dueDate: p.dueDate
+        };
+      })
+      .sort((a, b) => {
+          // Ordenar: Críticas primero, luego próximas
+          const severityOrder = { 'critical': 0, 'upcoming': 1, 'scheduled': 2 };
+          return severityOrder[a.severity] - severityOrder[b.severity];
+      });
+  }, [payments, config.daysBeforeWarning]);
 
   // Cargar configuración al abrir la vista de settings
   useEffect(() => {
@@ -84,15 +135,6 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
     }
   };
 
-  const getSeverityColor = (severity: AlertSeverity) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-500 text-white border-red-600';
-      case 'upcoming': return 'bg-yellow-500 text-white border-yellow-600';
-      case 'scheduled': return 'bg-blue-500 text-white border-blue-600';
-      default: return 'bg-slate-500 text-white';
-    }
-  };
-
   const getSeverityIcon = (severity: AlertSeverity) => {
     switch (severity) {
       case 'critical': return <AlertTriangle size={18} />;
@@ -102,10 +144,10 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
     }
   };
 
-  // Mock filtering for visual purposes
+  // Filtrado visual
   const filteredAlerts = filter === 'all'
-    ? MOCK_ALERTS
-    : MOCK_ALERTS.filter(alert => alert.severity === filter);
+    ? alerts
+    : alerts.filter(alert => alert.severity === filter);
 
   if (showSettings) {
       return (
@@ -152,7 +194,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
                                     type="text" 
                                     value={config.whatsappGatewayUrl}
                                     onChange={(e) => setConfig({...config, whatsappGatewayUrl: e.target.value})}
-                                    placeholder="https://api.callmebot.com/whatsapp.php?phone=584144415403&text=This+is+a+test&apikey=7251581" 
+                                    placeholder="https://api.gateway.com/send?phone=[PHONE]&text=[MESSAGE]..." 
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white font-mono"
                                   />
                                   <LinkIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
@@ -241,7 +283,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
             </button>
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Centro de Notificaciones</h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">Alertas automatizadas y recordatorios de pago.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">
+                    {alerts.length} alertas activas basadas en la base de datos fiscal.
+                </p>
             </div>
         </div>
         <button 
@@ -258,7 +302,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
         {[
             { id: 'all', label: 'Todas las Alertas' },
             { id: 'critical', label: 'Críticas (Vencidas)' },
-            { id: 'upcoming', label: 'Próximas (5 días)' },
+            { id: 'upcoming', label: 'Próximas' },
             { id: 'scheduled', label: 'Programadas' }
         ].map(item => (
             <button
@@ -277,47 +321,60 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack }) 
 
       {/* Alerts List */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredAlerts.map((alert) => (
-            <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden">
-                {/* Status Strip */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
-
-                <div className="flex-1 flex gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                        alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
-                        alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
-                        'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
-                    }`}>
-                        {getSeverityIcon(alert.severity)}
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                            <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
-                        <p className={`text-sm font-medium ${
-                            alert.severity === 'critical' ? 'text-red-600' : 
-                            alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
-                        }`}>
-                            {alert.timeLabel} • Vence: {alert.dueDate}
-                        </p>
-                    </div>
+        {filteredAlerts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                    <CheckCircle2 size={32} />
                 </div>
-
-                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
-                     <div className="text-right">
-                        <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
-                        <span className="text-xs text-slate-400">Monto estimado</span>
-                     </div>
-                     <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
-                        <span>Gestionar</span>
-                        <ChevronRight size={16} />
-                     </button>
-                </div>
+                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Todo en orden</h3>
+                <p className="text-slate-500 dark:text-slate-500">No hay alertas con el filtro seleccionado.</p>
             </div>
-        ))}
+        ) : (
+            filteredAlerts.map((alert) => (
+                <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden">
+                    {/* Status Strip */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+
+                    <div className="flex-1 flex gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                            alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
+                            alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                            'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
+                        }`}>
+                            {getSeverityIcon(alert.severity)}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
+                            <p className={`text-sm font-medium ${
+                                alert.severity === 'critical' ? 'text-red-600' : 
+                                alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
+                            }`}>
+                                {alert.timeLabel} • Vence: {alert.dueDate}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
+                        <div className="text-right">
+                            <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
+                            <span className="text-xs text-slate-400">Monto estimado</span>
+                        </div>
+                        <button 
+                            onClick={() => onManage(alert.id)}
+                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                        >
+                            <span>Gestionar</span>
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            ))
+        )}
       </div>
     </div>
   );
