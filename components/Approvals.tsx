@@ -276,11 +276,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         {/* Column 1: Receipt & Visuals */}
                         <div className="space-y-6 order-2 xl:order-1">
                             <div className={`relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0' : 'h-[500px]'}`}>
-                                <img 
-                                    src={`https://picsum.photos/seed/${selectedPayment.id}/800/1000`} 
-                                    alt="Recibo" 
-                                    className="w-full h-full object-contain bg-slate-950" 
-                                />
+                                
+                                {selectedPayment.receiptUrl ? (
+                                    <img 
+                                        src={selectedPayment.receiptUrl} 
+                                        alt="Recibo" 
+                                        className="w-full h-full object-contain bg-slate-950"
+                                        onError={(e) => {
+                                            // Fallback si la imagen no carga o expira
+                                            e.currentTarget.src = `https://picsum.photos/seed/${selectedPayment.id}/800/1000`;
+                                        }} 
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950/50">
+                                        <AlertCircle size={48} className="mb-4 opacity-50" />
+                                        <p className="text-sm font-medium">Sin comprobante digital</p>
+                                    </div>
+                                )}
                                 
                                 {/* Overlay Controls */}
                                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -297,7 +309,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
                                 {!isImageFullscreen && (
                                     <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                                        <p className="text-xs opacity-75">Archivo: comprobante_pago.jpg</p>
+                                        <p className="text-xs opacity-75">
+                                            {selectedPayment.receiptUrl ? 'Archivo cargado por usuario' : 'Visualización no disponible'}
+                                        </p>
                                     </div>
                                 )}
                             </div>

@@ -99,6 +99,11 @@ function App() {
       role: currentRole
     };
 
+    // Generar URL local para el archivo subido (simulación de upload)
+    const receiptUrl = paymentData.file 
+        ? URL.createObjectURL(paymentData.file) 
+        : undefined;
+
     const newPayment: Payment = {
       id: `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
@@ -113,7 +118,7 @@ function App() {
       submittedDate: new Date().toISOString(),
       notes: paymentData.notes,
       history: [initialLog],
-      receiptUrl: 'https://placeholder.com/receipt.pdf' // En producción esto iría a Drive/S3
+      receiptUrl: receiptUrl // Usamos la URL generada del archivo real
     };
 
     try {
