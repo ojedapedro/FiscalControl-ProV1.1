@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { STORES } from '../constants';
+import { Payment, PaymentStatus } from '../types';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -21,27 +22,64 @@ import {
   Cell
 } from 'recharts';
 
-export const StoreStatus: React.FC = () => {
+interface StoreStatusProps {
+  payments: Payment[];
+}
+
+export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
 
-  // Calcular estadísticas para el gráfico
+  // Calcular el estado dinámico de las tiendas basado en los pagos reales
+  const dynamicStores = useMemo(() => {
+    return STORES.map(store => {
+        // Obtener pagos asociados a esta tienda
+        const storePayments = payments.filter(p => p.storeId === store.id);
+        
+        // Lógica de Estado
+        let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
+        
+        const hasOverdue = storePayments.some(p => p.status === PaymentStatus.OVERDUE);
+        const hasPending = storePayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+
+        if (hasOverdue) {
+            calculatedStatus = 'Vencido';
+        } else if (hasPending) {
+            calculatedStatus = 'En Riesgo';
+        }
+
+        // Calcular próxima fecha límite real basada en el pago pendiente más próximo
+        const activePayments = storePayments
+            .filter(p => p.status !== PaymentStatus.APPROVED && p.status !== PaymentStatus.REJECTED)
+            .sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        
+        const nextDeadline = activePayments.length > 0 ? activePayments[0].dueDate : store.nextDeadline;
+
+        return {
+            ...store,
+            status: calculatedStatus,
+            nextDeadline: nextDeadline
+        };
+    });
+  }, [payments]);
+
+  // Calcular estadísticas para el gráfico basadas en datos dinámicos
   const stats = [
     { 
       name: 'En Regla', 
-      value: STORES.filter(s => s.status === 'En Regla').length, 
+      value: dynamicStores.filter(s => s.status === 'En Regla').length, 
       color: '#22c55e', // green-500
       textColor: 'text-green-600'
     },
     { 
       name: 'En Riesgo', 
-      value: STORES.filter(s => s.status === 'En Riesgo').length, 
+      value: dynamicStores.filter(s => s.status === 'En Riesgo').length, 
       color: '#eab308', // yellow-500
       textColor: 'text-yellow-600'
     },
     { 
       name: 'Vencido', 
-      value: STORES.filter(s => s.status === 'Vencido').length, 
+      value: dynamicStores.filter(s => s.status === 'Vencido').length, 
       color: '#ef4444', // red-500
       textColor: 'text-red-600'
     },
@@ -57,7 +95,7 @@ export const StoreStatus: React.FC = () => {
     return { top: '50%', left: '50%' }; // Default
   };
 
-  const filteredStores = STORES.filter(store => 
+  const filteredStores = dynamicStores.filter(store => 
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     store.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -136,7 +174,7 @@ export const StoreStatus: React.FC = () => {
                     </svg>
                     
                     {/* Store Points */}
-                    {STORES.map((store) => {
+                    {dynamicStores.map((store) => {
                         const pos = getMapPosition(store.location);
                         const isHovered = hoveredStore === store.id;
                         return (

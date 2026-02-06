@@ -223,7 +223,7 @@ function App() {
       case 'reports':
         return <Reports payments={payments} />;
       case 'network':
-        return <StoreStatus />;
+        return <StoreStatus payments={payments} />;
       case 'calendar':
         return <CalendarView payments={payments} />;
       case 'notifications':
