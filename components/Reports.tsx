@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { REPORT_DATA } from '../constants';
 import { Payment, PaymentStatus } from '../types';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2 } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter } from 'lucide-react';
 
 interface ReportsProps {
   payments: Payment[];
@@ -25,16 +25,34 @@ interface ReportsProps {
 export const Reports: React.FC<ReportsProps> = ({ payments }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // KPI Calculations
-  const totalApproved = payments
+  // Date Filter State (Default to current month)
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Filter Payments based on Date Range
+  const filteredPayments = useMemo(() => {
+    return payments.filter(p => {
+      // Use submittedDate for audit accuracy, fallback to dueDate if needed
+      const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : p.dueDate;
+      return recordDate >= startDate && recordDate <= endDate;
+    });
+  }, [payments, startDate, endDate]);
+
+  // KPI Calculations based on Filtered Data
+  const totalApproved = filteredPayments
     .filter(p => p.status === PaymentStatus.APPROVED)
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const totalRejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
-  const totalPendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+  const totalRejectedCount = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED).length;
+  const totalPendingCount = filteredPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
   
-  const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
-  const rejectedPayments = payments.filter(p => p.status === PaymentStatus.REJECTED);
+  const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
+  const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
 
   // Chart Data Preparation (Approved vs Rejected Count)
   const statusData = [
@@ -46,8 +64,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
   const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
     try {
-        // Acceder a jspdf desde el objeto global window (inyectado en index.html)
-        // Esto evita que Vercel/Rollup intente resolver el paquete 'jspdf' durante el build
         const w = window as any;
         
         if (!w.jspdf) {
@@ -65,7 +81,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
-        doc.text("Presidencia - Auditoría de Pagos", 14, 33);
+        doc.text(`Período: ${startDate} al ${endDate}`, 14, 33);
 
         // Summary Section
         doc.setDrawColor(200);
@@ -73,14 +89,13 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text("Resumen Ejecutivo:", 14, 48);
+        doc.text("Resumen Ejecutivo (Período Seleccionado):", 14, 48);
         
         const summaryData = [
             [`Total Aprobado ($): $${totalApproved.toLocaleString()}`, `Transacciones Aprobadas: ${approvedPayments.length}`],
             [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
         ];
 
-        // autoTable se adjunta al prototipo de jsPDF cuando se carga el script globalmente
         if (doc.autoTable) {
              doc.autoTable({
                 startY: 52,
@@ -135,23 +150,21 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 headStyles: { fillColor: [239, 68, 68] },
                 styles: { fontSize: 8 },
             });
-        } else {
-             console.warn("AutoTable plugin not loaded");
         }
 
-        doc.save(`reporte_fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`reporte_fiscal_${startDate}_${endDate}.pdf`);
     } catch (error) {
         console.error("Error generando PDF:", error);
-        alert("Hubo un error generando el PDF. Asegúrese de tener conexión a internet para cargar las librerías.");
+        alert("Hubo un error generando el PDF.");
     } finally {
         setIsGeneratingPdf(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 lg:p-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 lg:p-8 animate-in fade-in duration-500">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+      <header className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-6 mb-8">
         <div className="flex items-center gap-4">
              <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
                 <TrendingUp size={24} />
@@ -161,37 +174,67 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 <p className="text-slate-400 text-sm">Supervisión de Auditoría y Flujo de Caja</p>
              </div>
         </div>
-        <button 
-            onClick={handleDownloadPDF}
-            disabled={isGeneratingPdf}
-            className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-slate-900 font-bold px-4 py-2 rounded-lg transition-colors shadow-lg shadow-yellow-500/20"
-        >
-            {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-            <span>{isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}</span>
-        </button>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+            {/* Date Range Picker */}
+            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
+                <div className="flex items-center gap-2 px-3 py-2 border-r border-slate-800 text-slate-400">
+                    <Filter size={16} />
+                    <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">Rango</span>
+                </div>
+                <div className="flex items-center gap-2 px-3">
+                    <input 
+                        type="date" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="bg-transparent text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark]"
+                    />
+                    <span className="text-slate-600">-</span>
+                    <input 
+                        type="date" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="bg-transparent text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark]"
+                    />
+                </div>
+            </div>
+
+            <button 
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPdf}
+                className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-slate-900 font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-yellow-500/20 active:scale-95"
+            >
+                {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                <span>PDF</span>
+            </button>
+        </div>
       </header>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Approved Money */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-green-500/30 transition-colors">
               <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                       <div className="p-3 bg-green-500/20 rounded-lg text-green-500">
                           <CheckCircle2 size={24} />
                       </div>
                       <span className="text-xs font-bold bg-green-900/50 text-green-300 px-2 py-1 rounded border border-green-800">
-                          AUDITADO
+                          SELECCIÓN
                       </span>
                   </div>
                   <div className="text-slate-400 text-sm font-medium">Monto Aprobado</div>
                   <div className="text-3xl font-bold text-white mt-1">${totalApproved.toLocaleString()}</div>
+                  <p className="text-xs text-green-400/70 mt-2 flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+                  </p>
               </div>
               <div className="absolute right-0 bottom-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
           </div>
 
           {/* Rejected Count */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-red-500/30 transition-colors">
               <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                       <div className="p-3 bg-red-500/20 rounded-lg text-red-500">
@@ -200,13 +243,13 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                   </div>
                   <div className="text-slate-400 text-sm font-medium">Pagos Rechazados</div>
                   <div className="text-3xl font-bold text-white mt-1">{totalRejectedCount}</div>
-                  <p className="text-xs text-red-400 mt-2">Requieren corrección inmediata</p>
+                  <p className="text-xs text-red-400 mt-2">En el período seleccionado</p>
               </div>
               <div className="absolute right-0 bottom-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
           </div>
 
            {/* Pending Count */}
-           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group">
+           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-yellow-500/30 transition-colors">
               <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                       <div className="p-3 bg-yellow-500/20 rounded-lg text-yellow-500">
@@ -224,18 +267,24 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
          {/* Table of Rejected/Approved recent */}
          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col">
-            <h3 className="text-lg font-bold text-white mb-4">Bitácora de Auditoría Reciente</h3>
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
+                <span>Bitácora Filtrada</span>
+                <span className="text-xs font-normal text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
+                    {approvedPayments.length + rejectedPayments.length} registros
+                </span>
+            </h3>
             <div className="overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
-                {payments.filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED).length === 0 ? (
-                    <div className="text-center text-slate-500 py-10">No hay registros auditados aún.</div>
+                {filteredPayments.filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED).length === 0 ? (
+                    <div className="text-center text-slate-500 py-10 border border-dashed border-slate-800 rounded-xl">
+                        No hay registros auditados en este rango de fechas.
+                    </div>
                 ) : (
                     <div className="space-y-3">
-                        {payments
+                        {filteredPayments
                           .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
                           .sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
-                          .slice(0, 10) // Show last 10
                           .map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-800">
+                            <div key={p.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-800 hover:bg-slate-800 transition-colors">
                                 <div className="flex items-center gap-3">
                                     {p.status === PaymentStatus.APPROVED ? (
                                         <CheckCircle2 size={18} className="text-green-500" />
@@ -244,7 +293,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                                     )}
                                     <div>
                                         <div className="text-sm font-bold text-slate-200">{p.storeName}</div>
-                                        <div className="text-xs text-slate-500">{p.specificType}</div>
+                                        <div className="text-xs text-slate-500 flex items-center gap-2">
+                                            <span>{p.specificType}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -260,7 +311,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
 
          {/* Distribution Chart */}
          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center">
-             <h3 className="text-lg font-bold text-white mb-2 self-start w-full">Distribución de Estatus</h3>
+             <h3 className="text-lg font-bold text-white mb-2 self-start w-full">Distribución en el Período</h3>
              <div className="h-[250px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -293,12 +344,12 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
          </div>
       </div>
 
-      {/* Historical Trend */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
+      {/* Historical Trend - Keeping it Annual for Context */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 opacity-80 hover:opacity-100 transition-opacity">
          <div className="flex justify-between items-center mb-6">
             <div>
                 <h3 className="font-bold text-lg">Proyección Anual de Gasto</h3>
-                <p className="text-slate-500 text-sm">Basado en históricos y presupuesto</p>
+                <p className="text-slate-500 text-sm">Contexto histórico global (No afectado por filtros temporales)</p>
             </div>
          </div>
          
