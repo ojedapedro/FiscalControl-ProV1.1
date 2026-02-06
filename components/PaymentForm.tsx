@@ -14,7 +14,8 @@ import {
   FileText,
   DollarSign,
   Info,
-  Loader2
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -95,6 +96,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [specificType, setSpecificType] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -124,6 +126,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   }, [category, muniGroup, muniItem]);
 
+  // Clean up preview URL
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -131,6 +140,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         if (selectedFile.size > 5 * 1024 * 1024) {
             setErrors(prev => ({...prev, file: 'El archivo excede el límite de 5MB.'}));
             setFile(null);
+            setPreviewUrl(null);
             return;
         }
         
@@ -139,15 +149,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         if (!allowedTypes.includes(selectedFile.type)) {
              setErrors(prev => ({...prev, file: 'Formato no soportado. Use PDF, JPG o PNG.'}));
              setFile(null);
+             setPreviewUrl(null);
              return;
         }
 
         // Simular escaneo y carga del archivo
         setIsFileScanning(true);
         setFile(null); // Limpiar visualmente mientras carga
+        setPreviewUrl(null);
         
         // Simulación de delay (e.g. subida a S3 o escaneo de virus)
         await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Generate preview if image
+        if (selectedFile.type.startsWith('image/')) {
+            setPreviewUrl(URL.createObjectURL(selectedFile));
+        }
 
         setFile(selectedFile);
         setIsFileScanning(false);
@@ -462,15 +479,34 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             </div>
                         )}
 
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 w-full h-full">
                             {file ? (
-                                <>
-                                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
-                                        <CheckCircle2 size={24} />
-                                    </div>
-                                    <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full px-4">{file.name}</p>
-                                    <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Verificado</p>
-                                </>
+                                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                                    {previewUrl ? (
+                                        <div className="relative w-full h-full p-2">
+                                            <img 
+                                                src={previewUrl} 
+                                                alt="Preview" 
+                                                className="w-full h-full object-contain rounded-lg" 
+                                            />
+                                            <div className="absolute top-0 right-0 p-1">
+                                                <div className="bg-green-500 text-white rounded-full p-1 shadow-sm">
+                                                    <CheckCircle2 size={16} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
+                                                {file.type === 'application/pdf' ? <FileText size={24} /> : <CheckCircle2 size={24} />}
+                                            </div>
+                                            <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full px-4">{file.name}</p>
+                                        </>
+                                    )}
+                                    {!previewUrl && (
+                                        <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Verificado</p>
+                                    )}
+                                </div>
                             ) : (
                                 <>
                                     <div className={`p-3 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
