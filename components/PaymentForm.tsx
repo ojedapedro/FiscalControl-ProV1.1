@@ -15,7 +15,9 @@ import {
   DollarSign,
   Info,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2,
+  Scan
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -177,6 +179,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   };
 
+  const clearFile = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setFile(null);
+      setPreviewUrl(null);
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
@@ -210,14 +219,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     setIsSubmitting(true);
     
     // Simular proceso de carga en pasos
-    setLoadingText('Subiendo comprobante...');
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    setLoadingText('Verificando datos...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setLoadingText('Guardando transacción...');
+    setLoadingText('Digitalizando...');
     await new Promise(resolve => setTimeout(resolve, 800));
+
+    setLoadingText('Verificando...');
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    setLoadingText('Guardando...');
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
         await onSubmit({
@@ -479,22 +488,33 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                         {/* Overlay de Carga de Archivo */}
                         {isFileScanning && (
                             <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 flex flex-col items-center justify-center backdrop-blur-sm">
-                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-2" />
-                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Escaneando documento...</span>
+                                <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-2" />
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Escaneando...</span>
                             </div>
                         )}
 
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 w-full h-full">
                             {file ? (
-                                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                                <div className="relative w-full h-full flex flex-col items-center justify-center group/preview">
                                     {previewUrl ? (
                                         <div className="relative w-full h-full p-2">
                                             <img 
                                                 src={previewUrl} 
                                                 alt="Preview" 
-                                                className="w-full h-full object-contain rounded-lg" 
+                                                className="w-full h-full object-contain rounded-lg shadow-sm" 
                                             />
-                                            <div className="absolute top-0 right-0 p-1">
+                                            {/* Action Overlay */}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                <button 
+                                                    onClick={clearFile}
+                                                    type="button"
+                                                    className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                                                    title="Eliminar archivo"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </button>
+                                            </div>
+                                            <div className="absolute top-0 right-0 p-1 pointer-events-none">
                                                 <div className="bg-green-500 text-white rounded-full p-1 shadow-sm">
                                                     <CheckCircle2 size={16} />
                                                 </div>
@@ -506,10 +526,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                                 {file.type === 'application/pdf' ? <FileText size={24} /> : <CheckCircle2 size={24} />}
                                             </div>
                                             <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full px-4">{file.name}</p>
+                                            <button 
+                                                onClick={clearFile}
+                                                type="button"
+                                                className="mt-2 text-xs text-red-500 hover:text-red-600 font-bold flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded"
+                                            >
+                                                <Trash2 size={12} /> Eliminar
+                                            </button>
                                         </>
                                     )}
                                     {!previewUrl && (
-                                        <p className="text-xs text-green-600 dark:text-green-500">{(file.size / 1024 / 1024).toFixed(2)} MB - Verificado</p>
+                                        <p className="text-xs text-green-600 dark:text-green-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB - Listo para envío</p>
                                     )}
                                 </div>
                             ) : (

@@ -90,6 +90,16 @@ function App() {
     });
   };
 
+  // Helper para convertir File a Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleNewPayment = async (paymentData: any) => {
     setIsLoading(true);
     const initialLog: AuditLog = {
@@ -99,10 +109,15 @@ function App() {
       role: currentRole
     };
 
-    // Generar URL local para el archivo subido (simulación de upload)
-    const receiptUrl = paymentData.file 
-        ? URL.createObjectURL(paymentData.file) 
-        : undefined;
+    // Convertir el archivo a Base64 para que viaje con el objeto y sea visible por el auditor
+    let receiptUrl = undefined;
+    if (paymentData.file) {
+        try {
+            receiptUrl = await fileToBase64(paymentData.file);
+        } catch (e) {
+            console.error("Error converting file", e);
+        }
+    }
 
     const newPayment: Payment = {
       id: `PAG-${Math.floor(Math.random() * 10000)}`,
@@ -118,11 +133,12 @@ function App() {
       submittedDate: new Date().toISOString(),
       notes: paymentData.notes,
       history: [initialLog],
-      receiptUrl: receiptUrl // Usamos la URL generada del archivo real
+      receiptUrl: receiptUrl // Aquí guardamos el string base64 real
     };
 
     try {
         await api.createPayment(newPayment);
+        // Actualizamos el estado local inmediatamente para ver el cambio
         setPayments(prev => [newPayment, ...prev]);
         setIsFormOpen(false);
         setNotification('✅ Pago guardado en Google Sheets.');
