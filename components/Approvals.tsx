@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   ChevronDown,
-  ChevronUp
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -143,6 +144,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
           border: 'border-slate-200 dark:border-slate-700'
         };
     }
+  };
+
+  // Helper para detectar PDF
+  const isPdf = (url?: string) => {
+      if (!url) return false;
+      return url.toLowerCase().includes('application/pdf') || url.toLowerCase().endsWith('.pdf');
   };
 
   return (
@@ -278,15 +285,42 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             <div className={`relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0' : 'h-[500px]'}`}>
                                 
                                 {selectedPayment.receiptUrl ? (
-                                    <img 
-                                        src={selectedPayment.receiptUrl} 
-                                        alt="Recibo" 
-                                        className="w-full h-full object-contain bg-slate-950"
-                                        onError={(e) => {
-                                            // Fallback si la imagen no carga o expira
-                                            e.currentTarget.src = `https://picsum.photos/seed/${selectedPayment.id}/800/1000`;
-                                        }} 
-                                    />
+                                    isPdf(selectedPayment.receiptUrl) ? (
+                                        <div className="w-full h-full flex flex-col bg-slate-800">
+                                            <div className="bg-slate-950/50 p-2 flex items-center justify-between text-xs text-slate-400 border-b border-slate-700/50">
+                                                <span className="flex items-center gap-2"><FileText size={14} /> Documento PDF</span>
+                                                <a href={selectedPayment.receiptUrl} download="comprobante.pdf" className="hover:text-white flex items-center gap-1"><ExternalLink size={12}/> Abrir externo</a>
+                                            </div>
+                                            <iframe 
+                                                src={selectedPayment.receiptUrl} 
+                                                className="w-full h-full border-none"
+                                                title="Visor PDF"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <img 
+                                            src={selectedPayment.receiptUrl} 
+                                            alt="Recibo" 
+                                            className="w-full h-full object-contain bg-slate-950"
+                                            onError={(e) => {
+                                                // Manejo de error mejorado: Ocultar imagen y mostrar mensaje
+                                                e.currentTarget.style.display = 'none';
+                                                const parent = e.currentTarget.parentElement;
+                                                if (parent) {
+                                                    // Evitar duplicados si ya existe el mensaje de error
+                                                    if (!parent.querySelector('.error-msg')) {
+                                                        const errDiv = document.createElement('div');
+                                                        errDiv.className = "error-msg w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950";
+                                                        errDiv.innerHTML = `
+                                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2 opacity-50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                                            <p class="text-sm font-medium">No se pudo cargar la imagen</p>
+                                                        `;
+                                                        parent.appendChild(errDiv);
+                                                    }
+                                                }
+                                            }} 
+                                        />
+                                    )
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950/50">
                                         <AlertCircle size={48} className="mb-4 opacity-50" />
@@ -294,21 +328,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 )}
                                 
-                                {/* Overlay Controls */}
-                                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70">
-                                        <Download size={20} />
-                                    </button>
-                                    <button 
-                                        onClick={() => setIsImageFullscreen(!isImageFullscreen)}
-                                        className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70"
-                                    >
-                                        {isImageFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-                                    </button>
-                                </div>
+                                {/* Overlay Controls (Solo para imágenes o si no es PDF puro iframe bloqueante) */}
+                                {!isPdf(selectedPayment.receiptUrl) && selectedPayment.receiptUrl && (
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70">
+                                            <Download size={20} />
+                                        </button>
+                                        <button 
+                                            onClick={() => setIsImageFullscreen(!isImageFullscreen)}
+                                            className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70"
+                                        >
+                                            {isImageFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                                        </button>
+                                    </div>
+                                )}
 
                                 {!isImageFullscreen && (
-                                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white pointer-events-none">
                                         <p className="text-xs opacity-75">
                                             {selectedPayment.receiptUrl ? 'Archivo cargado por usuario' : 'Visualización no disponible'}
                                         </p>
