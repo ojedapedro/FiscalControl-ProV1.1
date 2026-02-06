@@ -63,102 +63,130 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
 
   const handleDownloadPDF = () => {
     setIsGeneratingPdf(true);
-    try {
-        const w = window as any;
-        
-        if (!w.jspdf) {
-            throw new Error("La librería de PDF no se ha cargado correctamente.");
-        }
+    // Simular un pequeño delay para feedback visual
+    setTimeout(() => {
+        try {
+            const w = window as any;
+            
+            if (!w.jspdf) {
+                alert("La librería de PDF no se ha cargado correctamente. Verifique su conexión a internet y recargue.");
+                setIsGeneratingPdf(false);
+                return;
+            }
 
-        const { jsPDF } = w.jspdf;
-        const doc = new jsPDF();
+            const { jsPDF } = w.jspdf;
+            const doc = new jsPDF();
 
-        // Header
-        doc.setFontSize(20);
-        doc.setTextColor(41, 128, 185);
-        doc.text("Reporte de Control Fiscal", 14, 22);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
-        doc.text(`Período: ${startDate} al ${endDate}`, 14, 33);
-
-        // Summary Section
-        doc.setDrawColor(200);
-        doc.line(14, 40, 196, 40);
-        
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("Resumen Ejecutivo (Período Seleccionado):", 14, 48);
-        
-        const summaryData = [
-            [`Total Aprobado ($): $${totalApproved.toLocaleString()}`, `Transacciones Aprobadas: ${approvedPayments.length}`],
-            [`Rechazos: ${totalRejectedCount}`, `Pendientes de Revisión: ${totalPendingCount}`]
-        ];
-
-        if (doc.autoTable) {
-             doc.autoTable({
-                startY: 52,
-                body: summaryData,
-                theme: 'plain',
-                styles: { fontSize: 10, cellPadding: 1 },
-                columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
-            });
-
-            // Approved Table
+            // --- HEADER ---
+            doc.setFillColor(15, 23, 42); // Slate 950 style
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setFontSize(22);
+            doc.setTextColor(255, 255, 255);
+            doc.text("FiscalControl Pro", 14, 20);
+            
             doc.setFontSize(12);
-            doc.setTextColor(34, 197, 94); // Green
-            let finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 60;
-            doc.text("Detalle de Pagos Aprobados", 14, finalY);
+            doc.setTextColor(148, 163, 184); // Slate 400
+            doc.text("Reporte de Gestión Fiscal y Auditoría", 14, 28);
+
+            // --- METADATA ---
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 50);
+            doc.text(`Período Auditado: ${startDate} al ${endDate}`, 14, 55);
+            doc.text(`Generado por: Presidencia / Sistema`, 14, 60);
+
+            // --- SUMMARY KPI ---
+            doc.setDrawColor(200);
+            doc.line(14, 65, 196, 65);
+
+            const summaryData = [
+                ['Monto Total Aprobado', `$${totalApproved.toLocaleString('en-US', {minimumFractionDigits: 2})}`],
+                ['Pagos Aprobados (Cant.)', approvedPayments.length.toString()],
+                ['Pagos Rechazados (Cant.)', totalRejectedCount.toString()],
+                ['Pagos Pendientes (Cant.)', totalPendingCount.toString()]
+            ];
 
             doc.autoTable({
-                startY: finalY + 4,
-                head: [['Ref', 'Tienda', 'Concepto', 'Fecha', 'Monto ($)']],
-                body: approvedPayments.map(p => [
-                    p.id, 
-                    p.storeName, 
-                    p.specificType, 
-                    p.dueDate, 
-                    p.amount.toLocaleString()
-                ]),
-                headStyles: { fillColor: [34, 197, 94] },
-                styles: { fontSize: 8 },
+                startY: 70,
+                head: [['Indicador', 'Valor']],
+                body: summaryData,
+                theme: 'striped',
+                headStyles: { fillColor: [59, 130, 246] }, // Blue
+                styles: { fontSize: 10, cellPadding: 2 },
+                columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } }
             });
 
-            // Rejected Table
-            doc.setFontSize(12);
-            doc.setTextColor(239, 68, 68); // Red
-            finalY = doc.lastAutoTable.finalY + 10;
-            
-            // Check if page break is needed
+            let finalY = doc.lastAutoTable.finalY + 15;
+
+            // --- TABLE 1: APPROVED ---
+            if (approvedPayments.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(21, 128, 61); // Green 700
+                doc.text("Detalle de Transacciones Aprobadas", 14, finalY);
+
+                doc.autoTable({
+                    startY: finalY + 5,
+                    head: [['Ref', 'Tienda', 'Concepto', 'Fecha Venc.', 'Monto']],
+                    body: approvedPayments.map(p => [
+                        p.id, 
+                        p.storeName, 
+                        p.specificType, 
+                        p.dueDate, 
+                        `$${p.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}`
+                    ]),
+                    headStyles: { fillColor: [34, 197, 94] }, // Green 500
+                    styles: { fontSize: 8 },
+                    alternateRowStyles: { fillColor: [240, 253, 244] } // Green 50
+                });
+
+                finalY = doc.lastAutoTable.finalY + 15;
+            }
+
+            // Check for page break space
             if (finalY > 250) {
                 doc.addPage();
                 finalY = 20;
             }
 
-            doc.text("Detalle de Pagos Rechazados", 14, finalY);
+            // --- TABLE 2: REJECTED ---
+            if (rejectedPayments.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(185, 28, 28); // Red 700
+                doc.text("Detalle de Rechazos e Incidencias", 14, finalY);
 
-            doc.autoTable({
-                startY: finalY + 4,
-                head: [['Ref', 'Tienda', 'Motivo Rechazo', 'Monto ($)']],
-                body: rejectedPayments.map(p => [
-                    p.id, 
-                    p.storeName, 
-                    p.rejectionReason || 'N/A', 
-                    p.amount.toLocaleString()
-                ]),
-                headStyles: { fillColor: [239, 68, 68] },
-                styles: { fontSize: 8 },
-            });
+                doc.autoTable({
+                    startY: finalY + 5,
+                    head: [['Ref', 'Tienda', 'Motivo del Rechazo', 'Monto']],
+                    body: rejectedPayments.map(p => [
+                        p.id, 
+                        p.storeName, 
+                        p.rejectionReason || 'Sin motivo especificado', 
+                        `$${p.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}`
+                    ]),
+                    headStyles: { fillColor: [239, 68, 68] }, // Red 500
+                    styles: { fontSize: 8 },
+                    alternateRowStyles: { fillColor: [254, 242, 242] } // Red 50
+                });
+            }
+
+            // --- FOOTER (Page Numbers) ---
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Página ${i} de ${pageCount} - FiscalControl Pro`, 105, 285, { align: 'center' });
+            }
+
+            doc.save(`Fiscal_Report_${startDate}_${endDate}.pdf`);
+        } catch (error) {
+            console.error("Error generando PDF:", error);
+            alert("Hubo un error generando el PDF. Revise la consola para más detalles.");
+        } finally {
+            setIsGeneratingPdf(false);
         }
-
-        doc.save(`reporte_fiscal_${startDate}_${endDate}.pdf`);
-    } catch (error) {
-        console.error("Error generando PDF:", error);
-        alert("Hubo un error generando el PDF.");
-    } finally {
-        setIsGeneratingPdf(false);
-    }
+    }, 500);
   };
 
   return (
@@ -205,7 +233,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-slate-900 font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-yellow-500/20 active:scale-95"
             >
                 {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                <span>PDF</span>
+                <span>Descargar PDF</span>
             </button>
         </div>
       </header>
