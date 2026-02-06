@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Payment, PaymentStatus } from '../types';
 import { 
   CheckCircle2, 
@@ -21,7 +21,9 @@ import {
   FilePlus,
   Edit,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -39,6 +41,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('date_asc');
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
+  
+  // Estado para manejar qué items del historial están expandidos
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
 
   // Filtrado y Ordenamiento
   const processedPayments = useMemo(() => {
@@ -63,11 +68,24 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const selectedPayment = payments.find(p => p.id === selectedId);
 
   // Reset state when selection changes
-  React.useEffect(() => {
+  useEffect(() => {
     setRejectionNote('');
     setIsRejecting(false);
     setIsImageFullscreen(false);
+    setExpandedLogs(new Set()); // Colapsar historial al cambiar de pago
   }, [selectedId]);
+
+  const toggleLogExpansion = (index: number) => {
+    setExpandedLogs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   const handleRejectClick = () => {
     if (!isRejecting) {
@@ -364,6 +382,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                             .map((log, index, arr) => {
                                                 const styles = getActionStyle(log.action);
+                                                const hasNote = !!log.note;
+                                                const isExpanded = expandedLogs.has(index);
+
                                                 return (
                                                     <div key={index} className="relative pl-10 pb-8 last:pb-0">
                                                         {/* Línea conectora */}
@@ -377,7 +398,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                         </div>
 
                                                         {/* Tarjeta de Contenido */}
-                                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                        <div 
+                                                          onClick={() => hasNote && toggleLogExpansion(index)}
+                                                          className={`bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800/50 transition-all ${
+                                                            hasNote ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm' : ''
+                                                          }`}
+                                                        >
                                                             <div className="flex justify-between items-start mb-2">
                                                                 <div>
                                                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
@@ -389,20 +415,35 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                                 </span>
                                                             </div>
 
-                                                            <div className="flex items-center gap-2 mb-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                                                                <User size={12} className="text-slate-400" />
-                                                                <span>{log.actorName}</span>
-                                                                <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full">
-                                                                    {log.role}
-                                                                </span>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                                                    <User size={12} className="text-slate-400" />
+                                                                    <span>{log.actorName}</span>
+                                                                    <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full">
+                                                                        {log.role}
+                                                                    </span>
+                                                                </div>
+                                                                {hasNote && (
+                                                                    <div className={`text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                                                        <ChevronDown size={14} />
+                                                                    </div>
+                                                                )}
                                                             </div>
 
-                                                            {log.note && (
-                                                                <div className={`mt-3 text-sm p-3 rounded-lg border italic ${
+                                                            {/* Nota Expandible */}
+                                                            {hasNote && isExpanded && (
+                                                                <div className={`mt-3 text-sm p-3 rounded-lg border italic animate-in slide-in-from-top-2 fade-in duration-200 ${
                                                                     log.action === 'RECHAZO' 
                                                                     ? 'bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-200 border-red-100 dark:border-red-900/30' 
                                                                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                                                                 }`}>
+                                                                    "{log.note}"
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Preview de nota si está colapsada */}
+                                                            {hasNote && !isExpanded && (
+                                                                <div className="mt-2 text-[10px] text-slate-400 truncate italic">
                                                                     "{log.note}"
                                                                 </div>
                                                             )}
