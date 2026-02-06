@@ -13,11 +13,10 @@ import {
   MapPin,
   FileText,
   DollarSign,
-  Info,
   Loader2,
-  Image as ImageIcon,
   Trash2,
-  Scan
+  Scan,
+  X
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -160,8 +159,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         setFile(null); // Limpiar visualmente mientras carga
         setPreviewUrl(null);
         
-        // Simulación de delay (e.g. subida a S3 o escaneo de virus)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Simulación de delay
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         // Generate preview if image
         if (selectedFile.type.startsWith('image/')) {
@@ -254,7 +253,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
             <button onClick={onCancel} disabled={isSubmitting} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-50">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <ChevronDown className="rotate-90" size={24} />
             </button>
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cargar Nuevo Pago</h1>
@@ -479,73 +478,75 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                 {/* File Upload */}
                 <div>
                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
-                     <label className={`relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
+                     <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
                          isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
                      } ${
-                         file ? 'border-green-400 bg-green-50 dark:bg-green-900/10' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                         file ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
                      }`}>
                         
                         {/* Overlay de Carga de Archivo */}
                         {isFileScanning && (
-                            <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm">
                                 <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-2" />
-                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Escaneando...</span>
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Analizando archivo...</span>
                             </div>
                         )}
 
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 w-full h-full">
+                        <div className="flex flex-col items-center justify-center w-full h-full">
                             {file ? (
-                                <div className="relative w-full h-full flex flex-col items-center justify-center group/preview">
+                                <div className="w-full h-full relative group/file">
                                     {previewUrl ? (
-                                        <div className="relative w-full h-full p-2">
-                                            <img 
-                                                src={previewUrl} 
-                                                alt="Preview" 
-                                                className="w-full h-full object-contain rounded-lg shadow-sm" 
+                                        // Image Preview
+                                        <div className="w-full h-full relative p-2">
+                                            <img
+                                                src={previewUrl}
+                                                alt="Preview"
+                                                className="w-full h-full object-contain rounded-xl shadow-sm bg-slate-100 dark:bg-slate-950/50"
                                             />
                                             {/* Action Overlay */}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                                <button 
+                                            <div className="absolute inset-0 m-2 rounded-xl bg-black/40 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                                 <button
                                                     onClick={clearFile}
                                                     type="button"
-                                                    className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                                                    title="Eliminar archivo"
-                                                >
-                                                    <Trash2 size={20} />
-                                                </button>
+                                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transform hover:scale-105 transition-all"
+                                                 >
+                                                    <Trash2 size={18} />
+                                                    <span>Eliminar Imagen</span>
+                                                 </button>
                                             </div>
-                                            <div className="absolute top-0 right-0 p-1 pointer-events-none">
-                                                <div className="bg-green-500 text-white rounded-full p-1 shadow-sm">
-                                                    <CheckCircle2 size={16} />
-                                                </div>
+                                            <div className="absolute top-4 right-4 bg-green-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
+                                                <CheckCircle2 size={16} />
                                             </div>
                                         </div>
                                     ) : (
-                                        <>
-                                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
-                                                {file.type === 'application/pdf' ? <FileText size={24} /> : <CheckCircle2 size={24} />}
+                                        // PDF/File Preview
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
+                                            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl mb-3 ring-4 ring-red-50 dark:ring-red-900/10">
+                                                <FileText size={32} className="text-red-500 dark:text-red-400" />
                                             </div>
-                                            <p className="text-sm text-green-700 dark:text-green-400 font-medium truncate w-full px-4">{file.name}</p>
-                                            <button 
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
+                                                {file.name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                            </p>
+                                            <button
                                                 onClick={clearFile}
                                                 type="button"
-                                                className="mt-2 text-xs text-red-500 hover:text-red-600 font-bold flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded"
+                                                className="text-red-500 hover:text-red-600 text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors"
                                             >
-                                                <Trash2 size={12} /> Eliminar
+                                                <Trash2 size={14} /> Eliminar adjunto
                                             </button>
-                                        </>
-                                    )}
-                                    {!previewUrl && (
-                                        <p className="text-xs text-green-600 dark:text-green-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB - Listo para envío</p>
+                                        </div>
                                     )}
                                 </div>
                             ) : (
                                 <>
-                                    <div className={`p-3 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
+                                    <div className={`p-4 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
                                         <Upload size={24} />
                                     </div>
-                                    <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir imagen o PDF</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-500">Máximo 5MB</p>
+                                    <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir comprobante</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-500">Soporta: PDF, JPG, PNG (Max 5MB)</p>
                                 </>
                             )}
                         </div>
@@ -569,7 +570,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             onChange={(e) => setNotes(e.target.value)}
                             disabled={isSubmitting}
                             placeholder="Añada notas adicionales para el auditor..."
-                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-40 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
                          ></textarea>
                      </div>
                 </div>
