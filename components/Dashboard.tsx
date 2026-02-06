@@ -19,8 +19,14 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
-  const totalDue = payments.reduce((acc, curr) => acc + curr.amount, 0);
-  const overdueCount = payments.filter(p => p.status === PaymentStatus.OVERDUE).length;
+  // Calcular totales reales basados en el estado de los pagos
+  const totalDue = payments
+    .filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status))
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalOverdue = payments
+    .filter(p => p.status === PaymentStatus.OVERDUE)
+    .reduce((acc, curr) => acc + curr.amount, 0);
 
   const getIconForType = (type: string) => {
     // Adjusted logic for Spanish terms
@@ -65,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
               <DollarSign size={18} className="text-blue-500" />
               Total por Pagar
             </div>
-            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString()}</div>
+            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingUp size={14} />
               +12% vs semana pasada
@@ -80,7 +86,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
               <AlertTriangle size={18} className="text-red-500" />
               Crítico / Vencido
             </div>
-            <div className="text-4xl font-bold text-slate-900 dark:text-white">${(850).toLocaleString()}</div>
+            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
              <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingDown size={14} />
               -5% tasa de recuperación
@@ -123,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
-                <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toFixed(2)}</span>
+                <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                     payment.status === PaymentStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
                     payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
