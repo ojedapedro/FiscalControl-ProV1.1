@@ -18,8 +18,10 @@ import {
   CheckSquare,
   History,
   User,
-  FileCheck,
-  FileX
+  FilePlus,
+  Edit,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -85,12 +87,43 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       }
   };
 
-  const renderHistoryIcon = (action: string) => {
+  const getActionStyle = (action: string) => {
     switch(action) {
-      case 'APROBACION': return <CheckCircle2 size={16} className="text-green-500" />;
-      case 'RECHAZO': return <XCircle size={16} className="text-red-500" />;
-      case 'CREACION': return <FileCheck size={16} className="text-blue-500" />;
-      default: return <Clock size={16} className="text-slate-400" />;
+      case 'APROBACION': 
+        return { 
+          icon: <ShieldCheck size={18} />, 
+          bg: 'bg-green-100 dark:bg-green-900/30', 
+          text: 'text-green-700 dark:text-green-400',
+          border: 'border-green-200 dark:border-green-800'
+        };
+      case 'RECHAZO': 
+        return { 
+          icon: <ShieldAlert size={18} />, 
+          bg: 'bg-red-100 dark:bg-red-900/30', 
+          text: 'text-red-700 dark:text-red-400',
+          border: 'border-red-200 dark:border-red-800'
+        };
+      case 'CREACION': 
+        return { 
+          icon: <FilePlus size={18} />, 
+          bg: 'bg-blue-100 dark:bg-blue-900/30', 
+          text: 'text-blue-700 dark:text-blue-400',
+          border: 'border-blue-200 dark:border-blue-800'
+        };
+      case 'ACTUALIZACION': 
+        return { 
+          icon: <Edit size={18} />, 
+          bg: 'bg-orange-100 dark:bg-orange-900/30', 
+          text: 'text-orange-700 dark:text-orange-400',
+          border: 'border-orange-200 dark:border-orange-800'
+        };
+      default: 
+        return { 
+          icon: <Clock size={18} />, 
+          bg: 'bg-slate-100 dark:bg-slate-800', 
+          text: 'text-slate-600 dark:text-slate-400',
+          border: 'border-slate-200 dark:border-slate-700'
+        };
     }
   };
 
@@ -318,49 +351,69 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                             </div>
 
-                            {/* NUEVA SECCIÓN: HISTORIAL DE AUDITORÍA */}
+                            {/* HISTORIAL DE AUDITORÍA MEJORADO */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                     <History size={16} className="text-slate-400" />
-                                    Historial de Auditoría
+                                    Historial de Eventos
                                 </h3>
                                 
-                                <div className="space-y-4 relative pl-2">
-                                    {/* Linea vertical conectora */}
-                                    <div className="absolute top-2 bottom-2 left-5 w-px bg-slate-200 dark:bg-slate-800"></div>
-
+                                <div className="space-y-0">
                                     {selectedPayment.history && selectedPayment.history.length > 0 ? (
-                                        [...selectedPayment.history].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index) => (
-                                            <div key={index} className="relative pl-8">
-                                                <div className="absolute left-0 top-0.5 p-1 bg-white dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 z-10">
-                                                    {renderHistoryIcon(log.action)}
-                                                </div>
-                                                
-                                                <div className="flex flex-col">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{log.action}</span>
-                                                        <span className="text-[10px] text-slate-400 font-mono">
-                                                            {new Date(log.date).toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                        <User size={10} />
-                                                        <span>{log.actorName}</span>
-                                                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{log.role}</span>
-                                                    </div>
-
-                                                    {log.note && (
-                                                        <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 p-2 rounded border border-red-100 dark:border-red-800/30">
-                                                            {log.note}
+                                        [...selectedPayment.history]
+                                            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                            .map((log, index, arr) => {
+                                                const styles = getActionStyle(log.action);
+                                                return (
+                                                    <div key={index} className="relative pl-10 pb-8 last:pb-0">
+                                                        {/* Línea conectora */}
+                                                        {index !== arr.length - 1 && (
+                                                            <div className="absolute top-8 left-[19px] bottom-0 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
+                                                        )}
+                                                        
+                                                        {/* Icono del evento */}
+                                                        <div className={`absolute left-0 top-0 w-10 h-10 rounded-full flex items-center justify-center border-2 z-10 ${styles.bg} ${styles.text} ${styles.border}`}>
+                                                            {styles.icon}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
+
+                                                        {/* Tarjeta de Contenido */}
+                                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div>
+                                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
+                                                                        {log.action}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                                    {new Date(log.date).toLocaleString()}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2 mb-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                                                <User size={12} className="text-slate-400" />
+                                                                <span>{log.actorName}</span>
+                                                                <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full">
+                                                                    {log.role}
+                                                                </span>
+                                                            </div>
+
+                                                            {log.note && (
+                                                                <div className={`mt-3 text-sm p-3 rounded-lg border italic ${
+                                                                    log.action === 'RECHAZO' 
+                                                                    ? 'bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-200 border-red-100 dark:border-red-900/30' 
+                                                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                                                                }`}>
+                                                                    "{log.note}"
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
                                     ) : (
-                                        <div className="text-center py-4 text-xs text-slate-400 italic">
-                                            Sin registros históricos disponibles.
+                                        <div className="text-center py-8 text-slate-400 flex flex-col items-center">
+                                            <Clock size={24} className="mb-2 opacity-50" />
+                                            <p className="text-xs">Sin registros históricos.</p>
                                         </div>
                                     )}
                                 </div>
