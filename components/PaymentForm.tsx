@@ -79,7 +79,7 @@ const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; items: { code: strin
 };
 
 interface PaymentFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -219,18 +219,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     setLoadingText('Guardando transacción...');
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    onSubmit({
-      storeId: store,
-      category,
-      amount: parseFloat(amount),
-      dueDate,
-      paymentDate,
-      specificType,
-      file,
-      notes
-    });
-    setIsSubmitting(false);
-    setLoadingText('');
+    try {
+        await onSubmit({
+            storeId: store,
+            category,
+            amount: parseFloat(amount),
+            dueDate,
+            paymentDate,
+            specificType,
+            file,
+            notes
+        });
+    } catch (error) {
+        console.error("Error submitting payment:", error);
+    } finally {
+        setIsSubmitting(false);
+        setLoadingText('');
+    }
   };
 
   return (
