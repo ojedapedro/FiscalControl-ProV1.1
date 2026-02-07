@@ -15,7 +15,8 @@ import {
   PlayCircle,
   Loader2,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus } from '../types';
 import { api } from '../services/api';
@@ -24,15 +25,19 @@ interface NotificationsViewProps {
   onBack: () => void;
   payments: Payment[]; // Recibe los datos reales
   onManage: (paymentId: string) => void; // Callback para el botón gestionar
+  onRefresh?: () => Promise<void> | void; // Callback para actualizar datos
 }
 
 const ITEMS_PER_PAGE = 6;
+const REFRESH_INTERVAL = 60000; // 60 segundos
 
-export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, payments, onManage }) => {
+export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, payments, onManage, onRefresh }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   
   // Paginación State
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
@@ -46,6 +51,34 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       daysBeforeCritical: 1,
       emailEnabled: true
   });
+
+  // Auto-refresh Timer
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+
+    if (onRefresh && !showSettings) {
+        interval = setInterval(async () => {
+            setIsRefreshing(true);
+            await onRefresh();
+            setLastUpdated(new Date());
+            setIsRefreshing(false);
+        }, REFRESH_INTERVAL);
+    }
+
+    return () => {
+        if (interval) clearInterval(interval);
+    };
+  }, [onRefresh, showSettings]);
+
+  // Manual Refresh Handler
+  const handleManualRefresh = async () => {
+      if (onRefresh && !isRefreshing) {
+          setIsRefreshing(true);
+          await onRefresh();
+          setLastUpdated(new Date());
+          setIsRefreshing(false);
+      }
+  };
 
   // Generar Alertas dinámicamente basadas en los Pagos reales
   const alerts: AlertItem[] = useMemo(() => {
@@ -301,9 +334,24 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
             </button>
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Centro de Notificaciones</h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    {alerts.length} alertas activas basadas en la base de datos fiscal.
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-slate-500 dark:text-slate-400">
+                        {alerts.length} alertas activas.
+                    </p>
+                    {onRefresh && (
+                        <div className="flex items-center gap-1 text-xs text-slate-400 pl-2 border-l border-slate-300 dark:border-slate-700">
+                            <span>Actualizado: {lastUpdated.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <button 
+                                onClick={handleManualRefresh}
+                                disabled={isRefreshing}
+                                className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all ${isRefreshing ? 'animate-spin text-blue-500' : 'text-slate-500 hover:text-blue-500'}`}
+                                title="Actualizar lista ahora"
+                            >
+                                <RefreshCw size={12} />
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
         <button 

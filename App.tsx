@@ -253,6 +253,7 @@ function App() {
             onBack={() => setCurrentView('payments')} 
             payments={payments}
             onManage={handleManageNotification}
+            onRefresh={loadData}
           />
         );
       case 'settings':
