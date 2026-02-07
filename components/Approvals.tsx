@@ -24,7 +24,9 @@ import {
   ShieldAlert,
   ChevronDown,
   FileText,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Calendar
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -33,14 +35,14 @@ interface ApprovalsProps {
   onReject: (id: string, reason: string) => void;
 }
 
-type SortOption = 'date_asc' | 'date_desc' | 'amount_desc' | 'amount_asc';
+type SortOption = 'urgency' | 'date_desc' | 'amount_desc' | 'amount_asc';
 
 export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onReject }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectionNote, setRejectionNote] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<SortOption>('date_asc');
+  const [sortOption, setSortOption] = useState<SortOption>('urgency');
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
   
   // Estado para manejar qué items del historial están expandidos
@@ -57,8 +59,11 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
     return filtered.sort((a, b) => {
       switch (sortOption) {
-        case 'date_asc': return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        case 'date_desc': return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+        case 'urgency': 
+            // Urgencia: Fechas más antiguas primero (vencidos arriba)
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        case 'date_desc': 
+            return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
         case 'amount_desc': return b.amount - a.amount;
         case 'amount_asc': return a.amount - b.amount;
         default: return 0;
@@ -103,6 +108,45 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       if (selectedId) {
           onApprove(selectedId);
           setSelectedId(null);
+      }
+  };
+
+  // Helper para calcular urgencia visual
+  const getUrgencyDetails = (dueDateStr: string) => {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const due = new Date(dueDateStr + 'T00:00:00');
+      const diffTime = due.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+          return { 
+              label: `Vencido (${Math.abs(diffDays)}d)`, 
+              colorClass: 'text-red-600 bg-red-100 border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400',
+              borderClass: 'border-l-4 border-l-red-500',
+              icon: <AlertTriangle size={14} />
+          };
+      } else if (diffDays === 0) {
+          return { 
+              label: 'Vence Hoy', 
+              colorClass: 'text-orange-600 bg-orange-100 border-orange-200 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400',
+              borderClass: 'border-l-4 border-l-orange-500',
+              icon: <Clock size={14} />
+          };
+      } else if (diffDays <= 3) {
+          return { 
+              label: `${diffDays} días rest.`, 
+              colorClass: 'text-yellow-600 bg-yellow-100 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-400',
+              borderClass: 'border-l-4 border-l-yellow-500',
+              icon: <Clock size={14} />
+          };
+      } else {
+          return { 
+              label: 'A tiempo', 
+              colorClass: 'text-slate-600 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400',
+              borderClass: 'border-l-4 border-l-slate-300 dark:border-l-slate-600',
+              icon: <Calendar size={14} />
+          };
       }
   };
 
@@ -183,14 +227,19 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                     <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
                 </div>
                 <div className="relative group">
-                    <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
-                        <ArrowUpDown size={18} />
+                    <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-xs font-bold px-3">
+                        <ArrowUpDown size={16} />
+                        <span className="hidden sm:inline">
+                            {sortOption === 'urgency' ? 'Prioridad' : 
+                             sortOption === 'amount_desc' ? 'Monto Mayor' : 
+                             sortOption === 'amount_asc' ? 'Monto Menor' : 'Fecha'}
+                        </span>
                     </button>
                     {/* Simple Dropdown for Sort */}
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-slate-100 dark:border-slate-700 hidden group-hover:block z-10 p-1">
-                        <button onClick={() => setSortOption('date_asc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'date_asc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Más Antiguos</button>
-                        <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Más Recientes</button>
-                        <button onClick={() => setSortOption('amount_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'amount_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Mayor Monto</button>
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-slate-100 dark:border-slate-700 hidden group-hover:block z-10 p-1">
+                        <button onClick={() => setSortOption('urgency')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'urgency' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Prioridad / Urgencia</button>
+                        <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Más Recientes</button>
+                        <button onClick={() => setSortOption('amount_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'amount_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Mayor Monto</button>
                     </div>
                 </div>
             </div>
@@ -207,39 +256,50 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                     <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[200px]">No hay pagos que coincidan con tus filtros.</p>
                  </div>
             ) : (
-                processedPayments.map(payment => (
-                <div 
-                    key={payment.id}
-                    onClick={() => setSelectedId(payment.id)}
-                    className={`group relative p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${
-                        selectedId === payment.id 
-                        ? 'bg-white dark:bg-slate-800 border-blue-500 ring-1 ring-blue-500 shadow-md z-10' 
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
-                    }`}
-                >
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                             <span className={`w-2 h-2 rounded-full ${payment.status === PaymentStatus.PENDING ? 'bg-orange-400' : 'bg-blue-400'}`}></span>
-                             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{payment.id}</span>
-                        </div>
-                        <span className="text-xs text-slate-400 font-mono">{payment.dueDate}</span>
-                    </div>
+                processedPayments.map(payment => {
+                    const urgency = getUrgencyDetails(payment.dueDate);
                     
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {payment.storeName}
-                    </h3>
-                    
-                    <div className="flex justify-between items-end mt-3">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">Monto a Pagar</span>
-                            <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">${payment.amount.toLocaleString()}</span>
+                    return (
+                        <div 
+                            key={payment.id}
+                            onClick={() => setSelectedId(payment.id)}
+                            className={`group relative p-4 rounded-r-xl rounded-l-md border-t border-b border-r transition-all cursor-pointer hover:shadow-md ${urgency.borderClass} ${
+                                selectedId === payment.id 
+                                ? 'bg-white dark:bg-slate-800 border-blue-500/50 shadow-md z-10' 
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
+                            }`}
+                        >
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                         <span className="text-[10px] font-mono text-slate-400">{payment.id}</span>
+                                         {payment.status === PaymentStatus.UPLOADED && (
+                                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded font-bold">NUEVO</span>
+                                         )}
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                                        {payment.storeName}
+                                    </h3>
+                                </div>
+                                <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${urgency.colorClass}`}>
+                                    {urgency.icon}
+                                    <span>{urgency.label}</span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-end mt-3">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[150px]">{payment.specificType}</span>
+                                    <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">${payment.amount.toLocaleString()}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 flex flex-col items-end">
+                                     <span>Vence:</span>
+                                     <span className="font-medium text-slate-600 dark:text-slate-300">{payment.dueDate}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                             {payment.category}
-                        </div>
-                    </div>
-                </div>
-                ))
+                    );
+                })
             )}
         </div>
       </div>
