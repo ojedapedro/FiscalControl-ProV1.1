@@ -245,7 +245,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                     type="text" 
                                     value={config.whatsappGatewayUrl}
                                     onChange={(e) => setConfig({...config, whatsappGatewayUrl: e.target.value})}
-                                    placeholder="https://api.gateway.com/send?phone=[PHONE]&text=[MESSAGE]..." 
+                                    placeholder="https://api.callmebot.com/whatsapp.php?phone=584144415403&text=This+is+a+test&apikey=7251581" 
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white font-mono"
                                   />
                                   <LinkIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
