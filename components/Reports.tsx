@@ -22,6 +22,51 @@ interface ReportsProps {
   payments: Payment[];
 }
 
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95">
+        <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.color }}></span>
+            <p className="font-bold text-white text-sm">{data.name}</p>
+        </div>
+        <p className="text-xs text-slate-400">
+          <span className="font-mono text-lg text-white font-bold">{data.value}</span> Pagos
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomAreaTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95">
+        <p className="font-bold text-slate-200 mb-3 text-sm border-b border-slate-700 pb-2">{label}</p>
+        {payload.map((entry: any, index: number) => {
+          const isProjection = entry.dataKey === 'secondaryValue';
+          return (
+            <div key={index} className="flex items-center justify-between gap-6 text-xs mb-2 last:mb-0">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    <span className={isProjection ? "text-yellow-400" : "text-blue-400"}>
+                        {isProjection ? 'Proyección' : 'Gasto Real'}
+                    </span>
+                </div>
+                <span className="font-mono text-white font-bold">
+                    ${entry.value.toLocaleString()}
+                </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  return null;
+};
+
 export const Reports: React.FC<ReportsProps> = ({ payments }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -354,10 +399,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                         </Pie>
-                        <Tooltip 
-                            contentStyle={{backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff'}}
-                            itemStyle={{color: '#fff'}}
-                        />
+                        <Tooltip content={<CustomPieTooltip />} />
                     </PieChart>
                 </ResponsiveContainer>
              </div>
@@ -397,10 +439,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
                     <YAxis hide />
-                    <Tooltip 
-                        contentStyle={{backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px'}} 
-                        itemStyle={{color: '#fff'}}
-                    />
+                    <Tooltip content={<CustomAreaTooltip />} />
                     <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
                     <Area type="monotone" dataKey="secondaryValue" stroke="#eab308" strokeWidth={3} fillOpacity={1} fill="url(#colorSec)" />
                 </AreaChart>
