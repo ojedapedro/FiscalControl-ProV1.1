@@ -89,8 +89,9 @@ function checkDeadlinesAndNotify() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const settings = getSettings(ss);
   
+  // Validación estricta antes de procesar
   if (!settings || !settings.whatsappEnabled || !settings.whatsappGatewayUrl) {
-    Logger.log("WhatsApp desactivado o sin configurar");
+    Logger.log("WhatsApp desactivado o sin configurar (URL vacía)");
     return 0;
   }
 
@@ -145,6 +146,16 @@ function checkDeadlinesAndNotify() {
 
 function sendWhatsAppMessage(gatewayUrl, phone, message) {
   try {
+    // CORRECCIÓN: Validación defensiva para evitar TypeError si gatewayUrl llega undefined
+    if (!gatewayUrl) {
+      Logger.log("Error: URL de Gateway no definida o vacía");
+      return false;
+    }
+
+    // Asegurar que es string y eliminar espacios
+    let finalUrl = String(gatewayUrl).trim();
+    if (finalUrl === "") return false;
+
     // Codificar mensaje para URL
     const encodedMessage = encodeURIComponent(message);
     
@@ -155,14 +166,12 @@ function sendWhatsAppMessage(gatewayUrl, phone, message) {
     // REGLA: Si la URL del gateway contiene [MESSAGE] o [PHONE], los reemplazamos.
     // Si no, asumimos que se añaden como query params standard (estilo CallMeBot)
     
-    let finalUrl = gatewayUrl;
-    
-    if (gatewayUrl.includes('[MESSAGE]')) {
+    if (finalUrl.includes('[MESSAGE]')) {
        finalUrl = finalUrl.replace('[MESSAGE]', encodedMessage).replace('[PHONE]', phone);
     } else {
        // Fallback simple: asume que la URL termina en apikey=xyz y le falta &text=...&phone=...
        const separator = finalUrl.includes('?') ? '&' : '?';
-       finalUrl = `${gatewayUrl}${separator}phone=${phone}&text=${encodedMessage}`;
+       finalUrl = `${finalUrl}${separator}phone=${phone}&text=${encodedMessage}`;
     }
 
     const response = UrlFetchApp.fetch(finalUrl);
@@ -181,7 +190,14 @@ function getSettings(ss) {
   const sheet = ss.getSheetByName('Settings');
   if (!sheet) return null;
 
-  const data = sheet.getRange(2, 1, 1, 6).getValues()[0];
+  // Obtenemos los valores. Si la hoja está vacía o fila 2 no existe, manejamos el error.
+  const range = sheet.getRange(2, 1, 1, 6);
+  const values = range.getValues();
+  
+  if (!values || values.length === 0 || !values[0]) return null;
+
+  const data = values[0];
+  
   return {
     whatsappEnabled: data[0] === true || data[0] === 'TRUE',
     whatsappPhone: data[1],
