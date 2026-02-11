@@ -18,7 +18,8 @@ import {
   Scan,
   X,
   AlertTriangle,
-  Clock
+  Clock,
+  FileWarning
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
@@ -102,11 +103,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [muniItem, setMuniItem] = useState('');
 
   const [amount, setAmount] = useState('');
+  const [expectedBudget, setExpectedBudget] = useState<number | null>(null);
+  
   const [dueDate, setDueDate] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [specificType, setSpecificType] = useState('');
+  
+  // Archivos
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // --- Justification State ---
+  const [isOverBudget, setIsOverBudget] = useState(false);
+  const [showJustificationModal, setShowJustificationModal] = useState(false);
+  const [justificationNote, setJustificationNote] = useState('');
+  const [justificationFile, setJustificationFile] = useState<File | null>(null);
+  const [justificationConfirmed, setJustificationConfirmed] = useState(false);
+
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -125,16 +138,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         setSpecificType(`${itemData.code} - ${itemData.name}`);
         if (itemData.amount !== undefined && !itemData.isVariable) {
           setAmount(itemData.amount.toString());
+          setExpectedBudget(itemData.amount); // Set budget baseline
         } else if (itemData.isVariable) {
-           setAmount(''); // Reset for manual input
+           setAmount(''); 
+           setExpectedBudget(null); // No fixed budget for variable items
         }
       }
     } else if (category !== Category.MUNICIPAL_TAX) {
-        // Reset sub-selections if category changes
         setMuniGroup('');
         setMuniItem('');
+        setExpectedBudget(null);
     }
   }, [category, muniGroup, muniItem]);
+
+  // Budget Monitoring Logic
+  useEffect(() => {
+    if (expectedBudget !== null && amount) {
+        const numericAmount = parseFloat(amount);
+        if (!isNaN(numericAmount) && numericAmount > expectedBudget) {
+            setIsOverBudget(true);
+            // If they modify the amount to be higher again, reset confirmation to force re-check unless it's just minor editing
+            // We'll handle the modal opening on Submit to be less intrusive, or via a warning button.
+        } else {
+            setIsOverBudget(false);
+            setJustificationConfirmed(false); // Reset if back to normal
+        }
+    } else {
+        setIsOverBudget(false);
+    }
+  }, [amount, expectedBudget]);
+
 
   // Clean up preview URL
   useEffect(() => {
@@ -144,114 +177,65 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   }, [previewUrl]);
 
   // --- LOGICA SEMÁFORO FISCAL ---
-  
   const getTaxStatus = (deadlineDay: number) => {
     const today = new Date();
     const currentDay = today.getDate();
-    
-    // Si ya pasó el día límite -> Rojo (Vencido)
-    if (currentDay > deadlineDay) {
-        return { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
-    }
-    // Si faltan 5 días o menos -> Amarillo (Por Vencer / Tramite)
-    if (deadlineDay - currentDay <= 5) {
-        return { color: 'bg-yellow-500', text: 'text-yellow-600', bgSoft: 'bg-yellow-100', status: 'Próximo', icon: Clock };
-    }
-    // Si falta más -> Verde (Al día)
+    if (currentDay > deadlineDay) return { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
+    if (deadlineDay - currentDay <= 5) return { color: 'bg-yellow-500', text: 'text-yellow-600', bgSoft: 'bg-yellow-100', status: 'Próximo', icon: Clock };
     return { color: 'bg-green-500', text: 'text-green-600', bgSoft: 'bg-green-100', status: 'En fecha', icon: CheckCircle2 };
   };
 
   const municipalStatusList = useMemo(() => {
     return Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => {
         const status = getTaxStatus(config.deadlineDay);
-        return {
-            key,
-            label: config.label,
-            ...status
-        };
+        return { key, label: config.label, ...status };
     });
   }, []);
 
-  // Calcular estado global (El peor estado determina el color global)
   const globalStatus = useMemo(() => {
     if (municipalStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
     if (municipalStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
     return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
   }, [municipalStatusList]);
 
-  // ------------------------------
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-        // Validación de tamaño (5MB = 5 * 1024 * 1024 bytes)
         if (selectedFile.size > 5 * 1024 * 1024) {
             setErrors(prev => ({...prev, file: 'El archivo excede el límite de 5MB.'}));
-            setFile(null);
-            setPreviewUrl(null);
             return;
         }
-        
-        // Validación de tipo (Extra check)
-        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-        if (!allowedTypes.includes(selectedFile.type)) {
-             setErrors(prev => ({...prev, file: 'Formato no soportado. Use PDF, JPG o PNG.'}));
-             setFile(null);
-             setPreviewUrl(null);
-             return;
-        }
-
-        // Simular escaneo y carga del archivo
         setIsFileScanning(true);
-        setFile(null); // Limpiar visualmente mientras carga
+        setFile(null); 
         setPreviewUrl(null);
-        
-        // Simulación de delay
         await new Promise(resolve => setTimeout(resolve, 800));
-
-        // Generate preview if image
         if (selectedFile.type.startsWith('image/')) {
             setPreviewUrl(URL.createObjectURL(selectedFile));
         }
-
         setFile(selectedFile);
         setIsFileScanning(false);
-
-        setErrors(prev => {
-            const newErrs = {...prev};
-            delete newErrs.file;
-            return newErrs;
-        });
+        setErrors(prev => { const newErrs = {...prev}; delete newErrs.file; return newErrs; });
     }
   };
 
   const clearFile = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      setFile(null);
-      setPreviewUrl(null);
+      e.stopPropagation(); e.preventDefault();
+      setFile(null); setPreviewUrl(null);
   };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    
-    // Validar subcategorías municipales
     if (category === Category.MUNICIPAL_TAX) {
         if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal";
         if (!muniItem) newErrors.muniItem = "Seleccione el concepto";
     }
-
     if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Monto inválido";
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    
-    // Validación final de archivo
-    if (!file && !isFileScanning) {
-        newErrors.file = "Comprobante requerido";
-    }
+    if (!file && !isFileScanning) newErrors.file = "Comprobante requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -260,17 +244,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    if (isFileScanning) return; // Prevenir envío si el archivo se está procesando
+    if (isFileScanning) return; 
+
+    // ** Budget Check Interception **
+    if (isOverBudget && !justificationConfirmed) {
+        setShowJustificationModal(true);
+        return;
+    }
 
     setIsSubmitting(true);
-    
-    // Simular proceso de carga en pasos
     setLoadingText('Digitalizando...');
     await new Promise(resolve => setTimeout(resolve, 800));
-
     setLoadingText('Verificando...');
     await new Promise(resolve => setTimeout(resolve, 800));
-
     setLoadingText('Guardando...');
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -283,7 +269,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
             paymentDate,
             specificType,
             file,
-            notes
+            notes,
+            // Extra Data
+            originalBudget: expectedBudget,
+            isOverBudget,
+            justification: justificationNote,
+            justificationFile: justificationFile
         });
     } catch (error) {
         console.error("Error submitting payment:", error);
@@ -293,9 +284,105 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   };
 
+  const handleConfirmJustification = () => {
+    if (!justificationNote.trim()) {
+        alert("Debe escribir una razón para el excedente.");
+        return;
+    }
+    setJustificationConfirmed(true);
+    setShowJustificationModal(false);
+    // Optionally auto-submit here, or let user click submit again.
+    // Let's let them click submit again to be safe, or trigger it.
+    // For better UX, we just close the modal and let them hit "Enviar" again, 
+    // but visually showing it's justified.
+  };
+
   return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-6 lg:p-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
+      {/* --- JUSTIFICATION MODAL --- */}
+      {showJustificationModal && (
+          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-red-50 dark:bg-red-900/20 rounded-t-2xl">
+                      <h3 className="text-xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+                          <AlertTriangle className="animate-pulse" />
+                          Excedente Presupuestario
+                      </h3>
+                      <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+                          El monto ingresado (${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro (${expectedBudget?.toLocaleString()}).
+                      </p>
+                  </div>
+                  
+                  <div className="p-6 space-y-4 overflow-y-auto">
+                      <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Se requiere justificación para auditoría:</p>
+                          <textarea
+                              value={justificationNote}
+                              onChange={(e) => setJustificationNote(e.target.value)}
+                              placeholder="Explique la razón del incremento (ej. Multa por retraso, Tasa de cambio ajustada...)"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none h-24 resize-none"
+                          />
+                      </div>
+
+                      <div>
+                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                              Soporte del Excedente (Opcional)
+                          </label>
+                          <div className="flex items-center gap-3">
+                              <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                                  {justificationFile ? (
+                                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-bold text-sm">
+                                          <CheckCircle2 size={16} />
+                                          <span className="truncate max-w-[150px]">{justificationFile.name}</span>
+                                      </div>
+                                  ) : (
+                                      <>
+                                        <Upload size={20} className="text-slate-400 mb-1" />
+                                        <span className="text-xs text-slate-500">Subir archivo extra</span>
+                                      </>
+                                  )}
+                                  <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    onChange={(e) => setJustificationFile(e.target.files?.[0] || null)}
+                                  />
+                              </label>
+                              {justificationFile && (
+                                  <button 
+                                    onClick={() => setJustificationFile(null)} 
+                                    className="p-3 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200"
+                                  >
+                                      <Trash2 size={20} />
+                                  </button>
+                              )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-2 ml-1">
+                              * Si posee un documento adicional que justifique el sobrecosto (ej. Gaceta oficial), adjúntelo aquí.
+                          </p>
+                      </div>
+                  </div>
+
+                  <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl flex gap-3">
+                      <button 
+                          onClick={() => setShowJustificationModal(false)}
+                          className="flex-1 py-3 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                      >
+                          Cancelar
+                      </button>
+                      <button 
+                          onClick={handleConfirmJustification}
+                          className="flex-[2] py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
+                      >
+                          <FileWarning size={18} />
+                          Confirmar Justificación
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* --------------------------- */}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -380,7 +467,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         {category === Category.MUNICIPAL_TAX && (
             <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                 
-                {/* Header Dinámico (Cambia según el estado global) */}
+                {/* Header Dinámico */}
                 <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
                      <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
@@ -397,7 +484,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2">
-                    {/* Traffic Light List */}
                     <div className="p-4 border-r border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
@@ -407,7 +493,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                     type="button"
                                     onClick={() => {
                                         setMuniGroup(item.key);
-                                        setMuniItem(''); // Reset item to force new selection
+                                        setMuniItem(''); 
                                     }}
                                     className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
                                         muniGroup === item.key 
@@ -430,7 +516,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                         </div>
                     </div>
 
-                    {/* Selection Details */}
                     <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900">
                          <div className="space-y-4">
                             <div className="space-y-1">
@@ -458,7 +543,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 {errors.muniItem && <p className="text-red-500 text-xs ml-1">{errors.muniItem}</p>}
                             </div>
 
-                            {/* Info Box */}
                             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
                                 <div className="flex gap-2">
                                     <AlertCircle size={14} className="mt-0.5 text-blue-500" />
@@ -481,7 +565,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
             </h2>
 
             <div className="space-y-6">
-                {/* Specific Type */}
                 <div>
                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
                      <div className="relative group">
@@ -511,10 +594,33 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                 value={amount}
                                 disabled={isSubmitting}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
+                                className={`bg-slate-50 dark:bg-slate-800 border ${
+                                    isOverBudget 
+                                        ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/30' 
+                                        : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
+                                } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
                             />
+                            {/* Warning Indicator Icon */}
+                            {isOverBudget && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-500 animate-pulse" title="Excede Presupuesto">
+                                    <AlertTriangle size={20} />
+                                </div>
+                            )}
                         </div>
                         {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
+                        
+                        {/* Budget Status Message */}
+                        {isOverBudget && (
+                            <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1.5 font-bold flex items-center gap-1">
+                                <AlertTriangle size={12} />
+                                Excede presupuesto (${expectedBudget?.toLocaleString()})
+                            </p>
+                        )}
+                        {justificationConfirmed && (
+                            <p className="text-green-600 dark:text-green-400 text-xs mt-1 flex items-center gap-1 font-semibold">
+                                <CheckCircle2 size={12} /> Justificación añadida
+                            </p>
+                        )}
                     </div>
 
                     {/* Due Date */}
@@ -587,7 +693,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                                                 alt="Preview"
                                                 className="w-full h-full object-contain rounded-xl shadow-sm bg-slate-100 dark:bg-slate-950/50"
                                             />
-                                            {/* Action Overlay */}
                                             <div className="absolute inset-0 m-2 rounded-xl bg-black/40 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                                  <button
                                                     onClick={clearFile}
@@ -680,7 +785,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
             <button 
                 type="submit"
                 disabled={isSubmitting || isFileScanning}
-                className={`w-full md:flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full md:flex-1 ${
+                    isOverBudget && !justificationConfirmed 
+                    ? 'bg-yellow-500 hover:bg-yellow-600' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
                 {isSubmitting ? (
                     <>
@@ -691,6 +800,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                     <>
                          <Loader2 size={20} className="animate-spin" />
                          <span>Escaneando archivo...</span>
+                    </>
+                ) : isOverBudget && !justificationConfirmed ? (
+                    <>
+                         <span>Continuar (Justificar Exceso)</span>
+                         <AlertTriangle size={20} />
                     </>
                 ) : (
                     <>

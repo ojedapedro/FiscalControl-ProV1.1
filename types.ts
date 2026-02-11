@@ -62,6 +62,12 @@ export interface Payment {
   rejectionReason?: string; // Notas del auditor
   submittedDate: string;
   history?: AuditLog[]; // Nuevo campo para trazabilidad
+  
+  // Campos para Control de Presupuesto
+  originalBudget?: number; // El monto esperado según configuración
+  isOverBudget?: boolean; // Flag si excedió
+  justification?: string; // Nota de por qué excedió
+  justificationFileUrl?: string; // Archivo extra justificando el exceso
 }
 
 export interface ChartData {

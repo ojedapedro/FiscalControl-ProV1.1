@@ -18,7 +18,7 @@ import {
   Legend
 } from 'recharts';
 import { Payment, PaymentStatus } from '../types';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle } from 'lucide-react';
 import { APP_LOGO_URL } from '../constants';
 
 interface ReportsProps {
@@ -53,7 +53,7 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
         <p className="font-bold text-slate-200 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
         
         {payload.map((entry: any, index: number) => {
-            if (entry.dataKey === 'budget') return null; // Ocultar línea de presupuesto del detalle línea por línea si se desea, o personalizar
+            if (entry.dataKey === 'budget') return null; 
             
             let labelText = '';
             let valueClass = 'text-white';
@@ -74,7 +74,6 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
             );
         })}
 
-        {/* Resumen del Presupuesto en el Tooltip */}
         <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-xs">
             <span className="text-slate-500">Presupuesto Mensual:</span>
             <span className="font-mono font-bold text-slate-300">${MONTHLY_BUDGET_TARGET.toLocaleString()}</span>
@@ -99,7 +98,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
 
   // --- PROCESAMIENTO DE DATOS ---
 
-  // 1. Filtro Global para KPIs y Tablas (Afectado por Rango de Fechas)
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : p.dueDate;
@@ -107,15 +105,13 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     });
   }, [payments, startDate, endDate]);
 
-  // 2. Procesamiento Anual para el Gráfico (NO afectado por el filtro de fechas corto, muestra todo el año actual)
   const annualData = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     
     return months.map((monthName, index) => {
-        // Filtrar pagos que caen en este mes del año actual
         const monthlyPayments = payments.filter(p => {
-            const d = new Date(p.dueDate); // Usamos DueDate para proyección financiera
+            const d = new Date(p.dueDate); 
             return d.getMonth() === index && d.getFullYear() === currentYear;
         });
 
@@ -131,20 +127,18 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             name: monthName,
             approved: approvedAmount,
             pending: pendingAmount,
-            budget: MONTHLY_BUDGET_TARGET, // Línea de referencia
+            budget: MONTHLY_BUDGET_TARGET,
             total: approvedAmount + pendingAmount
         };
     });
   }, [payments]);
 
-  // KPIs Financieros Anuales
   const totalAnnualBudget = MONTHLY_BUDGET_TARGET * 12;
   const totalYTDExecuted = annualData.reduce((acc, curr) => acc + curr.approved, 0);
   const totalYTDPending = annualData.reduce((acc, curr) => acc + curr.pending, 0);
   const budgetUtilization = (totalYTDExecuted / totalAnnualBudget) * 100;
   const availableBudget = totalAnnualBudget - totalYTDExecuted;
 
-  // KPIs Filtrados (Sección Superior)
   const totalApproved = filteredPayments
     .filter(p => p.status === PaymentStatus.APPROVED)
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -152,23 +146,26 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
   const totalRejectedCount = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED).length;
   const totalPendingCount = filteredPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
   
+  // Calculate over-budget sum
+  const totalOverBudgetSum = filteredPayments
+    .filter(p => p.isOverBudget)
+    .reduce((acc, curr) => {
+        const extra = curr.originalBudget ? (curr.amount - curr.originalBudget) : 0;
+        return acc + Math.max(0, extra);
+    }, 0);
+
   const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
   const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
 
-  // Chart Data Preparation (Approved vs Rejected Count)
   const statusData = [
     { name: 'Aprobados', value: approvedPayments.length, color: '#22c55e' },
     { name: 'Rechazados', value: rejectedPayments.length, color: '#ef4444' },
     { name: 'Pendientes', value: totalPendingCount, color: '#eab308' },
   ];
 
-  // Helper para cargar imagen como Data URL para el PDF
   const getDataUrl = (url: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
-      // 'Anonymous' allows CORS if the server supports it.
-      // If server doesn't support CORS, canvas will be tainted.
-      // In that case, we might need a proxy or skip the logo.
       img.crossOrigin = "Anonymous"; 
       
       img.onload = () => {
@@ -181,28 +178,24 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 ctx.drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/png'));
             } else {
-                resolve(""); // Fallback empty
+                resolve(""); 
             }
         } catch (e) {
             console.warn("Canvas tainted or error converting image:", e);
-            resolve(""); // Fallback empty
+            resolve(""); 
         }
       };
       
       img.onerror = () => {
           console.warn("Error cargando logo para PDF (Network Error), continuando sin logo.");
-          resolve(""); // Resolve empty string to continue without logo
+          resolve(""); 
       };
-
-      // Trigger load
       img.src = url;
     });
   };
 
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
-    
-    // Pequeño delay para permitir que la UI actualice el estado de carga
     await new Promise(r => setTimeout(r, 100));
 
     try {
@@ -213,14 +206,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             return;
         }
 
-        // Cargar logo antes de generar (ahora es más robusto ante errores)
         const logoData = await getDataUrl(APP_LOGO_URL);
 
         const { jsPDF } = w.jspdf;
         const doc = new jsPDF();
         
-        // --- HEADER DEL PDF ---
-        // Agregar Logo si se cargó correctamente
         if (logoData) {
             try {
                 doc.addImage(logoData, 'PNG', 14, 10, 15, 15);
@@ -229,7 +219,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             }
         }
 
-        // Título y Metadatos (Ajustar margen si hay logo o no)
         doc.setFontSize(20);
         doc.text("Reporte Fiscal Ejecutivo", logoData ? 35 : 14, 20); 
         
@@ -238,7 +227,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
         doc.text(`Período: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`, 14, 35);
 
-        // --- RESUMEN KPI ---
         doc.setDrawColor(200);
         doc.line(14, 40, 196, 40);
         
@@ -253,7 +241,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 80, kpiY);
         doc.text(`Pendientes: ${totalPendingCount}`, 140, kpiY);
 
-        // --- TABLA DE PAGOS ---
         doc.text("Detalle de Transacciones Auditadas", 14, 80);
         
         const tableData = filteredPayments
@@ -279,7 +266,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
              doc.text("Plugin de tablas no disponible.", 14, 90);
         }
 
-        // --- FOOTER ---
         const pageCount = doc.internal.getNumberOfPages();
         for(let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
@@ -348,7 +334,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
       </header>
 
       {/* KPI Cards (Filtered Range) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {/* Approved Money */}
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-green-500/30 transition-colors">
               <div className="relative z-10">
@@ -356,18 +342,29 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                       <div className="p-3 bg-green-500/20 rounded-lg text-green-500">
                           <CheckCircle2 size={24} />
                       </div>
-                      <span className="text-xs font-bold bg-green-900/50 text-green-300 px-2 py-1 rounded border border-green-800">
-                          SELECCIÓN
-                      </span>
                   </div>
                   <div className="text-slate-400 text-sm font-medium">Monto Aprobado</div>
                   <div className="text-3xl font-bold text-white mt-1">${totalApproved.toLocaleString()}</div>
                   <p className="text-xs text-green-400/70 mt-2 flex items-center gap-1">
                       <Calendar size={12} />
-                      {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+                      En selección
                   </p>
               </div>
-              <div className="absolute right-0 bottom-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
+          </div>
+
+          {/* Budget Deviation (NEW) */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-orange-500/30 transition-colors">
+              <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-orange-500/20 rounded-lg text-orange-500">
+                          <AlertTriangle size={24} />
+                      </div>
+                  </div>
+                  <div className="text-slate-400 text-sm font-medium">Desviación Ppto.</div>
+                  <div className="text-3xl font-bold text-white mt-1">${totalOverBudgetSum.toLocaleString()}</div>
+                  <p className="text-xs text-orange-400 mt-2">Excedente acumulado</p>
+              </div>
+              <div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all"></div>
           </div>
 
           {/* Rejected Count */}
@@ -380,9 +377,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                   </div>
                   <div className="text-slate-400 text-sm font-medium">Pagos Rechazados</div>
                   <div className="text-3xl font-bold text-white mt-1">{totalRejectedCount}</div>
-                  <p className="text-xs text-red-400 mt-2">En el período seleccionado</p>
               </div>
-              <div className="absolute right-0 bottom-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
           </div>
 
            {/* Pending Count */}
@@ -393,11 +388,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                           <Clock size={24} />
                       </div>
                   </div>
-                  <div className="text-slate-400 text-sm font-medium">Pendientes de Revisión</div>
+                  <div className="text-slate-400 text-sm font-medium">Pendientes</div>
                   <div className="text-3xl font-bold text-white mt-1">{totalPendingCount}</div>
-                   <p className="text-xs text-yellow-400 mt-2">En cola del auditor</p>
               </div>
-              <div className="absolute right-0 bottom-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl group-hover:bg-yellow-500/20 transition-all"></div>
           </div>
       </div>
 
@@ -421,7 +414,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                           .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
                           .sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
                           .map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-800 hover:bg-slate-800 transition-colors">
+                            <div key={p.id} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${
+                                p.isOverBudget 
+                                ? 'bg-orange-950/20 border-orange-900/50' 
+                                : 'bg-slate-800/50 border-slate-800 hover:bg-slate-800'
+                            }`}>
                                 <div className="flex items-center gap-3">
                                     {p.status === PaymentStatus.APPROVED ? (
                                         <CheckCircle2 size={18} className="text-green-500" />
@@ -429,14 +426,23 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                                         <XCircle size={18} className="text-red-500" />
                                     )}
                                     <div>
-                                        <div className="text-sm font-bold text-slate-200">{p.storeName}</div>
+                                        <div className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                            {p.storeName}
+                                            {p.isOverBudget && (
+                                              <span title="Excedente">
+                                                <AlertTriangle size={12} className="text-orange-500" />
+                                              </span>
+                                            )}
+                                        </div>
                                         <div className="text-xs text-slate-500 flex items-center gap-2">
                                             <span>{p.specificType}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm font-bold text-slate-200">${p.amount.toLocaleString()}</div>
+                                    <div className={`text-sm font-bold ${p.isOverBudget ? 'text-orange-400' : 'text-slate-200'}`}>
+                                        ${p.amount.toLocaleString()}
+                                    </div>
                                     <div className="text-[10px] text-slate-500">{new Date(p.submittedDate).toLocaleDateString()}</div>
                                 </div>
                             </div>
@@ -498,12 +504,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                      <span className="text-xs text-slate-500 block uppercase">Ejecutado YTD</span>
                      <span className="text-lg font-bold text-blue-400 font-mono">${totalYTDExecuted.toLocaleString()}</span>
                  </div>
-                 <div className="px-4 py-2 bg-slate-800 rounded-xl border border-slate-700 hidden sm:block">
-                     <span className="text-xs text-slate-500 block uppercase">Disponible</span>
-                     <span className={`text-lg font-bold font-mono ${availableBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        ${availableBudget.toLocaleString()}
-                     </span>
-                 </div>
             </div>
          </div>
          
@@ -560,7 +560,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 <p>
                     <span className="font-bold text-slate-200">Estado del Presupuesto: </span>
                     Actualmente se ha ejecutado el <span className="text-white font-mono">{budgetUtilization.toFixed(1)}%</span> del presupuesto anual. 
-                    {totalYTDPending > 0 && ` Existen $${totalYTDPending.toLocaleString()} en pagos pendientes de aprobación que impactarán el flujo de caja próximo.`}
                 </p>
             </div>
          </div>

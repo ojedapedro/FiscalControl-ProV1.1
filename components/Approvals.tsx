@@ -26,7 +26,8 @@ import {
   FileText,
   ExternalLink,
   AlertTriangle,
-  Calendar
+  Calendar,
+  FileWarning
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -60,7 +61,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     return filtered.sort((a, b) => {
       switch (sortOption) {
         case 'urgency': 
-            // Urgencia: Fechas más antiguas primero (vencidos arriba)
             return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         case 'date_desc': 
             return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
@@ -190,7 +190,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     }
   };
 
-  // Helper para detectar PDF
   const isPdf = (url?: string) => {
       if (!url) return false;
       return url.toLowerCase().includes('application/pdf') || url.toLowerCase().endsWith('.pdf');
@@ -235,7 +234,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                              sortOption === 'amount_asc' ? 'Monto Menor' : 'Fecha'}
                         </span>
                     </button>
-                    {/* Simple Dropdown for Sort */}
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-slate-100 dark:border-slate-700 hidden group-hover:block z-10 p-1">
                         <button onClick={() => setSortOption('urgency')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'urgency' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Prioridad / Urgencia</button>
                         <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Más Recientes</button>
@@ -290,7 +288,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             <div className="flex justify-between items-end mt-3">
                                 <div className="flex flex-col">
                                     <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[150px]">{payment.specificType}</span>
-                                    <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">${payment.amount.toLocaleString()}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">${payment.amount.toLocaleString()}</span>
+                                        {payment.isOverBudget && (
+                                            <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 p-1 rounded-md" title="Excede Presupuesto">
+                                                <AlertTriangle size={14} />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="text-[10px] text-slate-400 flex flex-col items-end">
                                      <span>Vence:</span>
@@ -363,20 +368,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                             alt="Recibo" 
                                             className="w-full h-full object-contain bg-slate-950"
                                             onError={(e) => {
-                                                // Manejo de error mejorado: Ocultar imagen y mostrar mensaje
                                                 e.currentTarget.style.display = 'none';
                                                 const parent = e.currentTarget.parentElement;
-                                                if (parent) {
-                                                    // Evitar duplicados si ya existe el mensaje de error
-                                                    if (!parent.querySelector('.error-msg')) {
-                                                        const errDiv = document.createElement('div');
-                                                        errDiv.className = "error-msg w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950";
-                                                        errDiv.innerHTML = `
-                                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2 opacity-50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                                                            <p class="text-sm font-medium">No se pudo cargar la imagen</p>
-                                                        `;
-                                                        parent.appendChild(errDiv);
-                                                    }
+                                                if (parent && !parent.querySelector('.error-msg')) {
+                                                    const errDiv = document.createElement('div');
+                                                    errDiv.className = "error-msg w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950";
+                                                    errDiv.innerHTML = `<p class="text-sm font-medium">No se pudo cargar la imagen</p>`;
+                                                    parent.appendChild(errDiv);
                                                 }
                                             }} 
                                         />
@@ -388,26 +386,15 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 )}
                                 
-                                {/* Overlay Controls (Solo para imágenes o si no es PDF puro iframe bloqueante) */}
+                                {/* Overlay Controls */}
                                 {!isPdf(selectedPayment.receiptUrl) && selectedPayment.receiptUrl && (
                                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70">
-                                            <Download size={20} />
-                                        </button>
                                         <button 
                                             onClick={() => setIsImageFullscreen(!isImageFullscreen)}
                                             className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70"
                                         >
                                             {isImageFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
                                         </button>
-                                    </div>
-                                )}
-
-                                {!isImageFullscreen && (
-                                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white pointer-events-none">
-                                        <p className="text-xs opacity-75">
-                                            {selectedPayment.receiptUrl ? 'Archivo cargado por usuario' : 'Visualización no disponible'}
-                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -417,11 +404,46 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         {/* Column 2: Data Validation */}
                         <div className="space-y-6 order-1 xl:order-2">
                             
+                            {/* Budget Warning Alert */}
+                            {selectedPayment.isOverBudget && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 animate-in slide-in-from-top-2">
+                                    <div className="flex items-start gap-3">
+                                        <AlertTriangle className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h3 className="font-bold text-red-700 dark:text-red-400 text-sm">Pago Excede Presupuesto</h3>
+                                            <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">
+                                                El monto supera el límite establecido de ${selectedPayment.originalBudget?.toLocaleString()}.
+                                            </p>
+                                            
+                                            {selectedPayment.justification && (
+                                                <div className="mt-3 bg-white dark:bg-slate-900 p-3 rounded-lg border border-red-100 dark:border-red-900/50">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Justificación del Usuario</p>
+                                                    <p className="text-sm italic text-slate-700 dark:text-slate-300">"{selectedPayment.justification}"</p>
+                                                    
+                                                    {selectedPayment.justificationFileUrl && (
+                                                        <a 
+                                                            href={selectedPayment.justificationFileUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                                        >
+                                                            <FileWarning size={14} /> Ver Soporte de Excedente
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Amount Card */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Monto Declarado</p>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">${selectedPayment.amount.toLocaleString()}</span>
+                                    <span className={`text-4xl font-bold tracking-tight ${selectedPayment.isOverBudget ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
+                                        ${selectedPayment.amount.toLocaleString()}
+                                    </span>
                                     <span className="text-slate-400 font-mono">USD</span>
                                 </div>
                                 <div className="mt-4 flex gap-4 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
@@ -479,97 +501,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                             </div>
 
-                            {/* HISTORIAL DE AUDITORÍA MEJORADO */}
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                                    <History size={16} className="text-slate-400" />
-                                    Historial de Eventos
-                                </h3>
-                                
-                                <div className="space-y-0">
-                                    {selectedPayment.history && selectedPayment.history.length > 0 ? (
-                                        [...selectedPayment.history]
-                                            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                            .map((log, index, arr) => {
-                                                const styles = getActionStyle(log.action);
-                                                const hasNote = !!log.note;
-                                                const isExpanded = expandedLogs.has(index);
-
-                                                return (
-                                                    <div key={index} className="relative pl-10 pb-8 last:pb-0">
-                                                        {/* Línea conectora */}
-                                                        {index !== arr.length - 1 && (
-                                                            <div className="absolute top-8 left-[19px] bottom-0 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
-                                                        )}
-                                                        
-                                                        {/* Icono del evento */}
-                                                        <div className={`absolute left-0 top-0 w-10 h-10 rounded-full flex items-center justify-center border-2 z-10 ${styles.bg} ${styles.text} ${styles.border}`}>
-                                                            {styles.icon}
-                                                        </div>
-
-                                                        {/* Tarjeta de Contenido */}
-                                                        <div 
-                                                          onClick={() => hasNote && toggleLogExpansion(index)}
-                                                          className={`bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800/50 transition-all ${
-                                                            hasNote ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm' : ''
-                                                          }`}
-                                                        >
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <div>
-                                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
-                                                                        {log.action}
-                                                                    </span>
-                                                                </div>
-                                                                <span className="text-[10px] text-slate-400 font-mono">
-                                                                    {new Date(log.date).toLocaleString()}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                                                                    <User size={12} className="text-slate-400" />
-                                                                    <span>{log.actorName}</span>
-                                                                    <span className="text-[10px] text-slate-400 px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full">
-                                                                        {log.role}
-                                                                    </span>
-                                                                </div>
-                                                                {hasNote && (
-                                                                    <div className={`text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                                                                        <ChevronDown size={14} />
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Nota Expandible */}
-                                                            {hasNote && isExpanded && (
-                                                                <div className={`mt-3 text-sm p-3 rounded-lg border italic animate-in slide-in-from-top-2 fade-in duration-200 ${
-                                                                    log.action === 'RECHAZO' 
-                                                                    ? 'bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-200 border-red-100 dark:border-red-900/30' 
-                                                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                                                                }`}>
-                                                                    "{log.note}"
-                                                                </div>
-                                                            )}
-                                                            
-                                                            {/* Preview de nota si está colapsada */}
-                                                            {hasNote && !isExpanded && (
-                                                                <div className="mt-2 text-[10px] text-slate-400 truncate italic">
-                                                                    "{log.note}"
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                    ) : (
-                                        <div className="text-center py-8 text-slate-400 flex flex-col items-center">
-                                            <Clock size={24} className="mb-2 opacity-50" />
-                                            <p className="text-xs">Sin registros históricos.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
                             {/* Action Area */}
                             <div className="pt-4">
                                 {isRejecting ? (
@@ -612,10 +543,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                         </button>
                                         <button 
                                             onClick={handleApproveClick}
-                                            className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+                                            className={`flex-[2] py-4 ${selectedPayment.isOverBudget ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2`}
                                         >
                                             <CheckCircle2 size={20} />
-                                            Aprobar Pago
+                                            {selectedPayment.isOverBudget ? 'Aprobar (Con Exceso)' : 'Aprobar Pago'}
                                         </button>
                                     </div>
                                 )}
