@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Building2, 
   Landmark, 
@@ -16,15 +16,18 @@ import {
   Loader2,
   Trash2,
   Scan,
-  X
+  X,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { Category } from '../types';
 import { STORES } from '../constants';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
-const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
   'PATENTE': {
-    label: '1.1 PATENTE',
+    label: '1.1 PATENTE DE INDUSTRIA',
+    deadlineDay: 15, // Vence el 15
     items: [
       { code: '1.1.1', name: 'RENOVACION DE PATENTE', amount: 150.00 },
       { code: '1.1.2', name: 'CODIGO 1 AL MAYOR DE PINTURA', amount: 20.00 },
@@ -36,38 +39,44 @@ const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; items: { code: strin
     ]
   },
   'VISTO_BUENO': {
-    label: '1.2 VISTO BUENO',
+    label: '1.2 VISTO BUENO AMBIENTAL',
+    deadlineDay: 30, // Fin de mes
     items: [
       { code: '1.2.1', name: 'INVEPINCA (TRAMITE)', amount: 150.00 }
     ]
   },
   'IMA': {
     label: '1.3 IMA (ASEO URBANO)',
+    deadlineDay: 25, // Vence el 25
     items: [
       { code: '1.3.1', name: 'INVEPINCA (TARIFA ASEO)', amount: 50.00 }
     ]
   },
   'CATASTRO': {
     label: '1.4 CEDULA CATASTRAL',
+    deadlineDay: 30,
     items: [
       { code: '1.4.1', name: 'INVEPINCA (CATASTRO)', amount: 150.00 }
     ]
   },
   'INMOBILIARIO': {
     label: '1.5 IMPUESTO INMOBILIARIO',
+    deadlineDay: 30,
     items: [
       { code: '1.5.1', name: 'INVEPINCA (INMUEBLE)', amount: 400.00 }
     ]
   },
   'PUBLICIDAD': {
-    label: '1.6 PUBLICIDAD',
+    label: '1.6 PUBLICIDAD Y PROPAGANDA',
+    deadlineDay: 20, // Vence el 20
     items: [
       { code: '1.6.1', name: 'PUBLICIDAD SUCURSAL 1', amount: 100.00 },
       { code: '1.6.2', name: 'PUBLICIDAD SUCURSAL 2', amount: 100.00 }
     ]
   },
   'BOMBEROS': {
-    label: '1.7 BOMBEROS',
+    label: '1.7 CUERPO DE BOMBEROS',
+    deadlineDay: 28,
     items: [
       { code: '1.7.1', name: 'PLAN DE EMERGENCIA', amount: 50.00 },
       { code: '1.7.2', name: 'PAGO DE ARANCELES PLAN', amount: 120.00 },
@@ -133,6 +142,44 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  // --- LOGICA SEMÁFORO FISCAL ---
+  
+  const getTaxStatus = (deadlineDay: number) => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    
+    // Si ya pasó el día límite -> Rojo (Vencido)
+    if (currentDay > deadlineDay) {
+        return { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
+    }
+    // Si faltan 5 días o menos -> Amarillo (Por Vencer / Tramite)
+    if (deadlineDay - currentDay <= 5) {
+        return { color: 'bg-yellow-500', text: 'text-yellow-600', bgSoft: 'bg-yellow-100', status: 'Próximo', icon: Clock };
+    }
+    // Si falta más -> Verde (Al día)
+    return { color: 'bg-green-500', text: 'text-green-600', bgSoft: 'bg-green-100', status: 'En fecha', icon: CheckCircle2 };
+  };
+
+  const municipalStatusList = useMemo(() => {
+    return Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => {
+        const status = getTaxStatus(config.deadlineDay);
+        return {
+            key,
+            label: config.label,
+            ...status
+        };
+    });
+  }, []);
+
+  // Calcular estado global (El peor estado determina el color global)
+  const globalStatus = useMemo(() => {
+    if (municipalStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
+    if (municipalStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
+    return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
+  }, [municipalStatusList]);
+
+  // ------------------------------
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -329,60 +376,97 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
             </div>
         </section>
 
-        {/* Dynamic Municipal Tax Section */}
+        {/* Dynamic Municipal Tax Section with Traffic Light */}
         {category === Category.MUNICIPAL_TAX && (
-            <section className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800 animate-in slide-in-from-top-4 duration-300 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                    <Calculator size={120} />
+            <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
+                
+                {/* Header Dinámico (Cambia según el estado global) */}
+                <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
+                     <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
+                             <Calculator size={20} />
+                        </div>
+                        <div>
+                            <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 opacity-80">Estado fiscal actualizado al día de hoy</p>
+                        </div>
+                     </div>
+                     <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-white/50 dark:bg-black/20 ${globalStatus.text} ${globalStatus.border}`}>
+                         {globalStatus.label}
+                     </div>
                 </div>
                 
-                <h3 className="text-blue-800 dark:text-blue-300 font-bold mb-4 flex items-center gap-2 relative z-10">
-                    <Calculator size={18} />
-                    Desglose Alcaldía
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase ml-1">Rubro / Grupo</label>
-                        <div className="relative">
-                            <select
-                                value={muniGroup}
-                                onChange={(e) => {
-                                    setMuniGroup(e.target.value);
-                                    setMuniItem('');
-                                }}
-                                disabled={isSubmitting}
-                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniGroup ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none transition-colors disabled:opacity-50`}
-                            >
-                                <option value="">Seleccione Rubro...</option>
-                                {Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => (
-                                    <option key={key} value={key}>{config.label}</option>
-                                ))}
-                            </select>
-                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                <ChevronDown size={16} />
-                            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2">
+                    {/* Traffic Light List */}
+                    <div className="p-4 border-r border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                            {municipalStatusList.map((item) => (
+                                <button
+                                    key={item.key}
+                                    type="button"
+                                    onClick={() => {
+                                        setMuniGroup(item.key);
+                                        setMuniItem(''); // Reset item to force new selection
+                                    }}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
+                                        muniGroup === item.key 
+                                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
+                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                        <span className={`text-sm font-medium ${muniGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                                            {item.label.split(' ')[1]} {item.label.split(' ')[2]}...
+                                        </span>
+                                    </div>
+                                    <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${item.bgSoft} ${item.text}`}>
+                                        <item.icon size={10} />
+                                        <span className="hidden sm:inline">{item.status}</span>
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                         <label className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase ml-1">Concepto Específico</label>
-                         <div className="relative">
-                            <select
-                                value={muniItem}
-                                onChange={(e) => setMuniItem(e.target.value)}
-                                disabled={!muniGroup || isSubmitting}
-                                className={`w-full bg-white dark:bg-slate-900 border ${errors.muniItem ? 'border-red-300' : 'border-blue-200 dark:border-blue-800'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 transition-colors disabled:opacity-50`}
-                            >
-                                <option value="">Seleccione Concepto...</option>
-                                {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
-                                    <option key={item.code} value={item.code}>
-                                        {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                <ChevronDown size={16} />
+                    {/* Selection Details */}
+                    <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900">
+                         <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
+                                <div className="relative">
+                                    <select
+                                        value={muniItem}
+                                        onChange={(e) => setMuniItem(e.target.value)}
+                                        disabled={!muniGroup || isSubmitting}
+                                        className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.muniItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
+                                    >
+                                        <option value="">
+                                            {muniGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
+                                        </option>
+                                        {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
+                                            <option key={item.code} value={item.code}>
+                                                {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                        <ChevronDown size={16} />
+                                    </div>
+                                </div>
+                                {errors.muniItem && <p className="text-red-500 text-xs ml-1">{errors.muniItem}</p>}
+                            </div>
+
+                            {/* Info Box */}
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                                <div className="flex gap-2">
+                                    <AlertCircle size={14} className="mt-0.5 text-blue-500" />
+                                    <p>
+                                        Seleccione el rubro en la lista de la izquierda para ver su estado actual. 
+                                        El color indica la urgencia del pago según la fecha de vencimiento.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
