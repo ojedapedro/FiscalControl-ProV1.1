@@ -1,3 +1,4 @@
+
 // service-worker.js
 
 const CACHE_NAME = 'fiscal-control-v1';
@@ -16,8 +17,9 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body,
-    icon: 'https://cdn-icons-png.flaticon.com/512/2645/2645897.png', // Icono genérico de finanzas
-    badge: 'https://cdn-icons-png.flaticon.com/512/2645/2645897.png',
+    // Icono actualizado con el nuevo logo de la app
+    icon: 'https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg',
+    badge: 'https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
