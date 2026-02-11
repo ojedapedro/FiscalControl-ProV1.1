@@ -1,6 +1,10 @@
 
 import { Category, Payment, PaymentStatus, Store, AlertItem, Role } from './types';
 
+// URL del Logo de la Aplicación
+// Puedes reemplazar esta URL con la ruta de tu imagen o un enlace público
+export const APP_LOGO_URL = "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg";
+
 export const STORES: Store[] = [
   { id: 'S101', name: 'Tienda 101 - Principal', location: 'Caracas, DC', status: 'En Regla', nextDeadline: '2023-11-15', matrixId: 'HQ-01' },
   { id: 'S145', name: 'Tienda 145', location: 'Maracaibo, ZU', status: 'En Riesgo', nextDeadline: '2023-11-01', matrixId: 'HQ-01' },
