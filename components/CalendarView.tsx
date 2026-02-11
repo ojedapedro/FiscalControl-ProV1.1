@@ -8,7 +8,11 @@ import {
   CheckCircle2, 
   Landmark, 
   AlertOctagon,
-  FileText
+  FileText,
+  Target,
+  X,
+  DollarSign,
+  Tag
 } from 'lucide-react';
 import { Payment, PaymentStatus, Category } from '../types';
 
@@ -25,6 +29,16 @@ interface StatutoryDeadline {
   category: Category;
   description: string;
   frequency: 'Mensual' | 'Anual' | 'Bi-anual';
+}
+
+// Definición de Entrada de Presupuesto Manual
+interface BudgetEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  amount: number;
+  category: Category;
+  notes?: string;
 }
 
 // Configuración de Reglas Fiscales (Alcaldía)
@@ -87,11 +101,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
+  // Estado para Presupuestos Manuales (Simulado localmente)
+  const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  
+  // Formulario de presupuesto
+  const [newBudget, setNewBudget] = useState<{
+    title: string;
+    amount: string;
+    category: Category;
+  }>({ title: '', amount: '', category: Category.MUNICIPAL_TAX });
+
   // Estado combinado para la vista lateral
   const [dayEvents, setDayEvents] = useState<{
     realPayments: Payment[];
     deadlines: StatutoryDeadline[];
-  }>({ realPayments: [], deadlines: [] });
+    budgets: BudgetEntry[];
+  }>({ realPayments: [], deadlines: [], budgets: [] });
 
   // Helpers de Fecha
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -135,9 +161,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
 
     const real = payments.filter(p => p.dueDate === localDateString);
     const statutory = getDeadlinesForDate(selectedDate);
+    const dayBudgets = budgets.filter(b => b.date === localDateString);
 
-    setDayEvents({ realPayments: real, deadlines: statutory });
-  }, [selectedDate, payments]);
+    setDayEvents({ realPayments: real, deadlines: statutory, budgets: dayBudgets });
+  }, [selectedDate, payments, budgets]);
+
+  // Manejo de creación de presupuesto
+  const handleAddBudget = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBudget.title || !newBudget.amount) return;
+
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    const entry: BudgetEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        date: dateStr,
+        title: newBudget.title,
+        amount: parseFloat(newBudget.amount),
+        category: newBudget.category
+    };
+
+    setBudgets([...budgets, entry]);
+    setIsBudgetModalOpen(false);
+    setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX }); // Reset
+  };
+
+  const handleDeleteBudget = (id: string) => {
+      setBudgets(budgets.filter(b => b.id !== id));
+  };
 
   // Generación de Grid
   const renderCalendarDays = () => {
@@ -161,6 +215,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
       // Buscar datos
       const dayPayments = payments.filter(p => p.dueDate === dayString);
       const dayDeadlines = getDeadlinesForDate(currentDayDate);
+      const dayBudgets = budgets.filter(b => b.date === dayString);
       
       const hasOverdue = dayPayments.some(p => p.status === PaymentStatus.OVERDUE);
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
@@ -187,13 +242,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
 
           {/* Indicadores Visuales */}
           <div className="flex flex-col gap-1 mt-1">
-             {/* Indicadores de Pagos Reales */}
+             {/* Indicadores de Pagos Reales & Presupuestos */}
             <div className="flex gap-1 flex-wrap">
                 {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
                 {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
                 {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !hasOverdue && !hasPending && 
                     <div className="w-2 h-2 rounded-full bg-green-500" title="Pagado"></div>
                 }
+                {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
             </div>
 
             {/* Indicadores de Reglas Fiscales (Alcaldía) */}
@@ -203,6 +259,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                     {rule.title}
                 </div>
             ))}
+            
+            {/* Texto de presupuesto si existe y no hay reglas que ocupen espacio */}
+            {dayBudgets.length > 0 && dayDeadlines.length === 0 && (
+                 <div className="text-[10px] text-cyan-600 dark:text-cyan-400 truncate font-medium px-1">
+                    ${dayBudgets.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} (P)
+                 </div>
+            )}
           </div>
         </div>
       );
@@ -211,16 +274,91 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   };
 
   const totalAmountForDay = dayEvents.realPayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalBudgetForDay = dayEvents.budgets.reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
       
+      {/* Budget Modal */}
+      {isBudgetModalOpen && (
+          <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Target className="text-cyan-500" />
+                          Nuevo Presupuesto
+                      </h3>
+                      <button onClick={() => setIsBudgetModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                          <X size={20} />
+                      </button>
+                  </div>
+                  
+                  <form onSubmit={handleAddBudget} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Fecha Seleccionada</label>
+                          <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-200 text-sm font-medium flex items-center gap-2">
+                              <CalendarIcon size={16} />
+                              {selectedDate.toLocaleDateString()}
+                          </div>
+                      </div>
+                      
+                      <div>
+                          <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Categoría</label>
+                          <div className="relative">
+                            <select 
+                                value={newBudget.category}
+                                onChange={(e) => setNewBudget({...newBudget, category: e.target.value as Category})}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white appearance-none"
+                            >
+                                {Object.values(Category).map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                            <Tag className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={16} />
+                          </div>
+                      </div>
+
+                      <div>
+                          <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Concepto / Título</label>
+                          <input 
+                              type="text" 
+                              placeholder="Ej. Provisión Impuesto ISLR"
+                              value={newBudget.title}
+                              onChange={(e) => setNewBudget({...newBudget, title: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white"
+                              autoFocus
+                          />
+                      </div>
+
+                      <div>
+                          <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Monto Estimado</label>
+                          <div className="relative">
+                              <input 
+                                  type="number" 
+                                  placeholder="0.00"
+                                  value={newBudget.amount}
+                                  onChange={(e) => setNewBudget({...newBudget, amount: e.target.value})}
+                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 pl-10 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white"
+                              />
+                              <DollarSign className="absolute left-3 top-3 text-slate-400" size={16} />
+                          </div>
+                      </div>
+
+                      <div className="pt-4 flex gap-3">
+                          <button type="button" onClick={() => setIsBudgetModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancelar</button>
+                          <button type="submit" className="flex-1 py-3 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-200 dark:shadow-cyan-900/30">Guardar</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
       {/* Calendar Grid Section */}
       <div className="flex-1 p-4 lg:p-8 flex flex-col h-full overflow-y-auto no-scrollbar">
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones municipales y pagos.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones, pagos y presupuestos.</p>
           </div>
           <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
             <button onClick={prevMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
@@ -257,6 +395,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
+            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
         </div>
       </div>
 
@@ -268,7 +407,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                 {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {dayEvents.realPayments.length + dayEvents.deadlines.length} Eventos para hoy
+                {dayEvents.realPayments.length + dayEvents.deadlines.length + dayEvents.budgets.length} Eventos para hoy
             </p>
         </div>
 
@@ -296,8 +435,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                 </div>
             )}
 
-            {/* Separador si hay ambos tipos */}
-            {dayEvents.deadlines.length > 0 && dayEvents.realPayments.length > 0 && (
+            {/* Separador */}
+            {dayEvents.deadlines.length > 0 && (dayEvents.realPayments.length > 0 || dayEvents.budgets.length > 0) && (
+                <div className="border-t border-slate-100 dark:border-slate-800 my-2"></div>
+            )}
+            
+            {/* Sección de Presupuestos Manuales */}
+            {dayEvents.budgets.length > 0 && (
+                <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                        <Target size={12} /> Presupuestos Asignados
+                    </h3>
+                    {dayEvents.budgets.map((budget) => (
+                        <div key={budget.id} className="p-4 rounded-xl border border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-900/10 group relative">
+                            <button 
+                                onClick={() => handleDeleteBudget(budget.id)}
+                                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <X size={14} />
+                            </button>
+                            <div className="flex justify-between items-start mb-1 pr-4">
+                                <span className="text-cyan-800 dark:text-cyan-200 font-bold text-sm">{budget.title}</span>
+                            </div>
+                            <p className="text-xs text-cyan-600 dark:text-cyan-400 mb-2">{budget.category}</p>
+                            <div className="font-mono text-lg font-bold text-cyan-700 dark:text-cyan-300">
+                                ${budget.amount.toLocaleString()}
+                            </div>
+                        </div>
+                    ))}
+                    <div className="text-right text-xs font-bold text-cyan-700 dark:text-cyan-400">
+                        Total Presupuestado: ${totalBudgetForDay.toLocaleString()}
+                    </div>
+                </div>
+            )}
+
+            {/* Separador */}
+            {dayEvents.budgets.length > 0 && dayEvents.realPayments.length > 0 && (
                 <div className="border-t border-slate-100 dark:border-slate-800 my-2"></div>
             )}
 
@@ -305,7 +478,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
             {dayEvents.realPayments.length > 0 && (
                  <div className="space-y-3">
                     <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
-                        <FileText size={12} /> Pagos Registrados
+                        <FileText size={12} /> Pagos Ejecutados
                     </h3>
                     {dayEvents.realPayments.map(payment => (
                         <div key={payment.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
@@ -326,22 +499,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                         </div>
                     ))}
                     <div className="text-right text-sm font-bold text-slate-900 dark:text-white pt-2">
-                        Total en pagos: ${totalAmountForDay.toLocaleString()}
+                        Total Ejecutado: ${totalAmountForDay.toLocaleString()}
                     </div>
                  </div>
             )}
 
-            {dayEvents.realPayments.length === 0 && dayEvents.deadlines.length === 0 && (
+            {dayEvents.realPayments.length === 0 && dayEvents.deadlines.length === 0 && dayEvents.budgets.length === 0 && (
                 <div className="h-40 flex flex-col items-center justify-center text-slate-400 opacity-50">
                     <CheckCircle2 size={48} className="mb-2" />
-                    <p className="text-sm">Día libre de impuestos</p>
+                    <p className="text-sm">Sin eventos ni presupuestos</p>
                 </div>
             )}
         </div>
 
-        <button className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99]">
+        <button 
+            onClick={() => setIsBudgetModalOpen(true)}
+            className="mt-6 w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-200 dark:shadow-cyan-900/30 transition-all active:scale-[0.99]"
+        >
             <Plus size={20} />
-            Agendar Pago Manual
+            Cargar Presupuesto
         </button>
       </div>
     </div>
