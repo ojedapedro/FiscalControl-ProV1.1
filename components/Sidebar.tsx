@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   CheckSquare, 
@@ -10,10 +10,12 @@ import {
   Building2,
   BellRing,
   Sun,
-  Moon
+  Moon,
+  ImageOff
 } from 'lucide-react';
 import { Role } from '../types';
 import { useTheme } from './ThemeContext';
+import { APP_LOGO_URL } from '../constants';
 
 interface SidebarProps {
   currentView: string;
@@ -24,6 +26,12 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, currentRole, onChangeRole }) => {
   const { theme, toggleTheme } = useTheme();
+  const [imgError, setImgError] = useState(false);
+
+  // Reiniciar estado de error si la URL cambia (aunque es constante, es buena práctica)
+  useEffect(() => {
+    setImgError(false);
+  }, [APP_LOGO_URL]);
   
   const navItems = [
     { id: 'payments', label: 'Pagos', icon: FileText, roles: [Role.ADMIN] },
@@ -40,10 +48,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
   return (
     <div className="h-screen w-20 lg:w-64 bg-slate-900 text-white flex flex-col fixed left-0 top-0 z-50 transition-all duration-300 border-r border-slate-800">
       <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-          <span className="font-bold text-xl">F</span>
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 bg-white/5 overflow-hidden border border-white/10">
+          {!imgError ? (
+            <img 
+              src={APP_LOGO_URL} 
+              alt="FiscalCtl Logo" 
+              className="w-full h-full object-cover" 
+              onError={(e) => {
+                console.error("Error cargando logo:", e);
+                setImgError(true);
+              }}
+            />
+          ) : (
+            <Building2 className="text-blue-500 w-6 h-6" />
+          )}
         </div>
-        <span className="font-bold text-xl hidden lg:block tracking-tight">FiscalCtl</span>
+        <span className="font-bold text-xl hidden lg:block tracking-tight text-white">FiscalCtl</span>
       </div>
 
       <nav className="flex-1 px-4 py-6 space-y-2">

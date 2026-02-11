@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { Payment, PaymentStatus } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown } from 'lucide-react';
+import { APP_LOGO_URL } from '../constants';
 
 interface ReportsProps {
   payments: Payment[];
@@ -161,27 +162,140 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     { name: 'Pendientes', value: totalPendingCount, color: '#eab308' },
   ];
 
-  const handleDownloadPDF = () => {
-    setIsGeneratingPdf(true);
-    setTimeout(() => {
+  // Helper para cargar imagen como Data URL para el PDF
+  const getDataUrl = (url: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      // 'Anonymous' allows CORS if the server supports it.
+      // If server doesn't support CORS, canvas will be tainted.
+      // In that case, we might need a proxy or skip the logo.
+      img.crossOrigin = "Anonymous"; 
+      
+      img.onload = () => {
         try {
-            const w = window as any;
-            if (!w.jspdf) {
-                alert("La librería de PDF no se ha cargado correctamente.");
-                setIsGeneratingPdf(false);
-                return;
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            } else {
+                resolve(""); // Fallback empty
             }
-            const { jsPDF } = w.jspdf;
-            const doc = new jsPDF();
-            // ... (Lógica de PDF existente se mantiene simplificada para brevedad, asumiendo que funciona igual)
-            doc.text("Reporte Fiscal Generado", 14, 20);
-            doc.save(`Reporte_Fiscal.pdf`);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsGeneratingPdf(false);
+        } catch (e) {
+            console.warn("Canvas tainted or error converting image:", e);
+            resolve(""); // Fallback empty
         }
-    }, 500);
+      };
+      
+      img.onerror = () => {
+          console.warn("Error cargando logo para PDF (Network Error), continuando sin logo.");
+          resolve(""); // Resolve empty string to continue without logo
+      };
+
+      // Trigger load
+      img.src = url;
+    });
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPdf(true);
+    
+    // Pequeño delay para permitir que la UI actualice el estado de carga
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const w = window as any;
+        if (!w.jspdf) {
+            alert("La librería de PDF no se ha cargado correctamente.");
+            setIsGeneratingPdf(false);
+            return;
+        }
+
+        // Cargar logo antes de generar (ahora es más robusto ante errores)
+        const logoData = await getDataUrl(APP_LOGO_URL);
+
+        const { jsPDF } = w.jspdf;
+        const doc = new jsPDF();
+        
+        // --- HEADER DEL PDF ---
+        // Agregar Logo si se cargó correctamente
+        if (logoData) {
+            try {
+                doc.addImage(logoData, 'PNG', 14, 10, 15, 15);
+            } catch (e) {
+                console.warn("Error adding image to PDF:", e);
+            }
+        }
+
+        // Título y Metadatos (Ajustar margen si hay logo o no)
+        doc.setFontSize(20);
+        doc.text("Reporte Fiscal Ejecutivo", logoData ? 35 : 14, 20); 
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Período: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`, 14, 35);
+
+        // --- RESUMEN KPI ---
+        doc.setDrawColor(200);
+        doc.line(14, 40, 196, 40);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text("Resumen del Período", 14, 50);
+
+        const kpiY = 60;
+        doc.setFontSize(10);
+        
+        doc.text(`Total Aprobado: $${totalApproved.toLocaleString()}`, 14, kpiY);
+        doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 80, kpiY);
+        doc.text(`Pendientes: ${totalPendingCount}`, 140, kpiY);
+
+        // --- TABLA DE PAGOS ---
+        doc.text("Detalle de Transacciones Auditadas", 14, 80);
+        
+        const tableData = filteredPayments
+            .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
+            .map(p => [
+                new Date(p.submittedDate).toLocaleDateString(),
+                p.storeName,
+                p.specificType,
+                `$${p.amount.toLocaleString()}`,
+                p.status
+            ]);
+
+        if (w.jspdf.plugin?.autotable || doc.autoTable) {
+             doc.autoTable({
+                startY: 85,
+                head: [['Fecha', 'Tienda', 'Concepto', 'Monto', 'Estado']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [30, 41, 59] },
+                styles: { fontSize: 8 },
+             });
+        } else {
+             doc.text("Plugin de tablas no disponible.", 14, 90);
+        }
+
+        // --- FOOTER ---
+        const pageCount = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`FiscalCtl - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+        }
+
+        doc.save(`Reporte_Fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (error) {
+        console.error("Error generando PDF:", error);
+        alert("Ocurrió un error al generar el PDF. Revise la consola.");
+    } finally {
+        setIsGeneratingPdf(false);
+    }
   };
 
   return (

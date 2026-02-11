@@ -2,7 +2,7 @@
 import { Category, Payment, PaymentStatus, Store, AlertItem, Role } from './types';
 
 // URL del Logo de la Aplicación
-// Puedes reemplazar esta URL con la ruta de tu imagen o un enlace público
+// Nota: Si la imagen falla, la sidebar mostrará un icono por defecto.
 export const APP_LOGO_URL = "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg";
 
 export const STORES: Store[] = [
