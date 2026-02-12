@@ -27,7 +27,10 @@ import {
   TrendingUp,
   Target,
   DollarSign,
-  PieChart
+  PieChart,
+  History, // Added History icon
+  User,     // Added User icon
+  ShieldCheck // Added ShieldCheck icon
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -650,7 +653,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             {/* Audit Checklist (Simulation) */}
                             <div className="bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <CheckSquare size={16} className="text-slate-400" />
+                                    <ShieldCheck size={16} className="text-slate-400" />
                                     Validación de Auditoría
                                 </h3>
                                 <div className="space-y-3">
@@ -662,6 +665,70 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     ))}
                                 </div>
                             </div>
+                            
+                            {/* --- HISTORIAL DE AUDITORÍA (NUEVA SECCIÓN) --- */}
+                            {selectedPayment.history && selectedPayment.history.length > 0 && (
+                                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+                                        <History size={16} className="text-blue-500" />
+                                        Historial de Auditoría
+                                    </h3>
+                                    
+                                    <div className="relative space-y-0 pl-2">
+                                        {/* Línea vertical conectora */}
+                                        <div className="absolute top-2 bottom-4 left-[19px] w-0.5 bg-gradient-to-b from-slate-200 via-slate-200 to-transparent dark:from-slate-700 dark:via-slate-800"></div>
+
+                                        {selectedPayment.history.map((log, index) => {
+                                            const isLast = index === (selectedPayment.history!.length - 1);
+                                            const actionColor = 
+                                                log.action === 'APROBACION' ? 'bg-green-500 ring-green-100 dark:ring-green-900/30' :
+                                                log.action === 'RECHAZO' ? 'bg-red-500 ring-red-100 dark:ring-red-900/30' :
+                                                log.action === 'CREACION' ? 'bg-blue-500 ring-blue-100 dark:ring-blue-900/30' : 
+                                                'bg-slate-400 ring-slate-100 dark:ring-slate-800';
+                                            
+                                            const dateObj = new Date(log.date);
+                                            
+                                            return (
+                                                <div key={index} className="relative flex items-start group mb-6 last:mb-0">
+                                                    {/* Punto de estado */}
+                                                    <div className={`relative z-10 h-6 w-6 flex items-center justify-center rounded-full ring-4 ${actionColor} shadow-sm shrink-0 mt-0.5`}>
+                                                        {log.action === 'APROBACION' ? <CheckCircle2 size={12} className="text-white" /> :
+                                                         log.action === 'RECHAZO' ? <XCircle size={12} className="text-white" /> :
+                                                         log.action === 'CREACION' ? <User size={12} className="text-white" /> : 
+                                                         <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                    </div>
+                                                    
+                                                    <div className="ml-4 w-full bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <div>
+                                                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                                                                    {log.action}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                                    <User size={10} /> {log.actorName} ({log.role})
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-[10px] font-mono text-slate-400">
+                                                                    {dateObj.toLocaleDateString()}
+                                                                </span>
+                                                                <span className="text-[10px] font-mono text-slate-400 block">
+                                                                    {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {log.note && (
+                                                            <div className="mt-2 text-xs italic text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-800">
+                                                                "{log.note}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Action Area */}
                             <div className="pt-4">
