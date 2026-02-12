@@ -23,7 +23,8 @@ import {
   RefreshCw,
   CalendarClock,
   ArrowRight,
-  Eye
+  Eye,
+  TrendingUp
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -164,6 +165,19 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   };
 
   const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
+
+  // Cálculos para el excedente de presupuesto
+  const budgetAnalysis = useMemo(() => {
+      if (!selectedPayment || !selectedPayment.isOverBudget || !selectedPayment.originalBudget) return null;
+      const budget = selectedPayment.originalBudget;
+      const excess = selectedPayment.amount - budget;
+      const percent = (excess / budget) * 100;
+      return {
+          budget,
+          excess,
+          percent
+      };
+  }, [selectedPayment]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
@@ -479,15 +493,35 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         <div className="space-y-6 order-1 xl:order-2">
                             
                             {/* Budget Warning Alert */}
-                            {selectedPayment.isOverBudget && (
+                            {selectedPayment.isOverBudget && budgetAnalysis && (
                                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 animate-in slide-in-from-top-2">
                                     <div className="flex items-start gap-3">
                                         <AlertTriangle className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                                        <div>
+                                        <div className="w-full">
                                             <h3 className="font-bold text-red-700 dark:text-red-400 text-sm">Pago Excede Presupuesto</h3>
-                                            <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">
-                                                El monto supera el límite establecido de ${selectedPayment.originalBudget?.toLocaleString()}.
-                                            </p>
+                                            
+                                            {/* Visual Breakdown of Excess */}
+                                            <div className="mt-3 grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold mb-1">Presupuesto</p>
+                                                    <p className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                                                        ${budgetAnalysis.budget.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <div className="border-l border-red-100 dark:border-red-900/50 pl-2">
+                                                    <p className="text-[10px] text-red-500 dark:text-red-400 uppercase font-bold mb-1">Excedente</p>
+                                                    <p className="font-mono font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                                                        <TrendingUp size={12} />
+                                                        +${budgetAnalysis.excess.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <div className="border-l border-red-100 dark:border-red-900/50 pl-2">
+                                                    <p className="text-[10px] text-red-500 dark:text-red-400 uppercase font-bold mb-1">% Desviación</p>
+                                                    <p className="font-mono font-bold text-red-600 dark:text-red-400">
+                                                        +{budgetAnalysis.percent.toFixed(1)}%
+                                                    </p>
+                                                </div>
+                                            </div>
                                             
                                             {selectedPayment.justification && (
                                                 <div className="mt-3 bg-white dark:bg-slate-900 p-3 rounded-lg border border-red-100 dark:border-red-900/50">
