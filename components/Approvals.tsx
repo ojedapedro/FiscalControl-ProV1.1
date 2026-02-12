@@ -28,7 +28,8 @@ import {
   RefreshCw,
   RotateCcw,
   CalendarClock,
-  ArrowRight
+  ArrowRight,
+  DollarSign
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -57,7 +58,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   // Filtrado y Ordenamiento
   const processedPayments = useMemo(() => {
     let filtered = payments.filter(p => 
-      (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED) &&
+      (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE) &&
       (p.storeName.toLowerCase().includes(searchTerm.toLowerCase()) || 
        p.specificType.toLowerCase().includes(searchTerm.toLowerCase()) ||
        p.id.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -66,6 +67,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     return filtered.sort((a, b) => {
       switch (sortOption) {
         case 'urgency': 
+            // 1. Prioridad: Vencidos primero
+            // 2. Prioridad: Vencimiento más cercano
             return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         case 'date_desc': 
             return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
@@ -84,7 +87,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setIsRejecting(false);
     setIsImageFullscreen(false);
     setExpandedLogs(new Set());
-    setShowApprovalModal(false); // Asegurar que el modal se cierre al cambiar de pago
+    setShowApprovalModal(false); 
   }, [selectedId]);
 
   const toggleLogExpansion = (index: number) => {
@@ -121,7 +124,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   // 2. Confirmación final dentro del modal
   const handleConfirmApproval = () => {
       if (selectedId && selectedPayment && confirmationDate) {
-          // Si la fecha es diferente a la original, la enviamos para actualizar. Si es igual, undefined.
           const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
           onApprove(selectedId, dateToSend);
           setShowApprovalModal(false);
@@ -142,6 +144,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
               label: `Vencido (${Math.abs(diffDays)}d)`, 
               colorClass: 'text-red-600 bg-red-100 border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400',
               borderClass: 'border-l-4 border-l-red-500',
+              textClass: 'text-red-600 dark:text-red-400',
               icon: <AlertTriangle size={14} />
           };
       } else if (diffDays === 0) {
@@ -149,20 +152,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
               label: 'Vence Hoy', 
               colorClass: 'text-orange-600 bg-orange-100 border-orange-200 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400',
               borderClass: 'border-l-4 border-l-orange-500',
+              textClass: 'text-orange-600 dark:text-orange-400',
               icon: <Clock size={14} />
           };
       } else if (diffDays <= 3) {
           return { 
-              label: `${diffDays} días rest.`, 
+              label: `${diffDays} días`, 
               colorClass: 'text-yellow-600 bg-yellow-100 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-400',
               borderClass: 'border-l-4 border-l-yellow-500',
+              textClass: 'text-yellow-600 dark:text-yellow-400',
               icon: <Clock size={14} />
           };
       } else {
           return { 
               label: 'A tiempo', 
               colorClass: 'text-slate-600 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400',
-              borderClass: 'border-l-4 border-l-slate-300 dark:border-l-slate-600',
+              borderClass: 'border-l-4 border-l-green-500',
+              textClass: 'text-slate-500 dark:text-slate-400',
               icon: <Calendar size={14} />
           };
       }
@@ -247,27 +253,29 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                           className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2"
                       >
                           <CheckCircle2 size={18} />
-                          {isDateModified ? 'Confirmar Cambio y Aprobar' : 'Aprobar Pago'}
+                          {isDateModified ? 'Confirmar y Aprobar' : 'Aprobar Pago'}
                       </button>
                   </div>
               </div>
           </div>
       )}
-      {/* ------------------------------------------- */}
 
       {/* LEFT PANEL: List & Filters */}
       <div className={`w-full lg:w-[400px] xl:w-[450px] flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${selectedId ? 'hidden lg:flex' : 'flex'}`}>
         
         {/* Header Section */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 space-y-4">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 space-y-4">
             <div className="flex justify-between items-center">
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <CheckSquare className="text-blue-600 dark:text-blue-400" />
-                    Cola de Auditoría
+                    Auditoría
                 </h1>
-                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">
-                    {processedPayments.length}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Pendientes</span>
+                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">
+                        {processedPayments.length}
+                    </span>
+                </div>
             </div>
 
             {/* Search & Filter Bar */}
@@ -275,7 +283,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                 <div className="relative flex-1">
                     <input 
                         type="text" 
-                        placeholder="Buscar ID, Tienda..." 
+                        placeholder="Buscar ID, Tienda, Concepto..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
@@ -283,18 +291,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                     <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
                 </div>
                 <div className="relative group">
-                    <button className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-xs font-bold px-3">
-                        <ArrowUpDown size={16} />
-                        <span className="hidden sm:inline">
-                            {sortOption === 'urgency' ? 'Prioridad' : 
-                             sortOption === 'amount_desc' ? 'Monto Mayor' : 
-                             sortOption === 'amount_asc' ? 'Monto Menor' : 'Fecha'}
-                        </span>
+                    <button className="h-full px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-xs font-bold">
+                        <ArrowUpDown size={14} />
+                        <span className="hidden sm:inline">Orden</span>
                     </button>
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-slate-100 dark:border-slate-700 hidden group-hover:block z-10 p-1">
-                        <button onClick={() => setSortOption('urgency')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'urgency' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Prioridad / Urgencia</button>
-                        <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Más Recientes</button>
-                        <button onClick={() => setSortOption('amount_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md ${sortOption === 'amount_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Mayor Monto</button>
+                        <button onClick={() => setSortOption('urgency')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'urgency' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <span>Por Urgencia</span>
+                            {sortOption === 'urgency' && <CheckCircle2 size={12} />}
+                        </button>
+                        <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <span>Más Recientes</span>
+                            {sortOption === 'date_desc' && <CheckCircle2 size={12} />}
+                        </button>
+                        <button onClick={() => setSortOption('amount_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'amount_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <span>Mayor Monto</span>
+                            {sortOption === 'amount_desc' && <CheckCircle2 size={12} />}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -303,12 +316,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
         {/* List Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50 dark:bg-slate-950/50">
             {processedPayments.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center h-64 text-center">
+                 <div className="flex flex-col items-center justify-center h-64 text-center opacity-60">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                        <CheckCircle2 className="text-slate-300 dark:text-slate-600" size={32} />
+                        <CheckCircle2 className="text-slate-300 dark:text-slate-500" size={32} />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Sin pendientes</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[200px]">No hay pagos que coincidan con tus filtros.</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Cola vacía</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[200px]">No hay pagos pendientes para revisar.</p>
                  </div>
             ) : (
                 processedPayments.map(payment => {
@@ -318,45 +331,55 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         <div 
                             key={payment.id}
                             onClick={() => setSelectedId(payment.id)}
-                            className={`group relative p-4 rounded-r-xl rounded-l-md border-t border-b border-r transition-all cursor-pointer hover:shadow-md ${urgency.borderClass} ${
+                            className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${urgency.borderClass} ${
                                 selectedId === payment.id 
-                                ? 'bg-white dark:bg-slate-800 border-blue-500/50 shadow-md z-10' 
+                                ? 'bg-white dark:bg-slate-800 border-blue-500/50 shadow-md ring-1 ring-blue-500/20 z-10' 
                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
                             }`}
                         >
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                         <span className="text-[10px] font-mono text-slate-400">{payment.id}</span>
-                                         {payment.status === PaymentStatus.UPLOADED && (
-                                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded font-bold">NUEVO</span>
+                            {/* Top Row: Store Name & Amount */}
+                            <div className="flex justify-between items-start mb-1">
+                                <div className="flex flex-col min-w-0 pr-2">
+                                     <div className="flex items-center gap-1.5 mb-0.5">
+                                         <span className="text-[10px] font-mono font-bold text-slate-400">{payment.id}</span>
+                                         {payment.status === PaymentStatus.UPLOADED ? (
+                                             <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1 rounded uppercase font-bold tracking-tight">Nuevo</span>
+                                         ) : (
+                                             <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded uppercase font-bold tracking-tight">Pendiente</span>
                                          )}
-                                    </div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                                     </div>
+                                     <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate leading-tight">
                                         {payment.storeName}
-                                    </h3>
+                                     </h3>
                                 </div>
-                                <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${urgency.colorClass}`}>
-                                    {urgency.icon}
-                                    <span>{urgency.label}</span>
+                                <div className="text-right shrink-0">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <span className="text-sm font-bold text-slate-900 dark:text-white font-mono tracking-tight">
+                                            ${payment.amount.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    {payment.isOverBudget && (
+                                        <div className="flex items-center justify-end gap-1 text-[10px] text-red-500 font-bold mt-0.5">
+                                            <AlertTriangle size={10} />
+                                            <span>Excede</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
-                            <div className="flex justify-between items-end mt-3">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wide truncate max-w-[150px]">{payment.specificType}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">${payment.amount.toLocaleString()}</span>
-                                        {payment.isOverBudget && (
-                                            <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 p-1 rounded-md" title="Excede Presupuesto">
-                                                <AlertTriangle size={14} />
-                                            </div>
-                                        )}
-                                    </div>
+                            {/* Middle Row: Concept */}
+                            <div className="mb-3">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{payment.specificType}</p>
+                            </div>
+
+                            {/* Bottom Row: Footer Stats */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/50">
+                                <div className={`flex items-center gap-1.5 text-xs font-bold ${urgency.textClass}`}>
+                                    {urgency.icon}
+                                    <span>{urgency.label}</span>
                                 </div>
-                                <div className="text-[10px] text-slate-400 flex flex-col items-end">
-                                     <span>Vence:</span>
-                                     <span className="font-medium text-slate-600 dark:text-slate-300">{payment.dueDate}</span>
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                    Vence: {payment.dueDate}
                                 </div>
                             </div>
                         </div>
