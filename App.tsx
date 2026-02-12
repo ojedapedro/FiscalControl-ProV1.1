@@ -134,7 +134,14 @@ function App() {
       notes: paymentData.notes,
       history: [initialLog],
       receiptUrl: receiptUrl // Aquí guardamos el string base64 real
+      // Campos de presupuesto ya vienen en paymentData si corresponde
     };
+    
+    // Asignar datos de presupuesto si existen
+    if(paymentData.originalBudget) newPayment.originalBudget = paymentData.originalBudget;
+    if(paymentData.isOverBudget) newPayment.isOverBudget = paymentData.isOverBudget;
+    if(paymentData.justification) newPayment.justification = paymentData.justification;
+    // Falta manejo de justificationFileUrl si se sube (similar a receiptUrl)
 
     try {
         await api.createPayment(newPayment);
@@ -150,20 +157,31 @@ function App() {
     }
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, newDueDate?: string) => {
       setIsLoading(true);
-      const log: AuditLog = {
-        date: new Date().toISOString(),
-        action: 'APROBACION',
-        actorName: 'Auditor Jefe',
-        role: Role.AUDITOR
-      };
-
+      
       const paymentToUpdate = payments.find(p => p.id === id);
       if (paymentToUpdate) {
+        let actionNote = undefined;
+        let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
+
+        if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
+            actionNote = `Fecha modificada por auditor de ${paymentToUpdate.dueDate} a ${newDueDate}`;
+            // Podríamos agregar un log extra de actualización si quisiéramos ser muy detallistas
+        }
+
+        const log: AuditLog = {
+            date: new Date().toISOString(),
+            action: actionType,
+            actorName: 'Auditor Jefe',
+            role: Role.AUDITOR,
+            note: actionNote
+        };
+
         const updatedPayment = {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
+            dueDate: newDueDate || paymentToUpdate.dueDate, // Aplicar cambio si existe
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
         };
 
