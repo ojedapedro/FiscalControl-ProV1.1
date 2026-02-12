@@ -24,7 +24,10 @@ import {
   CalendarClock,
   ArrowRight,
   Eye,
-  TrendingUp // Importado para el icono de tendencia
+  TrendingUp,
+  Target,
+  DollarSign,
+  PieChart
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -166,18 +169,19 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
   const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
 
-  // --- LÓGICA DE CÁLCULO DE EXCEDENTE ---
+  // --- ANÁLISIS FINANCIERO PARA AUDITORÍA ---
   const budgetAnalysis = useMemo(() => {
       if (!selectedPayment || !selectedPayment.isOverBudget) return null;
       
       const amount = Number(selectedPayment.amount);
       const budget = Number(selectedPayment.originalBudget);
 
-      // Si no tenemos presupuesto base, no podemos calcular métricas, retornamos null
-      if (!budget || isNaN(budget)) return null;
+      // Si no tenemos presupuesto base, retornamos null
+      if (!budget || isNaN(budget) || budget === 0) return null;
 
       const excess = amount - budget;
       const percent = (excess / budget) * 100;
+      
       return {
           budget,
           excess,
@@ -498,48 +502,68 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         {/* Column 2: Data Validation */}
                         <div className="space-y-6 order-1 xl:order-2">
                             
-                            {/* Budget Warning Alert (NUEVA VISUALIZACIÓN) */}
+                            {/* TARJETA DE AUDITORIA DE EXCESO (REDISEÑADA) */}
                             {selectedPayment.isOverBudget && (
-                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 animate-in slide-in-from-top-2">
-                                    <div className="flex items-start gap-3">
-                                        <AlertTriangle className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                                        <div className="w-full">
-                                            <h3 className="font-bold text-red-700 dark:text-red-400 text-sm">Pago Excede Presupuesto</h3>
-                                            
-                                            {budgetAnalysis ? (
-                                                // Nueva Visualización con Grilla y Métricas
-                                                <div className="mt-3 grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm">
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold mb-1">Presupuesto</p>
-                                                        <p className="font-mono font-bold text-slate-700 dark:text-slate-200">
-                                                            ${budgetAnalysis.budget.toLocaleString()}
-                                                        </p>
+                                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-3xl p-5 shadow-lg shadow-red-500/5 animate-in slide-in-from-top-4">
+                                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-red-200 dark:border-red-900/50">
+                                        <div className="bg-red-500 text-white p-2 rounded-lg">
+                                            <AlertTriangle size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-red-800 dark:text-red-300 text-sm">Alerta de Desviación Presupuestaria</h3>
+                                            <p className="text-xs text-red-600 dark:text-red-400/80">Requiere aprobación extraordinaria</p>
+                                        </div>
+                                    </div>
+
+                                    {budgetAnalysis ? (
+                                        <div className="space-y-4">
+                                            {/* Grilla de Métricas Financieras */}
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
+                                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex justify-center items-center gap-1">
+                                                        <Target size={10} /> Presupuesto
                                                     </div>
-                                                    <div className="border-l border-red-100 dark:border-red-900/50 pl-2">
-                                                        <p className="text-[10px] text-red-500 dark:text-red-400 uppercase font-bold mb-1">Excedente</p>
-                                                        <p className="font-mono font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                            <TrendingUp size={12} />
-                                                            +${budgetAnalysis.excess.toLocaleString()}
-                                                        </p>
-                                                    </div>
-                                                    <div className="border-l border-red-100 dark:border-red-900/50 pl-2">
-                                                        <p className="text-[10px] text-red-500 dark:text-red-400 uppercase font-bold mb-1">% Desviación</p>
-                                                        <p className="font-mono font-bold text-red-600 dark:text-red-400">
-                                                            +{budgetAnalysis.percent.toFixed(1)}%
-                                                        </p>
+                                                    <div className="font-mono text-slate-700 dark:text-slate-300 font-bold">
+                                                        ${budgetAnalysis.budget.toLocaleString()}
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                // Fallback si no hay datos de presupuesto original pero está marcado como excedido
-                                                <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">
-                                                    El monto supera el límite establecido. (Detalles no disponibles)
-                                                </p>
-                                            )}
-                                            
-                                            {selectedPayment.justification && (
-                                                <div className="mt-3 bg-white dark:bg-slate-900 p-3 rounded-lg border border-red-100 dark:border-red-900/50">
-                                                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Justificación del Usuario</p>
-                                                    <p className="text-sm italic text-slate-700 dark:text-slate-300">"{selectedPayment.justification}"</p>
+                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
+                                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex justify-center items-center gap-1">
+                                                        <DollarSign size={10} /> Real
+                                                    </div>
+                                                    <div className="font-mono text-slate-900 dark:text-white font-bold">
+                                                        ${Number(selectedPayment.amount).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-xl border border-red-200 dark:border-red-800 text-center">
+                                                    <div className="text-[10px] uppercase font-bold text-red-600 dark:text-red-300 mb-1 flex justify-center items-center gap-1">
+                                                        <TrendingUp size={10} /> Desviación
+                                                    </div>
+                                                    <div className="font-mono text-red-600 dark:text-red-400 font-bold">
+                                                        +{budgetAnalysis.percent.toFixed(1)}%
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Barra de Progreso Visual */}
+                                            <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                                                <div className="h-full bg-slate-400 dark:bg-slate-600" style={{ width: `${100 / (1 + (budgetAnalysis.percent/100))}%` }}></div>
+                                                <div className="h-full bg-red-500 animate-pulse" style={{ width: `${(budgetAnalysis.percent / (100 + budgetAnalysis.percent)) * 100}%` }}></div>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                                                <span>0%</span>
+                                                <span className="text-red-500 font-bold">+${budgetAnalysis.excess.toLocaleString()} USD</span>
+                                            </div>
+
+                                            {/* Sección de Justificación y Evidencia */}
+                                            {(selectedPayment.justification || selectedPayment.justificationFileUrl) && (
+                                                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-red-100 dark:border-red-900/30 shadow-inner">
+                                                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-2 flex items-center gap-1">
+                                                        <FileText size={10} /> Justificación del Gerente
+                                                    </p>
+                                                    <p className="text-sm italic text-slate-700 dark:text-slate-300 border-l-2 border-red-300 pl-3 mb-3">
+                                                        "{selectedPayment.justification || 'Sin nota explicativa'}"
+                                                    </p>
                                                     
                                                     {selectedPayment.justificationFileUrl && (
                                                         <button 
@@ -547,16 +571,27 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                               e.stopPropagation(); 
                                                               openInNewTab(selectedPayment.justificationFileUrl!);
                                                             }}
-                                                            className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors bg-transparent border-none cursor-pointer p-0"
+                                                            className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors group"
                                                         >
-                                                            <FileWarning size={14} /> 
-                                                            <span className="underline">Ver Soporte de Excedente</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
+                                                                    <FileWarning size={14} />
+                                                                </div>
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                                    Ver Soporte de Excedente
+                                                                </span>
+                                                            </div>
+                                                            <ExternalLink size={12} className="text-slate-400" />
                                                         </button>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="text-center p-4">
+                                            <p className="text-xs text-red-600 dark:text-red-400">Datos de presupuesto base no disponibles para cálculo detallado.</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
