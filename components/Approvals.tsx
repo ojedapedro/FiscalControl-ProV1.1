@@ -28,7 +28,8 @@ import {
   AlertTriangle,
   Calendar,
   FileWarning,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -114,11 +115,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   };
 
   const handleApproveClick = () => {
-      if (selectedId && selectedPayment) {
+      if (selectedId && selectedPayment && auditDueDate) {
           // Si la fecha fue modificada, la enviamos. Si es igual, enviamos undefined.
           const dateToSend = auditDueDate !== selectedPayment.dueDate ? auditDueDate : undefined;
           onApprove(selectedId, dateToSend);
           setSelectedId(null);
+      }
+  };
+
+  const handleResetDate = () => {
+      if (selectedPayment) {
+          setAuditDueDate(selectedPayment.dueDate);
       }
   };
 
@@ -422,9 +429,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 <div className="mt-4 flex flex-col gap-4 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
                                     
                                     {/* Editable Date Field for Auditors */}
-                                    <div className={`p-3 rounded-xl border transition-all ${
+                                    <div className={`p-3 rounded-xl border-2 transition-all group ${
                                         isDateChanged 
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                                        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-500 dark:border-blue-400' 
                                         : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700'
                                     }`}>
                                         <div className="flex justify-between items-center mb-1">
@@ -432,20 +439,32 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                 <CalendarDays size={14} className={isDateChanged ? "text-blue-500" : "text-slate-400"} />
                                                 Validar Vencimiento
                                             </label>
+                                            
                                             {isDateChanged && (
-                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                    <RefreshCw size={10} /> Modificado
-                                                </span>
+                                                <button 
+                                                    onClick={handleResetDate}
+                                                    className="text-[10px] bg-slate-200 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-colors"
+                                                    title="Restablecer a fecha original"
+                                                >
+                                                    <RotateCcw size={10} /> Restablecer
+                                                </button>
                                             )}
                                         </div>
-                                        <input 
-                                            type="date" 
-                                            value={auditDueDate}
-                                            onChange={(e) => setAuditDueDate(e.target.value)}
-                                            className="w-full bg-transparent font-semibold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 rounded p-1 cursor-pointer"
-                                        />
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                type="date" 
+                                                value={auditDueDate}
+                                                onChange={(e) => setAuditDueDate(e.target.value)}
+                                                className={`w-full bg-transparent font-semibold text-slate-700 dark:text-slate-200 outline-none rounded p-1 cursor-pointer ${
+                                                    isDateChanged ? 'text-blue-700 dark:text-blue-300' : ''
+                                                }`}
+                                            />
+                                        </div>
+
                                         {isDateChanged && (
-                                            <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+                                            <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 ml-1 flex items-center gap-1">
+                                                <RefreshCw size={10} />
                                                 Original: {selectedPayment.dueDate}
                                             </p>
                                         )}
@@ -533,8 +552,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 ) : (
                                     <div className="flex flex-col gap-3">
                                         {isDateChanged && (
-                                            <div className="text-center text-xs text-blue-600 dark:text-blue-400 font-bold animate-pulse">
-                                                * Se aplicará la nueva fecha de vencimiento: {auditDueDate}
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border border-blue-100 dark:border-blue-800/50">
+                                                <RefreshCw size={12} className="animate-spin-slow" />
+                                                Se aprobará con fecha modificada: {auditDueDate}
                                             </div>
                                         )}
                                         <div className="flex gap-4">
@@ -547,7 +567,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                             </button>
                                             <button 
                                                 onClick={handleApproveClick}
-                                                className={`flex-[2] py-4 ${selectedPayment.isOverBudget ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2`}
+                                                disabled={!auditDueDate}
+                                                className={`flex-[2] py-4 ${
+                                                    !auditDueDate 
+                                                        ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500' 
+                                                        : selectedPayment.isOverBudget 
+                                                            ? 'bg-orange-600 hover:bg-orange-700' 
+                                                            : 'bg-blue-600 hover:bg-blue-700'
+                                                } text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2`}
                                             >
                                                 <CheckCircle2 size={20} />
                                                 {selectedPayment.isOverBudget ? 'Aprobar (Con Exceso)' : isDateChanged ? 'Aprobar con Cambio' : 'Aprobar Pago'}

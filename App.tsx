@@ -166,8 +166,8 @@ function App() {
         let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
 
         if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            actionNote = `Fecha modificada por auditor de ${paymentToUpdate.dueDate} a ${newDueDate}`;
-            // Podríamos agregar un log extra de actualización si quisiéramos ser muy detallistas
+            // Formato más limpio para el historial
+            actionNote = `Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`;
         }
 
         const log: AuditLog = {
