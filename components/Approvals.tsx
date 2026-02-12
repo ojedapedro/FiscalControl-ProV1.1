@@ -15,21 +15,15 @@ import {
   Filter, 
   Building2, 
   CheckSquare,
-  FilePlus,
-  Edit,
-  ShieldCheck,
-  ShieldAlert,
-  ChevronDown,
   FileText,
   ExternalLink,
   AlertTriangle,
   Calendar,
   FileWarning,
   RefreshCw,
-  RotateCcw,
   CalendarClock,
   ArrowRight,
-  DollarSign
+  Eye
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -52,9 +46,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [confirmationDate, setConfirmationDate] = useState('');
 
-  // Estado para manejar qué items del historial están expandidos
-  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
-
   // Filtrado y Ordenamiento
   const processedPayments = useMemo(() => {
     let filtered = payments.filter(p => 
@@ -67,8 +58,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     return filtered.sort((a, b) => {
       switch (sortOption) {
         case 'urgency': 
-            // 1. Prioridad: Vencidos primero
-            // 2. Prioridad: Vencimiento más cercano
             return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         case 'date_desc': 
             return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
@@ -81,26 +70,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
   const selectedPayment = payments.find(p => p.id === selectedId);
 
-  // Reset state when selection changes
   useEffect(() => {
     setRejectionNote('');
     setIsRejecting(false);
     setIsImageFullscreen(false);
-    setExpandedLogs(new Set());
     setShowApprovalModal(false); 
   }, [selectedId]);
-
-  const toggleLogExpansion = (index: number) => {
-    setExpandedLogs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
-      return newSet;
-    });
-  };
 
   const handleRejectClick = () => {
     if (!isRejecting) {
@@ -113,7 +88,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     }
   };
 
-  // 1. Al dar clic en "Aprobar", abrimos el modal e inicializamos la fecha
   const handleInitialApproveClick = () => {
       if (selectedPayment) {
           setConfirmationDate(selectedPayment.dueDate);
@@ -121,7 +95,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       }
   };
 
-  // 2. Confirmación final dentro del modal
   const handleConfirmApproval = () => {
       if (selectedId && selectedPayment && confirmationDate) {
           const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
@@ -131,7 +104,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       }
   };
 
-  // Helper para calcular urgencia visual
+  // Helper para detectar PDF (URL o Base64)
+  const isPdf = (url?: string) => {
+      if (!url) return false;
+      const lowerUrl = url.toLowerCase();
+      return lowerUrl.includes('application/pdf') || lowerUrl.endsWith('.pdf') || lowerUrl.startsWith('data:application/pdf');
+  };
+
+  // Helper para abrir Base64 en nueva pestaña de forma segura
+  const openInNewTab = (url: string) => {
+      const win = window.open();
+      if (win) {
+          win.document.write(
+              `<iframe src="${url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
+          );
+      }
+  };
+
   const getUrgencyDetails = (dueDateStr: string) => {
       const today = new Date();
       today.setHours(0,0,0,0);
@@ -172,11 +161,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
               icon: <Calendar size={14} />
           };
       }
-  };
-
-  const isPdf = (url?: string) => {
-      if (!url) return false;
-      return url.toLowerCase().includes('application/pdf') || url.toLowerCase().endsWith('.pdf');
   };
 
   const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
@@ -337,7 +321,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
                             }`}
                         >
-                            {/* Top Row: Store Name & Amount */}
                             <div className="flex justify-between items-start mb-1">
                                 <div className="flex flex-col min-w-0 pr-2">
                                      <div className="flex items-center gap-1.5 mb-0.5">
@@ -367,12 +350,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                             </div>
                             
-                            {/* Middle Row: Concept */}
                             <div className="mb-3">
                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{payment.specificType}</p>
                             </div>
 
-                            {/* Bottom Row: Footer Stats */}
                             <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/50">
                                 <div className={`flex items-center gap-1.5 text-xs font-bold ${urgency.textClass}`}>
                                     {urgency.icon}
@@ -427,57 +408,70 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         
                         {/* Column 1: Receipt & Visuals */}
                         <div className="space-y-6 order-2 xl:order-1">
-                            <div className={`relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0' : 'h-[500px]'}`}>
+                            <div className={`relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0 h-auto' : 'h-[500px]'}`}>
                                 
                                 {selectedPayment.receiptUrl ? (
-                                    isPdf(selectedPayment.receiptUrl) ? (
-                                        <div className="w-full h-full flex flex-col bg-slate-800">
-                                            <div className="bg-slate-950/50 p-2 flex items-center justify-between text-xs text-slate-400 border-b border-slate-700/50">
-                                                <span className="flex items-center gap-2"><FileText size={14} /> Documento PDF</span>
-                                                <a href={selectedPayment.receiptUrl} download="comprobante.pdf" className="hover:text-white flex items-center gap-1"><ExternalLink size={12}/> Abrir externo</a>
+                                    <>
+                                        {/* Barra de herramientas superior dentro del visor */}
+                                        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+                                            <div className="pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs text-slate-200 border border-white/10 flex items-center gap-2">
+                                                {isPdf(selectedPayment.receiptUrl) ? <FileText size={12}/> : <Receipt size={12}/>}
+                                                {isPdf(selectedPayment.receiptUrl) ? 'Documento PDF' : 'Imagen de Recibo'}
                                             </div>
-                                            <iframe 
-                                                src={selectedPayment.receiptUrl} 
-                                                className="w-full h-full border-none"
-                                                title="Visor PDF"
-                                            />
+                                            <div className="flex gap-2 pointer-events-auto">
+                                                <button 
+                                                    onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
+                                                    className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70 border border-white/10"
+                                                    title="Abrir en nueva pestaña"
+                                                >
+                                                    <ExternalLink size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setIsImageFullscreen(!isImageFullscreen)}
+                                                    className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70 border border-white/10"
+                                                    title={isImageFullscreen ? "Minimizar" : "Maximizar"}
+                                                >
+                                                    {isImageFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <img 
-                                            src={selectedPayment.receiptUrl} 
-                                            alt="Recibo" 
-                                            className="w-full h-full object-contain bg-slate-950"
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none';
-                                                const parent = e.currentTarget.parentElement;
-                                                if (parent && !parent.querySelector('.error-msg')) {
-                                                    const errDiv = document.createElement('div');
-                                                    errDiv.className = "error-msg w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950";
-                                                    errDiv.innerHTML = `<p class="text-sm font-medium">No se pudo cargar la imagen</p>`;
-                                                    parent.appendChild(errDiv);
-                                                }
-                                            }} 
-                                        />
-                                    )
+
+                                        {/* Renderizado del Archivo */}
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                                            {isPdf(selectedPayment.receiptUrl) ? (
+                                                <object
+                                                    data={selectedPayment.receiptUrl}
+                                                    type="application/pdf"
+                                                    className="w-full h-full rounded-b-xl"
+                                                >
+                                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 p-6 text-center">
+                                                        <FileText size={48} className="mb-4 text-slate-600" />
+                                                        <p className="mb-4">Este navegador no soporta la visualización directa de este PDF.</p>
+                                                        <button 
+                                                            onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                                                        >
+                                                            Abrir Documento
+                                                        </button>
+                                                    </div>
+                                                </object>
+                                            ) : (
+                                                <img 
+                                                    src={selectedPayment.receiptUrl} 
+                                                    alt="Recibo" 
+                                                    className="max-w-full max-h-full object-contain"
+                                                />
+                                            )}
+                                        </div>
+                                    </>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950/50">
                                         <AlertCircle size={48} className="mb-4 opacity-50" />
                                         <p className="text-sm font-medium">Sin comprobante digital</p>
                                     </div>
                                 )}
-                                
-                                {/* Overlay Controls */}
-                                {!isPdf(selectedPayment.receiptUrl) && selectedPayment.receiptUrl && (
-                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={() => setIsImageFullscreen(!isImageFullscreen)}
-                                            className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70"
-                                        >
-                                            {isImageFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-                                        </button>
-                                    </div>
-                                )}
                             </div>
+                            {/* Backdrop for fullscreen */}
                             {isImageFullscreen && <div className="fixed inset-0 bg-black/90 z-40 backdrop-blur-sm" onClick={() => setIsImageFullscreen(false)}></div>}
                         </div>
 
