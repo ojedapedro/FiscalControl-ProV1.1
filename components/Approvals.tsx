@@ -14,10 +14,7 @@ import {
   ArrowUpDown, 
   Filter, 
   Building2, 
-  Download,
   CheckSquare,
-  History,
-  User,
   FilePlus,
   Edit,
   ShieldCheck,
@@ -29,7 +26,9 @@ import {
   Calendar,
   FileWarning,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  CalendarClock,
+  ArrowRight
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -48,8 +47,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [sortOption, setSortOption] = useState<SortOption>('urgency');
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
   
-  // Nuevo estado para la fecha editable por el auditor
-  const [auditDueDate, setAuditDueDate] = useState('');
+  // --- Estados para el Modal de Confirmación de Fecha ---
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [confirmationDate, setConfirmationDate] = useState('');
 
   // Estado para manejar qué items del historial están expandidos
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
@@ -84,12 +84,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setIsRejecting(false);
     setIsImageFullscreen(false);
     setExpandedLogs(new Set());
-    
-    // Inicializar la fecha de auditoría con la fecha actual del pago
-    if (selectedPayment) {
-        setAuditDueDate(selectedPayment.dueDate);
-    }
-  }, [selectedId, selectedPayment]);
+    setShowApprovalModal(false); // Asegurar que el modal se cierre al cambiar de pago
+  }, [selectedId]);
 
   const toggleLogExpansion = (index: number) => {
     setExpandedLogs(prev => {
@@ -114,18 +110,22 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     }
   };
 
-  const handleApproveClick = () => {
-      if (selectedId && selectedPayment && auditDueDate) {
-          // Si la fecha fue modificada, la enviamos. Si es igual, enviamos undefined.
-          const dateToSend = auditDueDate !== selectedPayment.dueDate ? auditDueDate : undefined;
-          onApprove(selectedId, dateToSend);
-          setSelectedId(null);
+  // 1. Al dar clic en "Aprobar", abrimos el modal e inicializamos la fecha
+  const handleInitialApproveClick = () => {
+      if (selectedPayment) {
+          setConfirmationDate(selectedPayment.dueDate);
+          setShowApprovalModal(true);
       }
   };
 
-  const handleResetDate = () => {
-      if (selectedPayment) {
-          setAuditDueDate(selectedPayment.dueDate);
+  // 2. Confirmación final dentro del modal
+  const handleConfirmApproval = () => {
+      if (selectedId && selectedPayment && confirmationDate) {
+          // Si la fecha es diferente a la original, la enviamos para actualizar. Si es igual, undefined.
+          const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
+          onApprove(selectedId, dateToSend);
+          setShowApprovalModal(false);
+          setSelectedId(null);
       }
   };
 
@@ -173,11 +173,88 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       return url.toLowerCase().includes('application/pdf') || url.toLowerCase().endsWith('.pdf');
   };
 
-  const isDateChanged = selectedPayment && auditDueDate !== selectedPayment.dueDate;
+  const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
       
+      {/* --- MODAL DE CONFIRMACIÓN DE FECHA --- */}
+      {showApprovalModal && selectedPayment && (
+          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <CalendarClock className="text-blue-500" />
+                          Confirmar Aprobación
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                          Verifique la fecha de vencimiento antes de finalizar.
+                      </p>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                      <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Registrada</label>
+                          <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                              <span className="font-mono text-slate-500 dark:text-slate-400 strike-through decoration-slate-400">
+                                  {selectedPayment.dueDate}
+                              </span>
+                              {isDateModified && (
+                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                                    <ArrowRight size={16} />
+                                    <span className="font-bold">{confirmationDate}</span>
+                                </div>
+                              )}
+                          </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                          <label className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                              ¿Desea cambiar la fecha de vencimiento?
+                          </label>
+                          <input 
+                              type="date" 
+                              value={confirmationDate}
+                              onChange={(e) => setConfirmationDate(e.target.value)}
+                              className={`w-full p-4 rounded-xl border-2 outline-none transition-all font-bold ${
+                                  isDateModified 
+                                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
+                                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 focus:border-blue-400'
+                              }`}
+                          />
+                          {isDateModified ? (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 font-medium">
+                                  <RefreshCw size={12} /> Se actualizará la fecha en el registro.
+                              </p>
+                          ) : (
+                              <p className="text-xs text-slate-400 mt-1">
+                                  Mantenga la fecha actual si es correcta.
+                              </p>
+                          )}
+                      </div>
+                  </div>
+
+                  <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex gap-3 bg-slate-50 dark:bg-slate-900/50">
+                      <button 
+                          onClick={() => setShowApprovalModal(false)}
+                          className="flex-1 py-3 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                      >
+                          Cancelar
+                      </button>
+                      <button 
+                          onClick={handleConfirmApproval}
+                          disabled={!confirmationDate}
+                          className="flex-[2] py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+                      >
+                          <CheckCircle2 size={18} />
+                          {isDateModified ? 'Confirmar Cambio y Aprobar' : 'Aprobar Pago'}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* ------------------------------------------- */}
+
       {/* LEFT PANEL: List & Filters */}
       <div className={`w-full lg:w-[400px] xl:w-[450px] flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${selectedId ? 'hidden lg:flex' : 'flex'}`}>
         
@@ -428,53 +505,20 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                                 <div className="mt-4 flex flex-col gap-4 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
                                     
-                                    {/* Editable Date Field for Auditors */}
-                                    <div className={`p-3 rounded-xl border-2 transition-all group ${
-                                        isDateChanged 
-                                        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-500 dark:border-blue-400' 
-                                        : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700'
-                                    }`}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-xs text-slate-500 uppercase font-bold flex items-center gap-2">
-                                                <CalendarDays size={14} className={isDateChanged ? "text-blue-500" : "text-slate-400"} />
-                                                Validar Vencimiento
-                                            </label>
-                                            
-                                            {isDateChanged && (
-                                                <button 
-                                                    onClick={handleResetDate}
-                                                    className="text-[10px] bg-slate-200 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-colors"
-                                                    title="Restablecer a fecha original"
-                                                >
-                                                    <RotateCcw size={10} /> Restablecer
-                                                </button>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                type="date" 
-                                                value={auditDueDate}
-                                                onChange={(e) => setAuditDueDate(e.target.value)}
-                                                className={`w-full bg-transparent font-semibold text-slate-700 dark:text-slate-200 outline-none rounded p-1 cursor-pointer ${
-                                                    isDateChanged ? 'text-blue-700 dark:text-blue-300' : ''
-                                                }`}
-                                            />
-                                        </div>
-
-                                        {isDateChanged && (
-                                            <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 ml-1 flex items-center gap-1">
-                                                <RefreshCw size={10} />
-                                                Original: {selectedPayment.dueDate}
+                                    {/* Display only Date (Not editable here) */}
+                                    <div className="flex justify-between items-center px-2">
+                                        <div>
+                                            <p className="text-xs text-slate-400 uppercase">Vencimiento</p>
+                                            <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1">
+                                                <CalendarDays size={14} className="text-red-500" /> {selectedPayment.dueDate}
                                             </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <p className="text-xs text-slate-400 uppercase px-3">Pagado El</p>
-                                        <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1 px-3">
-                                            <Clock size={14} className="text-green-500" /> {selectedPayment.paymentDate || 'N/A'}
-                                        </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-400 uppercase text-right">Pagado El</p>
+                                            <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1 justify-end">
+                                                <Clock size={14} className="text-green-500" /> {selectedPayment.paymentDate || 'N/A'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -551,12 +595,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-3">
-                                        {isDateChanged && (
-                                            <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border border-blue-100 dark:border-blue-800/50">
-                                                <RefreshCw size={12} className="animate-spin-slow" />
-                                                Se aprobará con fecha modificada: {auditDueDate}
-                                            </div>
-                                        )}
                                         <div className="flex gap-4">
                                             <button 
                                                 onClick={handleRejectClick}
@@ -566,18 +604,15 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                 Rechazar
                                             </button>
                                             <button 
-                                                onClick={handleApproveClick}
-                                                disabled={!auditDueDate}
+                                                onClick={handleInitialApproveClick}
                                                 className={`flex-[2] py-4 ${
-                                                    !auditDueDate 
-                                                        ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500' 
-                                                        : selectedPayment.isOverBudget 
-                                                            ? 'bg-orange-600 hover:bg-orange-700' 
-                                                            : 'bg-blue-600 hover:bg-blue-700'
+                                                    selectedPayment.isOverBudget 
+                                                        ? 'bg-orange-600 hover:bg-orange-700' 
+                                                        : 'bg-blue-600 hover:bg-blue-700'
                                                 } text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2`}
                                             >
                                                 <CheckCircle2 size={20} />
-                                                {selectedPayment.isOverBudget ? 'Aprobar (Con Exceso)' : isDateChanged ? 'Aprobar con Cambio' : 'Aprobar Pago'}
+                                                {selectedPayment.isOverBudget ? 'Aprobar (Con Exceso)' : 'Aprobar Pago'}
                                             </button>
                                         </div>
                                     </div>
