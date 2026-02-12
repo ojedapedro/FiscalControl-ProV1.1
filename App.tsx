@@ -119,6 +119,16 @@ function App() {
         }
     }
 
+    // Convertir el archivo de justificación a Base64 si existe
+    let justificationFileUrl = undefined;
+    if (paymentData.justificationFile) {
+        try {
+            justificationFileUrl = await fileToBase64(paymentData.justificationFile);
+        } catch (e) {
+            console.error("Error converting justification file", e);
+        }
+    }
+
     const newPayment: Payment = {
       id: `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
@@ -133,7 +143,8 @@ function App() {
       submittedDate: new Date().toISOString(),
       notes: paymentData.notes,
       history: [initialLog],
-      receiptUrl: receiptUrl // Aquí guardamos el string base64 real
+      receiptUrl: receiptUrl, // Aquí guardamos el string base64 real
+      justificationFileUrl: justificationFileUrl // Archivo de soporte extra
       // Campos de presupuesto ya vienen en paymentData si corresponde
     };
     
@@ -141,7 +152,6 @@ function App() {
     if(paymentData.originalBudget) newPayment.originalBudget = paymentData.originalBudget;
     if(paymentData.isOverBudget) newPayment.isOverBudget = paymentData.isOverBudget;
     if(paymentData.justification) newPayment.justification = paymentData.justification;
-    // Falta manejo de justificationFileUrl si se sube (similar a receiptUrl)
 
     try {
         await api.createPayment(newPayment);

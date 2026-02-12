@@ -495,14 +495,16 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                     <p className="text-sm italic text-slate-700 dark:text-slate-300">"{selectedPayment.justification}"</p>
                                                     
                                                     {selectedPayment.justificationFileUrl && (
-                                                        <a 
-                                                            href={selectedPayment.justificationFileUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                                        <button 
+                                                            onClick={(e) => {
+                                                              e.stopPropagation(); 
+                                                              openInNewTab(selectedPayment.justificationFileUrl!);
+                                                            }}
+                                                            className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors bg-transparent border-none cursor-pointer p-0"
                                                         >
-                                                            <FileWarning size={14} /> Ver Soporte de Excedente
-                                                        </a>
+                                                            <FileWarning size={14} /> 
+                                                            <span className="underline">Ver Soporte de Excedente</span>
+                                                        </button>
                                                     )}
                                                 </div>
                                             )}
