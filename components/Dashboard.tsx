@@ -10,7 +10,9 @@ import {
   Wifi, 
   Droplets,
   Plus,
-  Filter
+  Filter,
+  Clock,
+  Activity
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
@@ -30,6 +32,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
   const totalOverdue = payments
     .filter(p => p.status === PaymentStatus.OVERDUE)
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Nuevas Estadísticas
+  const pendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+
+  const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
+  const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const averagePayment = approvedPayments.length > 0 ? totalApproved / approvedPayments.length : 0;
 
   // Filtrado de la lista para visualización
   const filteredPayments = payments.filter(payment => {
@@ -81,35 +90,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Card 1: Total Due */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <DollarSign size={18} className="text-blue-500" />
               Total por Pagar
             </div>
-            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingUp size={14} />
-              +12% vs semana pasada
+              +12% vs semana
             </div>
           </div>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-50 dark:bg-blue-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
+        {/* Card 2: Overdue Amount */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <AlertTriangle size={18} className="text-red-500" />
-              Crítico / Vencido
+              Monto Vencido
             </div>
-            <div className="text-4xl font-bold text-slate-900 dark:text-white">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-             <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+             <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingDown size={14} />
-              -5% tasa de recuperación
+              Acción Inmediata
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+        </div>
+
+        {/* Card 3: Pending Count */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
+           <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+              <Clock size={18} className="text-orange-500" />
+              Pagos Pendientes
+            </div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</div>
+             <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
+              En cola de revisión
+            </div>
+          </div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+        </div>
+
+        {/* Card 4: Average Payment */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
+           <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+              <Activity size={18} className="text-purple-500" />
+              Promedio Pago
+            </div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">${averagePayment.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+             <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold mt-3 bg-purple-50 dark:bg-purple-900/20 w-fit px-2 py-1 rounded-lg">
+              Base: {approvedPayments.length} pagos
+            </div>
+          </div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
       </div>
 
