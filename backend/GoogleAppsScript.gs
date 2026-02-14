@@ -59,7 +59,7 @@ function handleRequest(e) {
       case 'checkNotifications':
         // Endpoint manual para testear el envío
         const count = checkDeadlinesAndNotify();
-        result = { status: 'success', message: `Chequeo ejecutado. Mensajes enviados: ${count}` };
+        result = { status: 'success', message: `Reporte generado. Alertas encontradas: ${count}` };
         break;
 
       default:
@@ -79,7 +79,7 @@ function handleRequest(e) {
   }
 }
 
-// --- AUTOMATIZACIÓN WHATSAPP ---
+// --- AUTOMATIZACIÓN WHATSAPP EFICIENTE (BATCH) ---
 
 /**
  * Esta función debe ser configurada con un TRIGGER de tiempo en Google Apps Script.
@@ -97,85 +97,130 @@ function checkDeadlinesAndNotify() {
 
   const payments = getData(ss, 'Payments');
   const today = new Date();
-  // Normalizar hoy a medianoche para comparaciones de fecha pura
   today.setHours(0,0,0,0);
 
-  let messagesSent = 0;
+  // Contenedores para agrupar alertas
+  const alerts = {
+    critical: [], // Vencidos o vencen hoy
+    upcoming: [], // Vencen en 1 día (crítico configurado)
+    warning: []   // Vencen pronto (warning configurado)
+  };
+
+  let totalAlerts = 0;
 
   payments.forEach(p => {
-    if (p.status !== 'Pendiente' && p.status !== 'En Riesgo') return;
+    // Solo procesar pagos pendientes o en riesgo (ignorar aprobados/rechazados)
+    if (p.status === 'Aprobado' || p.status === 'Rechazado') return;
 
-    // Convertir dueDate (YYYY-MM-DD) a Objeto Date
-    const parts = p.dueDate.split('-');
-    const dueDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    // FIX: Manejo robusto de fechas (Google Sheets devuelve Objetos Date si la celda tiene formato fecha)
+    let dueDate;
+    
+    // Comprobamos si es un objeto Date nativo
+    if (Object.prototype.toString.call(p.dueDate) === "[object Date]") {
+       dueDate = new Date(p.dueDate);
+    } else {
+       // Si es string "YYYY-MM-DD" o similar
+       const dateStr = String(p.dueDate);
+       if (dateStr.includes('-')) {
+          const parts = dateStr.split('-');
+          // Intento simple de parsing YYYY-MM-DD
+          if (parts.length === 3) {
+             dueDate = new Date(parts[0], parts[1] - 1, parts[2]);
+          } else {
+             dueDate = new Date(dateStr);
+          }
+       } else {
+          dueDate = new Date(dateStr);
+       }
+    }
+
+    // Validar que la fecha sea válida antes de continuar
+    if (isNaN(dueDate.getTime())) return;
     
     // Calcular diferencia en días: (Due - Today)
     const diffTime = dueDate - today; 
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
     
-    let shouldNotify = false;
-    let messagePrefix = "";
+    const item = {
+      store: p.storeName,
+      concept: p.specificType,
+      amount: p.amount,
+      date: p.dueDate instanceof Date ? Utilities.formatDate(p.dueDate, Session.getScriptTimeZone(), "yyyy-MM-dd") : p.dueDate
+    };
 
-    // Lógica de Alertas
-    if (diffDays === settings.daysBeforeWarning) {
-      shouldNotify = true;
-      messagePrefix = "⚠️ *RECORDATORIO DE PAGO*";
-    } else if (diffDays === settings.daysBeforeCritical) {
-      shouldNotify = true;
-      messagePrefix = "🚨 *URGENTE: PAGO PRÓXIMO A VENCER*";
-    } else if (diffDays < 0 && diffDays > -3) { // Aviso de vencido (primeros 3 días)
-      shouldNotify = true;
-      messagePrefix = "❌ *PAGO VENCIDO*";
-    }
-
-    if (shouldNotify) {
-      const message = `${messagePrefix}\n\n` +
-                      `Tienda: ${p.storeName}\n` +
-                      `Concepto: ${p.specificType}\n` +
-                      `Monto: $${p.amount}\n` +
-                      `Vence: ${p.dueDate}\n` +
-                      `\n_Por favor gestione este pago en la plataforma._`;
-      
-      const success = sendWhatsAppMessage(settings.whatsappGatewayUrl, settings.whatsappPhone, message);
-      if (success) messagesSent++;
+    if (diffDays < 0) {
+      alerts.critical.push({ ...item, label: `Vencido hace ${Math.abs(diffDays)} días` });
+      totalAlerts++;
+    } else if (diffDays === 0) {
+      alerts.critical.push({ ...item, label: "VENCE HOY" });
+      totalAlerts++;
+    } else if (diffDays <= settings.daysBeforeCritical) {
+      alerts.upcoming.push({ ...item, label: `Vence en ${diffDays} días` });
+      totalAlerts++;
+    } else if (diffDays <= settings.daysBeforeWarning) {
+      alerts.warning.push({ ...item, label: `Fecha: ${item.date}` });
+      totalAlerts++;
     }
   });
 
-  return messagesSent;
+  // Si no hay nada que reportar, salimos
+  if (totalAlerts === 0) {
+    Logger.log("No hay alertas para enviar hoy.");
+    return 0;
+  }
+
+  // --- CONSTRUCCIÓN DEL MENSAJE UNIFICADO ---
+  let message = `🤖 *REPORTE FISCAL DIARIO*\nFecha: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")}\n`;
+  
+  if (alerts.critical.length > 0) {
+    message += `\n🚨 *URGENTE / VENCIDOS (${alerts.critical.length})*\n`;
+    alerts.critical.forEach(a => {
+      message += `• ${a.store}: ${a.concept} ($${a.amount}) - *${a.label}*\n`;
+    });
+  }
+
+  if (alerts.upcoming.length > 0) {
+    message += `\n⚠️ *ATENCIÓN INMEDIATA (${alerts.upcoming.length})*\n`;
+    alerts.upcoming.forEach(a => {
+      message += `• ${a.store}: ${a.concept} ($${a.amount}) - ${a.label}\n`;
+    });
+  }
+
+  if (alerts.warning.length > 0) {
+    message += `\n📅 *PRÓXIMOS VENCIMIENTOS (${alerts.warning.length})*\n`;
+    alerts.warning.forEach(a => {
+      message += `• ${a.store}: ${a.concept} - ${a.label}\n`;
+    });
+  }
+
+  message += `\n_Ingrese a la plataforma para gestionar los pagos._`;
+
+  // Enviar un solo mensaje consolidado
+  Logger.log("Enviando reporte consolidado...");
+  sendWhatsAppMessage(settings.whatsappGatewayUrl, settings.whatsappPhone, message);
+
+  return totalAlerts;
 }
 
 function sendWhatsAppMessage(gatewayUrl, phone, message) {
   try {
-    // CORRECCIÓN: Validación defensiva para evitar TypeError si gatewayUrl llega undefined
-    if (!gatewayUrl) {
-      Logger.log("Error: URL de Gateway no definida o vacía");
-      return false;
-    }
+    if (!gatewayUrl) return false;
 
-    // Asegurar que es string y eliminar espacios
     let finalUrl = String(gatewayUrl).trim();
     if (finalUrl === "") return false;
 
-    // Codificar mensaje para URL
+    // Codificar mensaje (importante para emojis y saltos de línea)
     const encodedMessage = encodeURIComponent(message);
-    
-    // Construir URL. Soportamos formato simple tipo CallMeBot:
-    // url?phone=XXXX&text=Mensaje&apikey=XXXX
-    // O gateways genéricos donde concatenamos el mensaje.
-    
-    // REGLA: Si la URL del gateway contiene [MESSAGE] o [PHONE], los reemplazamos.
-    // Si no, asumimos que se añaden como query params standard (estilo CallMeBot)
     
     if (finalUrl.includes('[MESSAGE]')) {
        finalUrl = finalUrl.replace('[MESSAGE]', encodedMessage).replace('[PHONE]', phone);
     } else {
-       // Fallback simple: asume que la URL termina en apikey=xyz y le falta &text=...&phone=...
        const separator = finalUrl.includes('?') ? '&' : '?';
        finalUrl = `${finalUrl}${separator}phone=${phone}&text=${encodedMessage}`;
     }
 
     const response = UrlFetchApp.fetch(finalUrl);
-    Logger.log("WhatsApp enviado a " + phone + ": " + response.getContentText());
+    Logger.log("WhatsApp enviado: " + response.getContentText());
     return true;
   } catch (e) {
     Logger.log("Error enviando WhatsApp: " + e.toString());
@@ -240,7 +285,7 @@ function setupDatabase(ss) {
   if (!ss) ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   const schema = {
-    'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl'],
+    'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl', 'originalBudget', 'isOverBudget', 'justification', 'justificationFileUrl'],
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
     'Users': ['id', 'username', 'role', 'email'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled']

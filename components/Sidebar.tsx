@@ -21,10 +21,11 @@ interface SidebarProps {
   currentView: string;
   setCurrentView: (view: string) => void;
   currentRole: Role;
-  onChangeRole: (role: Role) => void;
+  onChangeRole: (role: Role) => void; // Mantenemos para debug interno si se desea
+  onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, currentRole, onChangeRole }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, currentRole, onChangeRole, onLogout }) => {
   const { theme, toggleTheme } = useTheme();
   const [imgError, setImgError] = useState(false);
 
@@ -99,20 +100,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
            </div>
         </button>
 
-        <div className="px-2 hidden lg:block">
-          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block">Rol Actual</label>
-          <select 
-            value={currentRole}
-            onChange={(e) => onChangeRole(e.target.value as Role)}
-            className="w-full bg-slate-800 text-slate-300 text-xs rounded-lg p-2 border border-slate-700 outline-none focus:border-blue-500"
-          >
-            {Object.values(Role).map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
+        <div className="px-2 hidden lg:block opacity-50 hover:opacity-100 transition-opacity">
+          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block">Debug: Rol Actual</label>
+          <div className="text-xs text-slate-300 font-mono bg-slate-950 p-2 rounded">{currentRole}</div>
         </div>
         
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors">
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+        >
           <LogOut size={20} />
           <span className="hidden lg:block font-medium">Cerrar Sesión</span>
         </button>

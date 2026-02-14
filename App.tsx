@@ -8,12 +8,25 @@ import { Reports } from './components/Reports';
 import { StoreStatus } from './components/StoreStatus';
 import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
-import { STORES } from './constants'; // Mantenemos tiendas estáticas por ahora, o podrías migrarlas también
-import { Payment, PaymentStatus, Role, AuditLog } from './types';
+import { Login } from './components/Login'; // Nuevo componente
+import { STORES } from './constants';
+import { Payment, PaymentStatus, Role, AuditLog, User } from './types';
 import { X, BellRing, Database, RefreshCw, Loader2 } from 'lucide-react';
 import { api } from './services/api';
 
 function App() {
+  // --- AUTH STATE ---
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // --- APP STATE ---
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' as default placeholder
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+
   const getInitialView = (role: Role) => {
     switch (role) {
       case Role.AUDITOR: return 'approvals';
@@ -22,16 +35,24 @@ function App() {
     }
   };
 
-  const [currentRole, setCurrentRole] = useState<Role>(Role.ADMIN);
-  const [currentView, setCurrentView] = useState(getInitialView(Role.ADMIN));
-  
-  // Estado de Datos
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  // Efecto para redirigir vista inicial al loguearse
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setCurrentView(getInitialView(currentUser.role));
+      loadData(); // Cargar datos al entrar
+    }
+  }, [isAuthenticated, currentUser]);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setPayments([]); // Limpiar datos sensibles
+  };
 
   // --- INTEGRACIÓN BASE DE DATOS ---
 
@@ -39,7 +60,6 @@ function App() {
     setIsLoading(true);
     try {
       const data = await api.getPayments();
-      // Si la BD está vacía, podríamos no cargar nada, o mantener el estado vacío
       setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
     } catch (error) {
       setNotification('❌ Error conectando con Google Sheets');
@@ -47,11 +67,6 @@ function App() {
       setIsLoading(false);
     }
   };
-
-  // Cargar datos al iniciar
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const handleSetupDatabase = async () => {
     if(!confirm("¿Estás seguro? Esto creará las hojas en tu Google Sheet si no existen.")) return;
@@ -66,9 +81,7 @@ function App() {
     }
   };
 
-  // --------------------------------
-
-  // Registrar Service Worker (sin cambios)
+  // Registrar Service Worker
   useEffect(() => {
     const swCode = `
       self.addEventListener('install', (event) => self.skipWaiting());
@@ -105,11 +118,10 @@ function App() {
     const initialLog: AuditLog = {
       date: new Date().toISOString(),
       action: 'CREACION',
-      actorName: 'Usuario Admin', 
-      role: currentRole
+      actorName: currentUser?.name || 'Usuario', 
+      role: currentUser?.role || Role.ADMIN
     };
 
-    // Convertir el archivo a Base64 para que viaje con el objeto y sea visible por el auditor
     let receiptUrl = undefined;
     if (paymentData.file) {
         try {
@@ -119,7 +131,6 @@ function App() {
         }
     }
 
-    // Convertir el archivo de justificación a Base64 si existe
     let justificationFileUrl = undefined;
     if (paymentData.justificationFile) {
         try {
@@ -133,7 +144,7 @@ function App() {
       id: `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
       storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
-      userId: 'U-CURRENT',
+      userId: currentUser?.id || 'U-UNK',
       category: paymentData.category,
       specificType: paymentData.specificType,
       amount: paymentData.amount,
@@ -143,19 +154,16 @@ function App() {
       submittedDate: new Date().toISOString(),
       notes: paymentData.notes,
       history: [initialLog],
-      receiptUrl: receiptUrl, // Aquí guardamos el string base64 real
-      justificationFileUrl: justificationFileUrl // Archivo de soporte extra
-      // Campos de presupuesto ya vienen en paymentData si corresponde
+      receiptUrl: receiptUrl,
+      justificationFileUrl: justificationFileUrl
     };
     
-    // Asignar datos de presupuesto si existen
     if(paymentData.originalBudget) newPayment.originalBudget = paymentData.originalBudget;
     if(paymentData.isOverBudget) newPayment.isOverBudget = paymentData.isOverBudget;
     if(paymentData.justification) newPayment.justification = paymentData.justification;
 
     try {
         await api.createPayment(newPayment);
-        // Actualizamos el estado local inmediatamente para ver el cambio
         setPayments(prev => [newPayment, ...prev]);
         setIsFormOpen(false);
         setNotification('✅ Pago guardado en Google Sheets.');
@@ -169,29 +177,27 @@ function App() {
 
   const handleApprove = async (id: string, newDueDate?: string) => {
       setIsLoading(true);
-      
       const paymentToUpdate = payments.find(p => p.id === id);
       if (paymentToUpdate) {
         let actionNote = undefined;
         let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
 
         if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            // Formato más limpio para el historial
             actionNote = `Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`;
         }
 
         const log: AuditLog = {
             date: new Date().toISOString(),
             action: actionType,
-            actorName: 'Auditor Jefe',
-            role: Role.AUDITOR,
+            actorName: currentUser?.name || 'Auditor',
+            role: currentUser?.role || Role.AUDITOR,
             note: actionNote
         };
 
         const updatedPayment = {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
-            dueDate: newDueDate || paymentToUpdate.dueDate, // Aplicar cambio si existe
+            dueDate: newDueDate || paymentToUpdate.dueDate,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
         };
 
@@ -213,8 +219,8 @@ function App() {
       const log: AuditLog = {
         date: new Date().toISOString(),
         action: 'RECHAZO',
-        actorName: 'Auditor Jefe',
-        role: Role.AUDITOR,
+        actorName: currentUser?.name || 'Auditor',
+        role: currentUser?.role || Role.AUDITOR,
         note: reason
       };
 
@@ -240,21 +246,20 @@ function App() {
       }
   };
 
-  // Manejador para el botón "Gestionar" de las notificaciones
   const handleManageNotification = (paymentId: string) => {
-    // Si soy auditor, voy a aprobaciones
-    if (currentRole === Role.AUDITOR) {
+    if (currentUser?.role === Role.AUDITOR) {
       setCurrentView('approvals');
     } else {
-      // Si soy admin, voy al dashboard
       setCurrentView('payments');
     }
-    // Opcional: Podríamos añadir lógica para resaltar el pago en la lista destino
     setNotification(`Gestionando pago ${paymentId}...`);
     setTimeout(() => setNotification(null), 2000);
   };
 
   const renderContent = () => {
+    // Si no está autenticado, mostrar Login (aunque el return principal ya maneja esto, es good practice)
+    if (!isAuthenticated) return null;
+
     if (isLoading && payments.length === 0) {
         return (
             <div className="h-full flex flex-col items-center justify-center text-slate-500">
@@ -296,8 +301,7 @@ function App() {
                        <Database size={20} /> Conexión Google Drive
                    </h3>
                    <p className="text-sm text-slate-400 mb-4">
-                       Hoja conectada: <strong>FiscalCtl Server</strong><br/>
-                       ID: 1EaYm-kbgFciU2ZFIJk5B8rLb9y07hZEDbGKIiElLbd8
+                       Hoja conectada: <strong>FiscalCtl Server</strong>
                    </p>
                    <div className="flex gap-4">
                        <button 
@@ -333,29 +337,41 @@ function App() {
           </div>
         );
       default:
-        return <Dashboard payments={payments} onNewPayment={() => setIsFormOpen(true)} />;
+        // Fallback por rol si la vista actual no es válida
+        return <div className="p-10 text-white">Vista no encontrada.</div>;
     }
   };
 
+  // Protección de rutas: Si cambia el rol (ej. manipulación manual), verifica acceso.
   useEffect(() => {
-    const defaultView = getInitialView(currentRole);
+    if (!currentUser) return;
+    
     const allowedViews: Record<Role, string[]> = {
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings'],
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard'], // Dashboard as fallback
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
       [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings']
     };
-    if (!allowedViews[currentRole].includes(currentView)) {
-      setCurrentView(defaultView);
+    
+    if (!allowedViews[currentUser.role].includes(currentView)) {
+      // Si la vista actual no está permitida para el rol, ir a la inicial del rol
+      setCurrentView(getInitialView(currentUser.role));
     }
-  }, [currentRole]);
+  }, [currentView, currentUser]);
+
+  // --- RENDER PRINCIPAL ---
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLogin} />;
+  }
 
   return (
     <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans">
       <Sidebar 
         currentView={currentView} 
         setCurrentView={setCurrentView} 
-        currentRole={currentRole}
-        onChangeRole={setCurrentRole}
+        currentRole={currentUser?.role || Role.ADMIN}
+        onChangeRole={() => {}} // Deshabilitado el cambio manual, ahora es por login
+        onLogout={handleLogout}
       />
       
       <main className="flex-1 ml-20 lg:ml-64 relative transition-all duration-300">

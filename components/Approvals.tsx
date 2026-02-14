@@ -657,7 +657,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     Validación de Auditoría
                                 </h3>
                                 <div className="space-y-3">
-                                    {['Monto coincide con recibo', 'Fecha de pago legible', 'Concepto fiscal correcto', 'Sello visible'].map((item, idx) => (
+                                    {['Monto coincide con recibo', 'Fecha de pago legible', 'Concepto fiscal correcto', 'Sello bancario visible'].map((item, idx) => (
                                         <label key={idx} className="flex items-center gap-3 cursor-pointer group">
                                             <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600" />
                                             <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">{item}</span>

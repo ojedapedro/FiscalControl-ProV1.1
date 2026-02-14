@@ -24,9 +24,11 @@ export enum Category {
 // Representación del Esquema de Base de Datos
 export interface User {
   id: string;
-  username: string;
-  role: Role;
+  name: string;
   email: string;
+  role: Role;
+  avatar?: string;
+  password?: string; // Solo para simulación local
 }
 
 export interface Store {
