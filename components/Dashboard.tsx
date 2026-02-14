@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -9,7 +9,8 @@ import {
   Zap, 
   Wifi, 
   Droplets,
-  Plus
+  Plus,
+  Filter
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
@@ -19,6 +20,8 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
+  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue'>('all');
+
   // Calcular totales reales basados en el estado de los pagos
   const totalDue = payments
     .filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status))
@@ -27,6 +30,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
   const totalOverdue = payments
     .filter(p => p.status === PaymentStatus.OVERDUE)
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Filtrado de la lista para visualización
+  const filteredPayments = payments.filter(payment => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
+    if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
+    return true;
+  });
 
   const getIconForType = (type: string) => {
     // Adjusted logic for Spanish terms
@@ -45,8 +56,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
     return 'bg-slate-100 dark:bg-slate-800';
   };
 
+  const getFilterButtonClass = (isActive: boolean) => 
+    isActive 
+      ? "px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm transition-all"
+      : "px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm transition-all";
+
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos</h1>
@@ -107,40 +123,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
 
       {/* Recent Payments List */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                <button className="px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm">Todos</button>
-                <button className="px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm">Pendientes</button>
-                <button className="px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm">Vencidos</button>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto">
+                <button 
+                  onClick={() => setFilter('all')}
+                  className={getFilterButtonClass(filter === 'all')}
+                >
+                  Todos
+                </button>
+                <button 
+                  onClick={() => setFilter('pending')}
+                  className={getFilterButtonClass(filter === 'pending')}
+                >
+                  Pendientes
+                </button>
+                <button 
+                  onClick={() => setFilter('overdue')}
+                  className={getFilterButtonClass(filter === 'overdue')}
+                >
+                  Vencidos
+                </button>
             </div>
         </div>
 
         <div className="space-y-3">
-          {payments.map((payment) => (
-            <div key={payment.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
-                  {getIconForType(payment.specificType)}
+          {filteredPayments.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-3">
+                   <Filter size={24} />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {payment.dueDate}</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">No hay pagos en esta categoría.</p>
+             </div>
+          ) : (
+            filteredPayments.map((payment) => (
+              <div key={payment.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
+                    {getIconForType(payment.specificType)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {payment.dueDate}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+                  <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                      payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                  }`}>
+                      {payment.status}
+                  </span>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
-                <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    payment.status === PaymentStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                    payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                }`}>
-                    {payment.status}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
