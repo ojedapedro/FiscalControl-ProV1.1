@@ -20,7 +20,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'approved'>('all');
 
   // Calcular totales reales basados en el estado de los pagos
   const totalDue = payments
@@ -36,6 +36,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
     if (filter === 'all') return true;
     if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
     if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
+    if (filter === 'approved') return payment.status === PaymentStatus.APPROVED;
     return true;
   });
 
@@ -125,7 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto flex-wrap">
                 <button 
                   onClick={() => setFilter('all')}
                   className={getFilterButtonClass(filter === 'all')}
@@ -143,6 +144,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                   className={getFilterButtonClass(filter === 'overdue')}
                 >
                   Vencidos
+                </button>
+                <button 
+                  onClick={() => setFilter('approved')}
+                  className={getFilterButtonClass(filter === 'approved')}
+                >
+                  Aprobados
                 </button>
             </div>
         </div>
