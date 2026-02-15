@@ -67,7 +67,12 @@ export const api = {
       const response = await fetch(`${API_URL}?action=getUsers`);
       const json = await response.json();
       if (json.status === 'error') return [];
-      return json.data;
+      
+      // Validar datos para evitar crashes en UI
+      return json.data.map((u: any) => ({
+        ...u,
+        name: u.name || 'Sin Nombre' // Fallback para nombre vacío
+      }));
     } catch (e) {
       console.error("Error fetching users", e);
       return [];
