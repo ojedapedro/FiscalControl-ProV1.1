@@ -8,7 +8,8 @@ import { Reports } from './components/Reports';
 import { StoreStatus } from './components/StoreStatus';
 import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
-import { Login } from './components/Login'; // Nuevo componente
+import { Login } from './components/Login'; 
+import { UserManagement } from './components/UserManagement'; // Importar componente
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User } from './types';
 import { X, BellRing, Database, RefreshCw, Loader2, Users } from 'lucide-react';
@@ -293,12 +294,12 @@ function App() {
         );
       case 'settings':
         return (
-          <div className="p-10 text-white animate-in fade-in">
+          <div className="p-10 text-white animate-in fade-in space-y-8">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
             
             {/* Mensaje especial para Super Admin */}
             {currentUser?.role === Role.SUPER_ADMIN && (
-               <div className="mb-6 bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
+               <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
                   <div className="p-2 bg-indigo-500 rounded-lg text-white">
                     <Users size={20} />
                   </div>
@@ -307,6 +308,15 @@ function App() {
                     <p className="text-sm text-indigo-200/80">Tiene permisos totales para gestionar mantenimiento, usuarios y configuraciones avanzadas.</p>
                   </div>
                </div>
+            )}
+            
+            {/* INTEGRACIÓN GESTIÓN DE USUARIOS (Solo Admin y SuperAdmin) */}
+            {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
+              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                <div className="p-6 border-b border-slate-700 bg-slate-800/50">
+                   <UserManagement />
+                </div>
+              </div>
             )}
 
             <div className="grid gap-6">

@@ -1,10 +1,10 @@
 
-import { Payment, SystemSettings } from '../types';
+import { Payment, SystemSettings, User } from '../types';
 import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycby1c2G4I-cGbOO2URhXKJTdKzL057TBCyNIi3nHcNejOEAyWdxYqulj0N0zX2-GMhb6/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz_XXXXXXXXX_PLACEHOLDER_URL/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -58,6 +58,33 @@ export const api = {
      }
      const response = await fetch(`${API_URL}?action=checkNotifications`, { method: 'POST' });
      return await response.json();
+  },
+
+  // Obtener Usuarios (API o Mock)
+  getUsers: async (): Promise<User[]> => {
+    if (isMockMode()) return []; 
+    try {
+      const response = await fetch(`${API_URL}?action=getUsers`);
+      const json = await response.json();
+      if (json.status === 'error') return [];
+      return json.data;
+    } catch (e) {
+      console.error("Error fetching users", e);
+      return [];
+    }
+  },
+
+  // Crear Usuario
+  createUser: async (user: User) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Usuario simulado creado' };
+    }
+    const response = await fetch(`${API_URL}?action=addUser`, {
+      method: 'POST',
+      body: JSON.stringify(user)
+    });
+    return await response.json();
   },
 
   // Obtener Pagos (Read)

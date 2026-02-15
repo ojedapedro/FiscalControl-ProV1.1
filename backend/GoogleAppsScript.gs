@@ -46,6 +46,24 @@ function handleRequest(e) {
       case 'deletePayment':
         deleteRow(ss, 'Payments', data.id);
         break;
+        
+      // --- USER MANAGEMENT ---
+      case 'getUsers':
+        result.data = getData(ss, 'Users');
+        break;
+
+      case 'addUser':
+        // Validar duplicados por email
+        const users = getData(ss, 'Users');
+        const exists = users.find(u => u.email === data.email);
+        if (exists) {
+          result = { status: 'error', message: 'El correo ya existe' };
+        } else {
+          addRow(ss, 'Users', data);
+          result = { status: 'success', message: 'Usuario creado' };
+        }
+        break;
+      // -----------------------
 
       case 'saveSettings':
         saveSettings(ss, data);
@@ -57,7 +75,6 @@ function handleRequest(e) {
         break;
 
       case 'checkNotifications':
-        // Endpoint manual para testear el envío
         const count = checkDeadlinesAndNotify();
         result = { status: 'success', message: `Reporte generado. Alertas encontradas: ${count}` };
         break;
@@ -78,6 +95,8 @@ function handleRequest(e) {
     lock.releaseLock();
   }
 }
+
+// ... (Rest of the file remains unchanged: checkDeadlinesAndNotify, sendWhatsAppMessage, getSettings, saveSettings, testSetup, setupDatabase, getData, addRow, updateRow, deleteRow)
 
 // --- AUTOMATIZACIÓN WHATSAPP EFICIENTE (BATCH) ---
 
@@ -287,7 +306,7 @@ function setupDatabase(ss) {
   const schema = {
     'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl', 'originalBudget', 'isOverBudget', 'justification', 'justificationFileUrl'],
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
-    'Users': ['id', 'username', 'role', 'email'],
+    'Users': ['id', 'name', 'email', 'role', 'password'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled']
   };
 
