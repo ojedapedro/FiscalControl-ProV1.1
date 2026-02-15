@@ -12,7 +12,8 @@ import {
   Plus,
   Filter,
   Clock,
-  Activity
+  Activity,
+  XCircle
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
@@ -35,6 +36,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
 
   // Nuevas Estadísticas
   const pendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+  const rejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
 
   const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
   const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
@@ -91,7 +93,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {/* Card 1: Total Due */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="relative z-10">
@@ -124,7 +126,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 3: Pending Count */}
+        {/* Card 3: Rejected Count */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
+           <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+              <XCircle size={18} className="text-pink-500" />
+              Pagos Rechazados
+            </div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">{rejectedCount}</div>
+             <div className="flex items-center gap-1 text-pink-600 dark:text-pink-400 text-xs font-semibold mt-3 bg-pink-50 dark:bg-pink-900/20 w-fit px-2 py-1 rounded-lg">
+              Corregir
+            </div>
+          </div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-50 dark:bg-pink-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+        </div>
+
+        {/* Card 4: Pending Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
@@ -139,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 4: Average Payment */}
+        {/* Card 5: Average Payment */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
