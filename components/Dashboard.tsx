@@ -22,7 +22,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'approved'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
 
   // Calcular totales reales basados en el estado de los pagos
   const totalDue = payments
@@ -46,6 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
     if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
     if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
     if (filter === 'approved') return payment.status === PaymentStatus.APPROVED;
+    if (filter === 'rejected') return payment.status === PaymentStatus.REJECTED;
     return true;
   });
 
@@ -192,6 +193,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                 >
                   Aprobados
                 </button>
+                <button 
+                  onClick={() => setFilter('rejected')}
+                  className={getFilterButtonClass(filter === 'rejected')}
+                >
+                  Rechazados
+                </button>
             </div>
         </div>
 
@@ -221,6 +228,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                       payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
                       payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                       payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
                       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                   }`}>
                       {payment.status}
