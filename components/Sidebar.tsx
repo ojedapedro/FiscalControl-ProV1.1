@@ -11,7 +11,8 @@ import {
   BellRing,
   Sun,
   Moon,
-  ImageOff
+  ImageOff,
+  Users // Added Users icon for visual if needed, though strictly requested just logic changes
 } from 'lucide-react';
 import { Role } from '../types';
 import { useTheme } from './ThemeContext';
@@ -34,14 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
     setImgError(false);
   }, [APP_LOGO_URL]);
   
+  // SUPER_ADMIN se añade a todos los roles para tener acceso completo
   const navItems = [
-    { id: 'payments', label: 'Pagos', icon: FileText, roles: [Role.ADMIN] },
-    { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT] },
-    { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR] },
-    { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT] },
-    { id: 'calendar', label: 'Calendario Fiscal', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR] },
-    { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT] },
-    { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT] },
+    { id: 'payments', label: 'Pagos', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
+    { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN] },
+    { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'calendar', label: 'Calendario Fiscal', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
+    { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
   ];
 
   const filteredItems = navItems.filter(item => item.roles.includes(currentRole));
@@ -101,8 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, c
         </button>
 
         <div className="px-2 hidden lg:block opacity-50 hover:opacity-100 transition-opacity">
-          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block">Debug: Rol Actual</label>
-          <div className="text-xs text-slate-300 font-mono bg-slate-950 p-2 rounded">{currentRole}</div>
+          <label className="text-xs text-slate-500 uppercase font-semibold mb-2 block">Rol Actual</label>
+          <div className="text-xs text-slate-300 font-mono bg-slate-950 p-2 rounded truncate" title={currentRole}>
+            {currentRole}
+          </div>
         </div>
         
         <button 

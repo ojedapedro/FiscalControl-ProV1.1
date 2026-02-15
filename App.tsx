@@ -11,7 +11,7 @@ import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; // Nuevo componente
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User } from './types';
-import { X, BellRing, Database, RefreshCw, Loader2 } from 'lucide-react';
+import { X, BellRing, Database, RefreshCw, Loader2, Users } from 'lucide-react';
 import { api } from './services/api';
 
 function App() {
@@ -29,6 +29,7 @@ function App() {
 
   const getInitialView = (role: Role) => {
     switch (role) {
+      case Role.SUPER_ADMIN: return 'settings'; // Super admin aterriza en configuración para gestión
       case Role.AUDITOR: return 'approvals';
       case Role.PRESIDENT: return 'reports';
       default: return 'payments';
@@ -247,7 +248,8 @@ function App() {
   };
 
   const handleManageNotification = (paymentId: string) => {
-    if (currentUser?.role === Role.AUDITOR) {
+    // Super admin o auditor van a aprobaciones, otros a payments
+    if (currentUser?.role === Role.AUDITOR || currentUser?.role === Role.SUPER_ADMIN) {
       setCurrentView('approvals');
     } else {
       setCurrentView('payments');
@@ -293,6 +295,20 @@ function App() {
         return (
           <div className="p-10 text-white animate-in fade-in">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
+            
+            {/* Mensaje especial para Super Admin */}
+            {currentUser?.role === Role.SUPER_ADMIN && (
+               <div className="mb-6 bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500 rounded-lg text-white">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-indigo-300">Modo Super Usuario Activo</h3>
+                    <p className="text-sm text-indigo-200/80">Tiene permisos totales para gestionar mantenimiento, usuarios y configuraciones avanzadas.</p>
+                  </div>
+               </div>
+            )}
+
             <div className="grid gap-6">
                 
                 {/* Database Connection */}
@@ -346,7 +362,11 @@ function App() {
   useEffect(() => {
     if (!currentUser) return;
     
+    // Lista de todas las vistas posibles
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports'];
+
     const allowedViews: Record<Role, string[]> = {
+      [Role.SUPER_ADMIN]: allViews, // Acceso total
       [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard'], // Dashboard as fallback
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
       [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings']

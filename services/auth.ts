@@ -4,6 +4,14 @@ import { Role, User } from '../types';
 // Usuarios simulados (Mock Database)
 const MOCK_USERS: User[] = [
   {
+    id: 'SU-000',
+    name: 'Analista Nova (Super Admin)',
+    email: 'analistadedatosnova@gmail.com',
+    password: 'Gene.2302',
+    role: Role.SUPER_ADMIN,
+    avatar: 'SA'
+  },
+  {
     id: 'U-001',
     name: 'Admin General',
     email: 'admin@fiscal.com',
