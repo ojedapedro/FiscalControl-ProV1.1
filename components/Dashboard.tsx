@@ -35,6 +35,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   // Nuevas Estadísticas
+  // Nota: pendingCount incluye PENDING y UPLOADED
   const pendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
   const rejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
 
@@ -45,6 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
   // Filtrado de la lista para visualización
   const filteredPayments = payments.filter(payment => {
     if (filter === 'all') return true;
+    // MODIFICACIÓN: Incluimos PaymentStatus.UPLOADED en el filtro 'pending'
     if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
     if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
     if (filter === 'approved') return payment.status === PaymentStatus.APPROVED;
