@@ -1,22 +1,23 @@
 
 // service-worker.js
 
-const CACHE_NAME = 'fiscal-control-v2';
+const CACHE_NAME = 'fiscal-control-v3';
+// Usamos rutas absolutas '/' para evitar problemas con subdirectorios o redirecciones
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json'
-  // En producción, aquí se añadirían los bundles JS/CSS generados
+  '/',
+  '/index.html',
+  '/manifest.json'
 ];
 
-// 1. INSTALACIÓN: Cachear recursos estáticos (App Shell)
+// 1. INSTALACIÓN
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Forzar activación inmediata
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Intentamos cachear lo básico. Si falla alguno, no importa en dev,
-      // pero es crucial para producción.
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => console.log('SW: Cache precache error', err));
+      // Intentamos cachear los assets críticos.
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('SW: Fallo precaching de algunos assets, continuando...', err);
+      });
     })
   );
 });
@@ -36,21 +37,33 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. FETCH: Estrategia "Network First" para API, "Stale-While-Revalidate" para assets
+// 3. FETCH
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Si es una llamada a la API de Google Scripts, SIEMPRE ir a la red (no cachear datos dinámicos)
-  if (url.hostname.includes('script.google.com')) {
-    return; // Dejar que el navegador maneje la red normalmente
+  // Ignorar llamadas a API externas (Google Scripts, etc)
+  if (!url.origin.includes(self.location.origin)) {
+    return; 
   }
 
-  // Para otros recursos (imágenes, scripts, html)
+  // ESTRATEGIA DE NAVEGACIÓN (App Shell):
+  // Si la petición es una navegación (abrir la app, recargar), servimos siempre index.html (o la raíz /)
+  // Esto soluciona errores 404 si el usuario entra por una ruta que el servidor no conoce (SPA routing)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/').then((cachedItem) => {
+        // Retornar caché, o intentar red, o fallar a index.html si todo falla
+        return cachedItem || fetch(event.request).catch(() => caches.match('/index.html'));
+      })
+    );
+    return;
+  }
+
+  // ESTRATEGIA PARA ASSETS (Stale-While-Revalidate):
+  // Servir caché rápido, actualizar en segundo plano.
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Estrategia: Devolver caché si existe, pero actualizar en segundo plano (Stale-while-revalidate)
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Solo cachear respuestas válidas y seguras
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -59,7 +72,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Si falla la red y no hay caché, retornar fallback offline si fuese necesario
+        // Fallo silencioso en fetch de background
       });
 
       return cachedResponse || fetchPromise;

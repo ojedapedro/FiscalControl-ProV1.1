@@ -5,12 +5,12 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
 
-// Registro de Service Worker para PWA
+// Registro de Service Worker para PWA (Ruta absoluta para scope global)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
-        console.log('SW registered: ', registration);
+        console.log('SW registered with scope: ', registration.scope);
       })
       .catch(registrationError => {
         console.log('SW registration failed: ', registrationError);
