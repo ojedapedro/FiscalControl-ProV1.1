@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard'; 
@@ -35,10 +36,20 @@ function App() {
   // PWA Install Prompt Listener
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
+      // Prevenir que Chrome en Android muestre el prompt automáticamente
       e.preventDefault();
+      // Guardar el evento para dispararlo después con el botón
       setInstallPrompt(e);
+      console.log("PWA: Evento de instalación capturado");
     };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Check inicial de permisos de notificación
+    if ('Notification' in window) {
+      setPushPermission(Notification.permission);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -48,6 +59,8 @@ function App() {
       installPrompt.userChoice.then((choiceResult: any) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('Usuario aceptó la instalación');
+        } else {
+          console.log('Usuario rechazó la instalación');
         }
         setInstallPrompt(null);
       });
@@ -105,21 +118,6 @@ function App() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    const swCode = `
-      self.addEventListener('install', (event) => self.skipWaiting());
-      self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
-      self.addEventListener('push', (event) => { /* ... */ });
-      self.addEventListener('notificationclick', (event) => { /* ... */ });
-    `;
-    if ('serviceWorker' in navigator) {
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl).catch(console.warn);
-    }
-    if ('Notification' in window) setPushPermission(Notification.permission);
-  }, []);
 
   const requestPermission = () => {
     Notification.requestPermission().then(permission => {
