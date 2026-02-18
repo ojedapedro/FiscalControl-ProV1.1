@@ -22,7 +22,15 @@ export enum Category {
   OTHER = 'Otro'
 }
 
-// Representación del Esquema de Base de Datos
+// Interfaz para el registro de auditoría
+export interface AuditLog {
+  date: string;
+  action: 'CREACION' | 'APROBACION' | 'RECHAZO' | 'ACTUALIZACION';
+  actorName: string;
+  role: Role;
+  note?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -38,39 +46,33 @@ export interface Store {
   location: string;
   status: 'En Regla' | 'En Riesgo' | 'Vencido';
   nextDeadline: string;
-  matrixId: string; // Enlace relacional a Casa Matriz
-}
-
-export interface AuditLog {
-  date: string;
-  action: 'CREACION' | 'APROBACION' | 'RECHAZO' | 'ACTUALIZACION';
-  actorName: string;
-  role: Role;
-  note?: string;
+  matrixId: string;
 }
 
 export interface Payment {
   id: string;
-  storeId: string; // Clave foránea a Tienda
-  storeName: string; // Desnormalizado para conveniencia de UI
-  userId: string; // Clave foránea a Usuario (Cargador)
+  storeId: string;
+  storeName: string;
+  userId: string;
   category: Category;
   specificType: string;
   amount: number;
   dueDate: string;
-  paymentDate?: string; // Fecha en que se realizó el pago realmente
+  paymentDate?: string;
   status: PaymentStatus;
-  receiptUrl?: string; // Ruta al archivo almacenado
-  notes?: string; // Notas del cargador
-  rejectionReason?: string; // Notas del auditor
+  receiptUrl?: string;
+  notes?: string;
+  rejectionReason?: string;
   submittedDate: string;
-  history?: AuditLog[]; // Nuevo campo para trazabilidad
+  
+  // Campo de Historial Extendido
+  history?: AuditLog[]; 
   
   // Campos para Control de Presupuesto
-  originalBudget?: number; // El monto esperado según configuración
-  isOverBudget?: boolean; // Flag si excedió
-  justification?: string; // Nota de por qué excedió
-  justificationFileUrl?: string; // Archivo extra justificando el exceso
+  originalBudget?: number;
+  isOverBudget?: boolean;
+  justification?: string;
+  justificationFileUrl?: string;
 }
 
 export interface ChartData {
@@ -79,7 +81,6 @@ export interface ChartData {
   secondaryValue?: number;
 }
 
-// Nuevos tipos para Notificaciones
 export type AlertSeverity = 'critical' | 'upcoming' | 'scheduled';
 
 export interface AlertItem {
@@ -89,15 +90,14 @@ export interface AlertItem {
   title: string;
   amount: number;
   severity: AlertSeverity;
-  timeLabel: string; // e.g., "Overdue 2 days", "Due in 5h"
+  timeLabel: string;
   dueDate: string;
 }
 
-// Configuración Global del Sistema
 export interface SystemSettings {
   whatsappEnabled: boolean;
-  whatsappPhone: string; // Número destino (e.g., +58...)
-  whatsappGatewayUrl: string; // URL de API (CallMeBot, Twilio, etc)
+  whatsappPhone: string;
+  whatsappGatewayUrl: string;
   daysBeforeWarning: number;
   daysBeforeCritical: number;
   emailEnabled: boolean;

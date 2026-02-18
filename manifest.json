@@ -1,0 +1,22 @@
+
+{
+  "short_name": "FiscalCtl",
+  "name": "FiscalControl Pro",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "orientation": "portrait-primary"
+}

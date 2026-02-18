@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard'; 
@@ -9,11 +8,12 @@ import { StoreStatus } from './components/StoreStatus';
 import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
-import { UserManagement } from './components/UserManagement'; // Importar componente
+import { UserManagement } from './components/UserManagement';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User } from './types';
-import { X, BellRing, Database, RefreshCw, Loader2, Users } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing } from 'lucide-react';
 import { api } from './services/api';
+import { APP_LOGO_URL } from './constants';
 
 function App() {
   // --- AUTH STATE ---
@@ -21,27 +21,52 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' as default placeholder
+  const [currentView, setCurrentView] = useState('dashboard');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
+  // --- MOBILE & PWA STATE ---
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  // PWA Install Prompt Listener
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('Usuario aceptó la instalación');
+        }
+        setInstallPrompt(null);
+      });
+    }
+  };
+
   const getInitialView = (role: Role) => {
     switch (role) {
-      case Role.SUPER_ADMIN: return 'settings'; // Super admin aterriza en configuración para gestión
+      case Role.SUPER_ADMIN: return 'settings';
       case Role.AUDITOR: return 'approvals';
       case Role.PRESIDENT: return 'reports';
       default: return 'payments';
     }
   };
 
-  // Efecto para redirigir vista inicial al loguearse
   useEffect(() => {
     if (isAuthenticated && currentUser) {
       setCurrentView(getInitialView(currentUser.role));
-      loadData(); // Cargar datos al entrar
+      loadData();
     }
   }, [isAuthenticated, currentUser]);
 
@@ -53,10 +78,8 @@ function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setIsAuthenticated(false);
-    setPayments([]); // Limpiar datos sensibles
+    setPayments([]);
   };
-
-  // --- INTEGRACIÓN BASE DE DATOS ---
 
   const loadData = async () => {
     setIsLoading(true);
@@ -83,7 +106,6 @@ function App() {
     }
   };
 
-  // Registrar Service Worker
   useEffect(() => {
     const swCode = `
       self.addEventListener('install', (event) => self.skipWaiting());
@@ -105,7 +127,6 @@ function App() {
     });
   };
 
-  // Helper para convertir File a Base64
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -249,7 +270,6 @@ function App() {
   };
 
   const handleManageNotification = (paymentId: string) => {
-    // Super admin o auditor van a aprobaciones, otros a payments
     if (currentUser?.role === Role.AUDITOR || currentUser?.role === Role.SUPER_ADMIN) {
       setCurrentView('approvals');
     } else {
@@ -260,14 +280,13 @@ function App() {
   };
 
   const renderContent = () => {
-    // Si no está autenticado, mostrar Login (aunque el return principal ya maneja esto, es good practice)
     if (!isAuthenticated) return null;
 
     if (isLoading && payments.length === 0) {
         return (
             <div className="h-full flex flex-col items-center justify-center text-slate-500">
                 <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
-                <p>Conectando con Servidor Fiscal (Google Drive)...</p>
+                <p>Conectando con Servidor Fiscal...</p>
             </div>
         );
     }
@@ -294,10 +313,9 @@ function App() {
         );
       case 'settings':
         return (
-          <div className="p-10 text-white animate-in fade-in space-y-8">
+          <div className="p-6 lg:p-10 text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
             
-            {/* Mensaje especial para Super Admin */}
             {currentUser?.role === Role.SUPER_ADMIN && (
                <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
                   <div className="p-2 bg-indigo-500 rounded-lg text-white">
@@ -310,7 +328,6 @@ function App() {
                </div>
             )}
             
-            {/* INTEGRACIÓN GESTIÓN DE USUARIOS (Solo Admin y SuperAdmin) */}
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
               <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
@@ -320,16 +337,14 @@ function App() {
             )}
 
             <div className="grid gap-6">
-                
-                {/* Database Connection */}
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
-                       <Database size={20} /> Conexión Google Drive
+                       <Building2 size={20} /> Conexión Google Drive
                    </h3>
                    <p className="text-sm text-slate-400 mb-4">
                        Hoja conectada: <strong>FiscalCtl Server</strong>
                    </p>
-                   <div className="flex gap-4">
+                   <div className="flex flex-wrap gap-4">
                        <button 
                             onClick={loadData}
                             disabled={isLoading}
@@ -342,14 +357,13 @@ function App() {
                             onClick={handleSetupDatabase}
                             disabled={isLoading}
                             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                       >
-                            <Database size={16} />
+                        >
+                            <Building2 size={16} />
                             Inicializar Tablas en Drive
                        </button>
                    </div>
                 </div>
 
-                {/* Notifications */}
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
                    <div className="flex justify-between items-center">
@@ -363,59 +377,74 @@ function App() {
           </div>
         );
       default:
-        // Fallback por rol si la vista actual no es válida
         return <div className="p-10 text-white">Vista no encontrada.</div>;
     }
   };
 
-  // Protección de rutas: Si cambia el rol (ej. manipulación manual), verifica acceso.
   useEffect(() => {
     if (!currentUser) return;
-    
-    // Lista de todas las vistas posibles
     const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports'];
-
     const allowedViews: Record<Role, string[]> = {
-      [Role.SUPER_ADMIN]: allViews, // Acceso total
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard'], // Dashboard as fallback
+      [Role.SUPER_ADMIN]: allViews,
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard'],
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
       [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings']
     };
-    
     if (!allowedViews[currentUser.role].includes(currentView)) {
-      // Si la vista actual no está permitida para el rol, ir a la inicial del rol
       setCurrentView(getInitialView(currentUser.role));
     }
   }, [currentView, currentUser]);
-
-  // --- RENDER PRINCIPAL ---
 
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLogin} />;
   }
 
   return (
-    <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans">
+    <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
+      
+      {/* Sidebar Responsive */}
       <Sidebar 
         currentView={currentView} 
         setCurrentView={setCurrentView} 
         currentRole={currentUser?.role || Role.ADMIN}
-        onChangeRole={() => {}} // Deshabilitado el cambio manual, ahora es por login
+        onChangeRole={() => {}} 
         onLogout={handleLogout}
+        isMobileOpen={isMobileMenuOpen}
+        closeMobileMenu={() => setIsMobileMenuOpen(false)}
+        installPrompt={installPrompt}
+        onInstallClick={handleInstallClick}
       />
       
-      <main className="flex-1 ml-20 lg:ml-64 relative transition-all duration-300">
+      {/* Contenedor Principal */}
+      <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
         
-        {/* Loading Overlay Global */}
+        {/* Header Móvil */}
+        <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
+           <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 text-white hover:bg-slate-800 rounded-lg"
+              >
+                  <Menu size={24} />
+              </button>
+              <span className="font-bold text-lg text-white">FiscalCtl</span>
+           </div>
+           <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
+               <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
+           </div>
+        </div>
+
+        {/* Loading Overlay */}
         {isLoading && (
-            <div className="absolute top-4 right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+            <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
                 <RefreshCw size={12} className="animate-spin" />
                 Sincronizando...
             </div>
         )}
 
+        {/* Notificaciones Toast */}
         {notification && (
-          <div className="fixed top-6 right-6 z-50 animate-in slide-in-from-right-10 fade-in duration-300">
+          <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
              <div className="bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4">
                 <span className="font-medium">{notification}</span>
                 <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
@@ -423,15 +452,19 @@ function App() {
           </div>
         )}
 
+        {/* Modal Formulario */}
         {isFormOpen && (
-           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+           <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
               <div className="bg-white dark:bg-slate-950 w-full max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                   <PaymentForm onSubmit={handleNewPayment} onCancel={() => setIsFormOpen(false)} />
               </div>
            </div>
         )}
 
-        {renderContent()}
+        {/* Contenido Scrollable */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+           {renderContent()}
+        </div>
       </main>
     </div>
   );
