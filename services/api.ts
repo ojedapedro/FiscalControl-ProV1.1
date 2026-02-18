@@ -69,9 +69,10 @@ export const api = {
       if (json.status === 'error') return [];
       
       // Validar datos para evitar crashes en UI
+      // Aseguramos que 'name' nunca sea undefined, ni null, ni vacío
       return json.data.map((u: any) => ({
         ...u,
-        name: u.name || 'Sin Nombre' // Fallback para nombre vacío
+        name: (u.name && typeof u.name === 'string') ? u.name : 'Sin Nombre'
       }));
     } catch (e) {
       console.error("Error fetching users", e);

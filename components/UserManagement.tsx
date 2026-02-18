@@ -83,6 +83,14 @@ export const UserManagement: React.FC = () => {
     }
   };
 
+  // Helper seguro para obtener iniciales
+  const getUserInitial = (name: string | undefined | null) => {
+    if (typeof name === 'string' && name.length > 0) {
+      return name.charAt(0).toUpperCase();
+    }
+    return '?';
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       
@@ -221,8 +229,8 @@ export const UserManagement: React.FC = () => {
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-xs">
-                          {user.avatar || (user.name ? user.name.charAt(0).toUpperCase() : '?')}
+                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-xs shrink-0">
+                          {user.avatar || getUserInitial(user.name)}
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white">{user.name || 'Sin Nombre'}</div>
