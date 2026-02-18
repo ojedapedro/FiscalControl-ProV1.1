@@ -7,30 +7,25 @@ import {
   Maximize2, 
   Minimize2, 
   Clock, 
-  CalendarDays, 
+  Calendar, 
   Receipt, 
   AlertCircle, 
   Search, 
   ArrowUpDown, 
-  Filter, 
-  Building2, 
   CheckSquare,
   FileText,
   ExternalLink,
   AlertTriangle,
-  Calendar,
-  FileWarning,
-  RefreshCw,
   CalendarClock,
   ArrowRight,
-  Eye,
   TrendingUp,
   Target,
   DollarSign,
-  PieChart,
-  History, // Added History icon
-  User,     // Added User icon
-  ShieldCheck // Added ShieldCheck icon
+  Building2,
+  User,
+  History,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 
 interface ApprovalsProps {
@@ -67,7 +62,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
         case 'urgency': 
             return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         case 'date_desc': 
-            return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+            return new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime();
         case 'amount_desc': return b.amount - a.amount;
         case 'amount_asc': return a.amount - b.amount;
         default: return 0;
@@ -111,21 +106,31 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       }
   };
 
-  // Helper para detectar PDF (URL o Base64)
   const isPdf = (url?: string) => {
       if (!url) return false;
       const lowerUrl = url.toLowerCase();
-      return lowerUrl.includes('application/pdf') || lowerUrl.endsWith('.pdf') || lowerUrl.startsWith('data:application/pdf');
+      // Verificación robusta para data URIs y URLs normales
+      return lowerUrl.includes('application/pdf') || lowerUrl.endsWith('.pdf') || lowerUrl.includes('type=pdf');
   };
 
-  // Helper para abrir Base64 en nueva pestaña de forma segura
   const openInNewTab = (url: string) => {
-      const win = window.open();
-      if (win) {
-          win.document.write(
-              `<iframe src="${url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
-          );
-      }
+    const win = window.open();
+    if (win) {
+        // Usar iframe para PDF suele forzar el visor nativo del navegador
+        const isPDF = isPdf(url);
+        const content = isPDF 
+            ? `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`
+            : `<img src="${url}" style="max-width:100%; margin:auto; display:block;" />`;
+            
+        win.document.write(`
+            <html>
+                <head><title>Visor de Documento - FiscalCtl</title></head>
+                <body style="margin:0; background-color:#1e293b; height:100vh; display:flex;">
+                    ${content}
+                </body>
+            </html>
+        `);
+    }
   };
 
   const getUrgencyDetails = (dueDateStr: string) => {
@@ -172,14 +177,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
   const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
 
-  // --- ANÁLISIS FINANCIERO PARA AUDITORÍA ---
   const budgetAnalysis = useMemo(() => {
       if (!selectedPayment || !selectedPayment.isOverBudget) return null;
       
       const amount = Number(selectedPayment.amount);
       const budget = Number(selectedPayment.originalBudget);
 
-      // Si no tenemos presupuesto base, retornamos null
       if (!budget || isNaN(budget) || budget === 0) return null;
 
       const excess = amount - budget;
@@ -433,14 +436,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                 <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
                     <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-8">
                         
-                        {/* Column 1: Receipt & Visuals */}
+                        {/* Column 1: Receipt & Visuals (MEJORADO) */}
                         <div className="space-y-6 order-2 xl:order-1">
-                            <div className={`relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0 h-auto' : 'h-[500px]'}`}>
+                            <div className={`relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0 h-auto' : 'h-[500px] flex flex-col'}`}>
                                 
                                 {selectedPayment.receiptUrl ? (
                                     <>
                                         {/* Barra de herramientas superior dentro del visor */}
-                                        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+                                        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                                             <div className="pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs text-slate-200 border border-white/10 flex items-center gap-2">
                                                 {isPdf(selectedPayment.receiptUrl) ? <FileText size={12}/> : <Receipt size={12}/>}
                                                 {isPdf(selectedPayment.receiptUrl) ? 'Documento PDF' : 'Imagen de Recibo'}
@@ -464,29 +467,42 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                         </div>
 
                                         {/* Renderizado del Archivo */}
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                                        <div className="flex-1 w-full h-full flex items-center justify-center bg-slate-900 relative">
                                             {isPdf(selectedPayment.receiptUrl) ? (
-                                                <object
-                                                    data={selectedPayment.receiptUrl}
-                                                    type="application/pdf"
-                                                    className="w-full h-full rounded-b-xl"
-                                                >
-                                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 p-6 text-center">
-                                                        <FileText size={48} className="mb-4 text-slate-600" />
-                                                        <p className="mb-4">Este navegador no soporta la visualización directa de este PDF.</p>
-                                                        <button 
-                                                            onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
-                                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                                                        >
-                                                            Abrir Documento
-                                                        </button>
+                                                <div className="w-full h-full flex flex-col">
+                                                     <embed
+                                                        src={selectedPayment.receiptUrl}
+                                                        type="application/pdf"
+                                                        className="w-full h-full"
+                                                    />
+                                                    {/* Fallback visible si el embed falla o no es soportado */}
+                                                    <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
+                                                        <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm pointer-events-auto">
+                                                            Si no carga, <a href="#" onClick={(e) => { e.preventDefault(); openInNewTab(selectedPayment.receiptUrl!); }} className="underline text-blue-300">clic aquí</a>
+                                                        </span>
                                                     </div>
-                                                </object>
+                                                </div>
                                             ) : (
                                                 <img 
                                                     src={selectedPayment.receiptUrl} 
                                                     alt="Recibo" 
                                                     className="max-w-full max-h-full object-contain"
+                                                    onError={(e) => {
+                                                        // Fallback visual si la imagen falla
+                                                        e.currentTarget.style.display = 'none';
+                                                        const parent = e.currentTarget.parentElement;
+                                                        if (parent) {
+                                                            parent.innerHTML = `
+                                                                <div class="flex flex-col items-center text-slate-500">
+                                                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                                                    <span class="mt-2 text-sm">Error cargando imagen</span>
+                                                                    <button class="mt-2 text-xs text-blue-400 underline">Abrir enlace directo</button>
+                                                                </div>
+                                                            `;
+                                                            const btn = parent.querySelector('button');
+                                                            if(btn) btn.onclick = () => openInNewTab(selectedPayment.receiptUrl!);
+                                                        }
+                                                    }}
                                                 />
                                             )}
                                         </div>
@@ -502,10 +518,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             {isImageFullscreen && <div className="fixed inset-0 bg-black/90 z-40 backdrop-blur-sm" onClick={() => setIsImageFullscreen(false)}></div>}
                         </div>
 
-                        {/* Column 2: Data Validation */}
+                        {/* Column 2: Data Validation & History */}
                         <div className="space-y-6 order-1 xl:order-2">
                             
-                            {/* TARJETA DE AUDITORIA DE EXCESO (REDISEÑADA) */}
+                            {/* TARJETA DE AUDITORIA DE EXCESO */}
                             {selectedPayment.isOverBudget && (
                                 <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-3xl p-5 shadow-lg shadow-red-500/5 animate-in slide-in-from-top-4">
                                     <div className="flex items-center gap-3 mb-4 pb-3 border-b border-red-200 dark:border-red-900/50">
@@ -548,239 +564,155 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                 </div>
                                             </div>
 
-                                            {/* Barra de Progreso Visual */}
-                                            <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex">
-                                                <div className="h-full bg-slate-400 dark:bg-slate-600" style={{ width: `${100 / (1 + (budgetAnalysis.percent/100))}%` }}></div>
-                                                <div className="h-full bg-red-500 animate-pulse" style={{ width: `${(budgetAnalysis.percent / (100 + budgetAnalysis.percent)) * 100}%` }}></div>
-                                            </div>
-                                            <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                                                <span>0%</span>
-                                                <span className="text-red-500 font-bold">+${budgetAnalysis.excess.toLocaleString()} USD</span>
-                                            </div>
-
-                                            {/* Sección de Justificación y Evidencia */}
-                                            {(selectedPayment.justification || selectedPayment.justificationFileUrl) && (
-                                                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-red-100 dark:border-red-900/30 shadow-inner">
-                                                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-2 flex items-center gap-1">
-                                                        <FileText size={10} /> Justificación del Gerente
-                                                    </p>
-                                                    <p className="text-sm italic text-slate-700 dark:text-slate-300 border-l-2 border-red-300 pl-3 mb-3">
-                                                        "{selectedPayment.justification || 'Sin nota explicativa'}"
-                                                    </p>
-                                                    
+                                            {/* Justificación del Usuario */}
+                                            {selectedPayment.justification && (
+                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
+                                                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Justificación del solicitante:</p>
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{selectedPayment.justification}"</p>
                                                     {selectedPayment.justificationFileUrl && (
                                                         <button 
-                                                            onClick={(e) => {
-                                                              e.stopPropagation(); 
-                                                              openInNewTab(selectedPayment.justificationFileUrl!);
-                                                            }}
-                                                            className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors group"
+                                                            onClick={() => openInNewTab(selectedPayment.justificationFileUrl!)}
+                                                            className="mt-2 text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 font-bold"
                                                         >
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
-                                                                    <FileWarning size={14} />
-                                                                </div>
-                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                                                    Ver Soporte de Excedente
-                                                                </span>
-                                                            </div>
-                                                            <ExternalLink size={12} className="text-slate-400" />
+                                                            <ExternalLink size={12} /> Ver soporte adicional
                                                         </button>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="text-center p-4">
-                                            <p className="text-xs text-red-600 dark:text-red-400">Datos de presupuesto base no disponibles para cálculo detallado.</p>
-                                        </div>
+                                        <p className="text-xs text-red-500">Error calculando desviación.</p>
                                     )}
                                 </div>
                             )}
 
-                            {/* Amount Card */}
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Monto Declarado</p>
-                                <div className="flex items-baseline gap-2">
-                                    <span className={`text-4xl font-bold tracking-tight ${selectedPayment.isOverBudget ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
-                                        ${selectedPayment.amount.toLocaleString()}
-                                    </span>
-                                    <span className="text-slate-400 font-mono">USD</span>
-                                </div>
-                                <div className="mt-4 flex flex-col gap-4 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
-                                    
-                                    {/* Display only Date (Not editable here) */}
-                                    <div className="flex justify-between items-center px-2">
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase">Vencimiento</p>
-                                            <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1">
-                                                <CalendarDays size={14} className="text-red-500" /> {selectedPayment.dueDate}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase text-right">Pagado El</p>
-                                            <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 mt-1 justify-end">
-                                                <Clock size={14} className="text-green-500" /> {selectedPayment.paymentDate || 'N/A'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Details Card */}
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            {/* Detalles Principales */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
                                 <div>
-                                    <p className="text-xs text-slate-400 uppercase font-bold mb-2">Concepto del Pago</p>
-                                    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                        <Receipt className="text-slate-400 mt-0.5" size={18} />
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedPayment.specificType}</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">{selectedPayment.category}</p>
-                                        </div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concepto de Pago</label>
+                                    <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{selectedPayment.specificType}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-medium">
+                                            {selectedPayment.category}
+                                        </span>
                                     </div>
                                 </div>
-
-                                {selectedPayment.notes && (
-                                    <div>
-                                        <p className="text-xs text-slate-400 uppercase font-bold mb-2">Notas del Cargador</p>
-                                        <div className="p-3 bg-blue-50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-300 text-sm rounded-lg border border-blue-100 dark:border-blue-800 italic">
-                                            "{selectedPayment.notes}"
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                     <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
+                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
+                                            <Calendar size={14} className="text-slate-400" />
+                                            {selectedPayment.paymentDate}
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Audit Checklist (Simulation) */}
-                            <div className="bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-slate-400" />
-                                    Validación de Auditoría
-                                </h3>
-                                <div className="space-y-3">
-                                    {['Monto coincide con recibo', 'Fecha de pago legible', 'Concepto fiscal correcto', 'Sello bancario visible'].map((item, idx) => (
-                                        <label key={idx} className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600" />
-                                            <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">{item}</span>
-                                        </label>
-                                    ))}
+                                     </div>
+                                     <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
+                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
+                                            <Clock size={14} className="text-slate-400" />
+                                            {selectedPayment.dueDate}
+                                        </div>
+                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* --- HISTORIAL DE AUDITORÍA (NUEVA SECCIÓN) --- */}
+
+                            {/* Notas */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Observaciones</label>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {selectedPayment.notes || "Sin observaciones adicionales."}
+                                </p>
+                            </div>
+
+                            {/* --- HISTORIAL DE AUDITORÍA (TIMELINE) --- */}
                             {selectedPayment.history && selectedPayment.history.length > 0 && (
-                                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-                                        <History size={16} className="text-blue-500" />
-                                        Historial de Auditoría
-                                    </h3>
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <History size={14} /> Línea de Tiempo del Proceso
+                                    </label>
                                     
-                                    <div className="relative space-y-0 pl-2">
-                                        {/* Línea vertical conectora */}
-                                        <div className="absolute top-2 bottom-4 left-[19px] w-0.5 bg-gradient-to-b from-slate-200 via-slate-200 to-transparent dark:from-slate-700 dark:via-slate-800"></div>
-
-                                        {selectedPayment.history.map((log, index) => {
-                                            const isLast = index === (selectedPayment.history!.length - 1);
-                                            const actionColor = 
-                                                log.action === 'APROBACION' ? 'bg-green-500 ring-green-100 dark:ring-green-900/30' :
-                                                log.action === 'RECHAZO' ? 'bg-red-500 ring-red-100 dark:ring-red-900/30' :
-                                                log.action === 'CREACION' ? 'bg-blue-500 ring-blue-100 dark:ring-blue-900/30' : 
-                                                'bg-slate-400 ring-slate-100 dark:ring-slate-800';
-                                            
-                                            const dateObj = new Date(log.date);
-                                            
-                                            return (
-                                                <div key={index} className="relative flex items-start group mb-6 last:mb-0">
-                                                    {/* Punto de estado */}
-                                                    <div className={`relative z-10 h-6 w-6 flex items-center justify-center rounded-full ring-4 ${actionColor} shadow-sm shrink-0 mt-0.5`}>
-                                                        {log.action === 'APROBACION' ? <CheckCircle2 size={12} className="text-white" /> :
-                                                         log.action === 'RECHAZO' ? <XCircle size={12} className="text-white" /> :
-                                                         log.action === 'CREACION' ? <User size={12} className="text-white" /> : 
-                                                         <div className="w-2 h-2 bg-white rounded-full"></div>}
-                                                    </div>
-                                                    
-                                                    <div className="ml-4 w-full bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <div>
-                                                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                                                                    {log.action}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                                                    <User size={10} /> {log.actorName} ({log.role})
-                                                                </span>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="text-[10px] font-mono text-slate-400">
-                                                                    {dateObj.toLocaleDateString()}
-                                                                </span>
-                                                                <span className="text-[10px] font-mono text-slate-400 block">
-                                                                    {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                                </span>
-                                                            </div>
+                                    <div className="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
+                                        {selectedPayment.history.map((log, index) => (
+                                            <div key={index} className="relative">
+                                                {/* Punto de la línea de tiempo */}
+                                                <div className={`absolute -left-[21px] mt-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                                                    log.action === 'CREACION' ? 'bg-blue-500' :
+                                                    log.action === 'APROBACION' ? 'bg-green-500' :
+                                                    log.action === 'RECHAZO' ? 'bg-red-500' : 'bg-orange-400'
+                                                }`}></div>
+                                                
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                                            log.action === 'CREACION' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
+                                                            log.action === 'APROBACION' ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
+                                                            log.action === 'RECHAZO' ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' :
+                                                            'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
+                                                        }`}>
+                                                            {log.action}
+                                                        </span>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <User size={12} className="text-slate-400" />
+                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.actorName}</span>
+                                                            <span className="text-xs text-slate-400">({log.role})</span>
                                                         </div>
                                                         {log.note && (
-                                                            <div className="mt-2 text-xs italic text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-800">
+                                                            <p className="text-xs text-slate-500 mt-1 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg italic">
                                                                 "{log.note}"
-                                                            </div>
+                                                            </p>
                                                         )}
                                                     </div>
+                                                    <div className="text-[10px] text-slate-400 whitespace-nowrap">
+                                                        {new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Action Area */}
-                            <div className="pt-4">
-                                {isRejecting ? (
-                                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl p-4 animate-in slide-in-from-bottom-2 fade-in">
-                                        <label className="text-sm font-bold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                                            <AlertCircle size={16} />
-                                            Especifique motivo del rechazo
-                                        </label>
+                            {/* Botones de Acción */}
+                            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                                {!isRejecting ? (
+                                    <div className="flex gap-4">
+                                        <button 
+                                            onClick={handleRejectClick}
+                                            className="flex-1 py-4 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-2xl transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <XCircle size={20} />
+                                            Rechazar
+                                        </button>
+                                        <button 
+                                            onClick={handleInitialApproveClick}
+                                            className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                        >
+                                            <ShieldCheck size={20} />
+                                            Validar y Aprobar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 animate-in fade-in slide-in-from-bottom-2">
+                                        <h3 className="text-sm font-bold text-red-700 dark:text-red-400 mb-2">Motivo del Rechazo</h3>
                                         <textarea 
-                                            autoFocus
                                             value={rejectionNote}
                                             onChange={(e) => setRejectionNote(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 text-slate-900 dark:text-white rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none resize-none h-24 mb-3"
-                                            placeholder="El comprobante no es legible..."
-                                        />
+                                            placeholder="Indique la razón (ej. Comprobante ilegible, monto incorrecto...)"
+                                            className="w-full p-3 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 rounded-xl text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white"
+                                            rows={3}
+                                            autoFocus
+                                        ></textarea>
                                         <div className="flex gap-3">
-                                             <button 
+                                            <button 
                                                 onClick={() => setIsRejecting(false)}
-                                                className="flex-1 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                className="flex-1 py-2 text-slate-600 dark:text-slate-400 font-bold text-sm bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"
                                             >
                                                 Cancelar
                                             </button>
                                             <button 
                                                 onClick={handleRejectClick}
-                                                disabled={!rejectionNote.trim()}
-                                                className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-200 dark:shadow-red-900/20"
+                                                className="flex-1 py-2 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 shadow-md"
                                             >
                                                 Confirmar Rechazo
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex gap-4">
-                                            <button 
-                                                onClick={handleRejectClick}
-                                                className="flex-1 py-4 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 font-bold rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-red-100 dark:hover:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <XCircle size={20} />
-                                                Rechazar
-                                            </button>
-                                            <button 
-                                                onClick={handleInitialApproveClick}
-                                                className={`flex-[2] py-4 ${
-                                                    selectedPayment.isOverBudget 
-                                                        ? 'bg-orange-600 hover:bg-orange-700' 
-                                                        : 'bg-blue-600 hover:bg-blue-700'
-                                                } text-white font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2`}
-                                            >
-                                                <CheckCircle2 size={20} />
-                                                {selectedPayment.isOverBudget ? 'Aprobar (Con Exceso)' : 'Aprobar Pago'}
                                             </button>
                                         </div>
                                     </div>
@@ -791,13 +723,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                 </div>
             </>
         ) : (
-            <div className="flex flex-col items-center justify-center h-full text-slate-300 dark:text-slate-600 p-8">
-                <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
-                    <Filter size={48} className="opacity-50" />
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                    <Search size={48} className="text-slate-200 dark:text-slate-700" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-700 dark:text-slate-400">Seleccione un pago</h2>
-                <p className="text-slate-500 dark:text-slate-500 mt-2 text-center max-w-md">
-                    Seleccione un ítem de la cola de la izquierda para ver los detalles, validar el comprobante y gestionar su aprobación.
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Seleccione un pago</h2>
+                <p className="max-w-md mx-auto text-slate-500 dark:text-slate-500">
+                    Haga clic en cualquier elemento de la lista izquierda para ver sus detalles, comprobar el recibo y realizar la auditoría.
                 </p>
             </div>
         )}
