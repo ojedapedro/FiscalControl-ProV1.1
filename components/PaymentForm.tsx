@@ -128,7 +128,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [loadingText, setLoadingText] = useState('');
   const [isFileScanning, setIsFileScanning] = useState(false);
 
-  // Auto-fill logic based on municipal selection
+  // Auto-fill logic based on municipal selection (Items & Amounts)
   useEffect(() => {
     if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
       const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
@@ -150,6 +150,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
         setExpectedBudget(null);
     }
   }, [category, muniGroup, muniItem]);
+
+  // Auto-fill Due Date based on Municipal Group Configuration
+  useEffect(() => {
+    if (category === Category.MUNICIPAL_TAX && muniGroup) {
+        const config = MUNICIPAL_TAX_CONFIG[muniGroup];
+        if (config) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Ajustar día si el mes es más corto que la fecha límite (ej. Feb 28 vs día 30)
+            const targetDay = Math.min(config.deadlineDay, lastDayOfMonth);
+            
+            // Formatear a YYYY-MM-DD
+            const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+            setDueDate(formattedDate);
+        }
+    }
+  }, [category, muniGroup]);
 
   // Budget Monitoring Logic
   useEffect(() => {
