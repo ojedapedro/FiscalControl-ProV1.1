@@ -507,7 +507,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
             </div>
          </div>
          
-         <div className="h-[350px] w-full">
+         <div className="h-[350px] w-full mb-6">
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={annualData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <defs>
@@ -551,6 +551,47 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                     />
                 </ComposedChart>
             </ResponsiveContainer>
+         </div>
+
+         {/* Monthly Trend Grid */}
+         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-12 gap-3 mb-8">
+            {annualData.map((month) => {
+                const isOver = month.total > month.budget;
+                const isEmpty = month.total === 0;
+                const percentage = (month.total / month.budget) * 100;
+                
+                return (
+                    <div key={month.name} className={`p-3 rounded-2xl border transition-all duration-300 ${
+                        isEmpty 
+                        ? 'bg-slate-900/50 border-slate-800 opacity-40' 
+                        : isOver 
+                            ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' 
+                            : 'bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10'
+                    }`}>
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{month.name}</span>
+                            {!isEmpty && (
+                                isOver ? (
+                                    <TrendingUp size={14} className="text-red-500" />
+                                ) : (
+                                    <TrendingDown size={14} className="text-emerald-500" />
+                                )
+                            )}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className={`text-sm font-mono font-bold ${isEmpty ? 'text-slate-600' : isOver ? 'text-red-400' : 'text-emerald-400'}`}>
+                                {isEmpty ? '0%' : `${percentage.toFixed(0)}%`}
+                            </span>
+                            <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
          </div>
 
          {/* Insight Footer */}
