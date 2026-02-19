@@ -97,7 +97,9 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
 
   const filteredStores = dynamicStores.filter(store => 
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    store.location.toLowerCase().includes(searchTerm.toLowerCase())
+    store.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    store.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    store.municipality?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -264,7 +266,21 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white text-sm">{store.name}</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{store.location}</p>
+                                        <div className="flex flex-col gap-0.5 mt-0.5">
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                <MapPin size={10} /> {store.location}
+                                            </p>
+                                            {store.municipality && (
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                                    Mun. {store.municipality}
+                                                </p>
+                                            )}
+                                            {store.address && (
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 italic line-clamp-1" title={store.address}>
+                                                    {store.address}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${

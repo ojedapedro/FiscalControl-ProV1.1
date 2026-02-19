@@ -6,11 +6,56 @@ import { Category, Payment, PaymentStatus, Store, AlertItem, Role } from './type
 export const APP_LOGO_URL = "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg";
 
 export const STORES: Store[] = [
-  { id: 'S101', name: 'Tienda 101 - Principal', location: 'Caracas, DC', status: 'En Regla', nextDeadline: '2023-11-15', matrixId: 'HQ-01' },
-  { id: 'S145', name: 'Tienda 145', location: 'Maracaibo, ZU', status: 'En Riesgo', nextDeadline: '2023-11-01', matrixId: 'HQ-01' },
-  { id: 'S203', name: 'Tienda 203', location: 'Valencia, CA', status: 'En Regla', nextDeadline: '2023-11-20', matrixId: 'HQ-01' },
-  { id: 'S089', name: 'Tienda 089', location: 'Barquisimeto, LA', status: 'Vencido', nextDeadline: '2023-10-30', matrixId: 'HQ-01' },
-  { id: 'S112', name: 'Tienda 112', location: 'Lechería, AN', status: 'En Regla', nextDeadline: '2023-12-05', matrixId: 'HQ-01' },
+  { 
+    id: 'S101', 
+    name: 'Tienda 101 - Principal', 
+    location: 'Caracas, DC', 
+    address: 'Av. Francisco de Miranda, Edif. Galipán',
+    municipality: 'Chacao',
+    status: 'En Regla', 
+    nextDeadline: '2023-11-15', 
+    matrixId: 'HQ-01' 
+  },
+  { 
+    id: 'S145', 
+    name: 'Tienda 145', 
+    location: 'Maracaibo, ZU', 
+    address: 'Calle 72 con Av. 15, CC Costa Verde',
+    municipality: 'Maracaibo',
+    status: 'En Riesgo', 
+    nextDeadline: '2023-11-01', 
+    matrixId: 'HQ-01' 
+  },
+  { 
+    id: 'S203', 
+    name: 'Tienda 203', 
+    location: 'Valencia, CA', 
+    address: 'Av. Bolívar Norte, CC Camoruco',
+    municipality: 'Valencia',
+    status: 'En Regla', 
+    nextDeadline: '2023-11-20', 
+    matrixId: 'HQ-01' 
+  },
+  { 
+    id: 'S089', 
+    name: 'Tienda 089', 
+    location: 'Barquisimeto, LA', 
+    address: 'Av. Los Leones, CC Las Trinitarias',
+    municipality: 'Iribarren',
+    status: 'Vencido', 
+    nextDeadline: '2023-10-30', 
+    matrixId: 'HQ-01' 
+  },
+  { 
+    id: 'S112', 
+    name: 'Tienda 112', 
+    location: 'Lechería, AN', 
+    address: 'Av. Principal de Lechería, CC Plaza Mayor',
+    municipality: 'Diego Bautista Urbaneja',
+    status: 'En Regla', 
+    nextDeadline: '2023-12-05', 
+    matrixId: 'HQ-01' 
+  },
 ];
 
 export const INITIAL_PAYMENTS: Payment[] = [

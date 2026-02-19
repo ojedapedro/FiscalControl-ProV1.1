@@ -44,6 +44,8 @@ export interface Store {
   id: string;
   name: string;
   location: string;
+  address?: string;
+  municipality?: string;
   status: 'En Regla' | 'En Riesgo' | 'Vencido';
   nextDeadline: string;
   matrixId: string;

@@ -1,5 +1,6 @@
 
-import React, { Component, ReactNode } from 'react';
+import * as React from 'react';
+import { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
@@ -29,8 +30,8 @@ interface ErrorBoundaryState {
 }
 
 // Componente para capturar errores de renderizado (Error Boundary)
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+class ErrorBoundary extends (React.Component as any) {
+  constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -44,14 +45,15 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   render() {
-    if (this.state.hasError) {
+    const { hasError, error } = this.state;
+    if (hasError) {
       return (
         <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
           <div className="bg-red-900/20 border border-red-500/50 p-6 rounded-xl max-w-lg">
             <h1 className="text-xl font-bold text-red-400 mb-2">Error de Aplicación</h1>
             <p className="text-sm text-slate-300 mb-4">La aplicación encontró un problema inesperado.</p>
             <pre className="text-xs bg-black/50 p-4 rounded text-left overflow-auto max-h-40 text-red-200 font-mono">
-              {this.state.error?.toString()}
+              {error?.toString()}
             </pre>
             <button 
               onClick={() => window.location.reload()} 
