@@ -44,6 +44,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [sortOption, setSortOption] = useState<SortOption>('urgency');
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
   
+  // --- Checklist State ---
+  const [checklist, setChecklist] = useState({
+    amountVerified: false,
+    receiptValid: false,
+    dateCorrect: false,
+    storeConceptMatch: false,
+    stampLegible: false
+  });
+
+  const isChecklistComplete = Object.values(checklist).every(val => val === true);
+
   // --- Estados para el Modal de Confirmación de Fecha ---
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [confirmationDate, setConfirmationDate] = useState('');
@@ -77,7 +88,18 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setIsRejecting(false);
     setIsImageFullscreen(false);
     setShowApprovalModal(false); 
+    setChecklist({
+      amountVerified: false,
+      receiptValid: false,
+      dateCorrect: false,
+      storeConceptMatch: false,
+      stampLegible: false
+    });
   }, [selectedId]);
+
+  const handleCheckItem = (item: keyof typeof checklist) => {
+    setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
+  };
 
   const handleRejectClick = () => {
     if (!isRejecting) {
@@ -586,6 +608,48 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                             )}
 
+                            {/* Checklist de Auditoría */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <CheckSquare size={14} className="text-blue-500" />
+                                    Checklist de Verificación Obligatoria
+                                </label>
+                                <div className="space-y-3">
+                                    {[
+                                        { id: 'amountVerified', label: 'Monto verificado vs Comprobante' },
+                                        { id: 'receiptValid', label: 'Comprobante legible y válido' },
+                                        { id: 'stampLegible', label: 'Sello legible del soporte de pago' },
+                                        { id: 'dateCorrect', label: 'Fecha de vencimiento correcta' },
+                                        { id: 'storeConceptMatch', label: 'Tienda y concepto coinciden' }
+                                    ].map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleCheckItem(item.id as keyof typeof checklist)}
+                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                                                checklist[item.id as keyof typeof checklist]
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-200'
+                                            }`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                                                checklist[item.id as keyof typeof checklist]
+                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                                            }`}>
+                                                {checklist[item.id as keyof typeof checklist] && <CheckCircle2 size={14} />}
+                                            </div>
+                                            <span className="text-sm font-medium">{item.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                {!isChecklistComplete && (
+                                    <p className="text-[10px] text-orange-500 font-bold mt-3 flex items-center gap-1">
+                                        <AlertCircle size={12} />
+                                        Complete todos los puntos para habilitar la aprobación.
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Detalles Principales */}
                             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
                                 <div>
@@ -679,12 +743,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                             onClick={handleRejectClick}
                                             className="flex-1 py-4 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-2xl transition-colors flex items-center justify-center gap-2"
                                         >
-                                            <XCircle size={20} />
-                                            Rechazar
+                                            <RefreshCw size={20} />
+                                            Devolver
                                         </button>
                                         <button 
                                             onClick={handleInitialApproveClick}
-                                            className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                            disabled={!isChecklistComplete}
+                                            className={`flex-[2] py-4 font-bold rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                                                isChecklistComplete 
+                                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 dark:shadow-blue-900/30' 
+                                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                                            }`}
                                         >
                                             <ShieldCheck size={20} />
                                             Validar y Aprobar
@@ -692,11 +761,11 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 ) : (
                                     <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 animate-in fade-in slide-in-from-bottom-2">
-                                        <h3 className="text-sm font-bold text-red-700 dark:text-red-400 mb-2">Motivo del Rechazo</h3>
+                                        <h3 className="text-sm font-bold text-red-700 dark:text-red-400 mb-2">Observaciones para el Administrador</h3>
                                         <textarea 
                                             value={rejectionNote}
                                             onChange={(e) => setRejectionNote(e.target.value)}
-                                            placeholder="Indique la razón (ej. Comprobante ilegible, monto incorrecto...)"
+                                            placeholder="Indique qué debe corregirse (ej. Comprobante ilegible, monto incorrecto...)"
                                             className="w-full p-3 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 rounded-xl text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white"
                                             rows={3}
                                             autoFocus
@@ -712,7 +781,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                 onClick={handleRejectClick}
                                                 className="flex-1 py-2 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 shadow-md"
                                             >
-                                                Confirmar Rechazo
+                                                Confirmar Devolución
                                             </button>
                                         </div>
                                     </div>
