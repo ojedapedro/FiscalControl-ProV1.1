@@ -111,7 +111,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
     amount: string;
     category: Category;
     notes: string;
-  }>({ title: '', amount: '', category: Category.MUNICIPAL_TAX, notes: '' });
+  }>({ title: 'Provisión Impuesto Municipal', amount: '', category: Category.MUNICIPAL_TAX, notes: '' });
 
   // Estado combinado para la vista lateral
   const [dayEvents, setDayEvents] = useState<{
@@ -167,6 +167,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
     setDayEvents({ realPayments: real, deadlines: statutory, budgets: dayBudgets });
   }, [selectedDate, payments, budgets]);
 
+  // Helper para obtener título por defecto según categoría
+  const getDefaultTitleForCategory = (cat: Category) => {
+    switch (cat) {
+        case Category.NATIONAL_TAX: return 'Provisión Impuesto Nacional';
+        case Category.MUNICIPAL_TAX: return 'Provisión Impuesto Municipal';
+        case Category.UTILITY: return 'Provisión Servicios Públicos';
+        case Category.INVENTORY: return 'Provisión Inventario';
+        case Category.OTHER: return 'Provisión General';
+        default: return '';
+    }
+  };
+
   // Manejo de creación de presupuesto
   const handleAddBudget = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +200,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
 
     setBudgets([...budgets, entry]);
     setIsBudgetModalOpen(false);
-    setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX, notes: '' }); // Reset
+    // Resetear formulario con valores por defecto
+    setNewBudget({ 
+        title: 'Provisión Impuesto Municipal', 
+        amount: '', 
+        category: Category.MUNICIPAL_TAX, 
+        notes: '' 
+    }); 
   };
 
   const handleDeleteBudget = (id: string) => {
@@ -309,7 +327,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                           <div className="relative">
                             <select 
                                 value={newBudget.category}
-                                onChange={(e) => setNewBudget({...newBudget, category: e.target.value as Category})}
+                                onChange={(e) => {
+                                    const cat = e.target.value as Category;
+                                    setNewBudget({
+                                        ...newBudget, 
+                                        category: cat,
+                                        title: getDefaultTitleForCategory(cat)
+                                    });
+                                }}
                                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white appearance-none"
                             >
                                 {Object.values(Category).map(cat => (

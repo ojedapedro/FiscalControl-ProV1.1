@@ -558,7 +558,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
                      <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
-                             <Calculator size={20} />
+                             <Building2 size={20} />
                         </div>
                         <div>
                             <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
