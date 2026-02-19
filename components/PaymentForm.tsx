@@ -96,6 +96,8 @@ interface PaymentFormProps {
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) => {
   const [store, setStore] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [storeMunicipality, setStoreMunicipality] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
   
   // States for Municipal Tax Logic
@@ -129,6 +131,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [isFileScanning, setIsFileScanning] = useState(false);
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
+  useEffect(() => {
+    if (store) {
+      const selectedStore = STORES.find(s => s.id === store);
+      if (selectedStore) {
+        setStoreAddress(selectedStore.address || '');
+        setStoreMunicipality(selectedStore.municipality || '');
+      }
+    } else {
+      setStoreAddress('');
+      setStoreMunicipality('');
+    }
+  }, [store]);
+
   useEffect(() => {
     if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
       const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
@@ -583,6 +598,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
                 <DollarSign size={16} /> Detalles Financieros
             </h2>
+
+            {/* Store Location Info (Auto-filled) */}
+            {store && (
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-start gap-3 animate-in fade-in slide-in-from-left-2">
+                    <MapPin className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Municipio / Alcaldía</span>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
+                        </div>
+                        <div>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Dirección de Sucursal</span>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 italic">{storeAddress || 'No especificada'}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-6">
                 <div>
