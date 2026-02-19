@@ -43,6 +43,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('urgency');
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // --- Checklist State ---
   const [checklist, setChecklist] = useState({
@@ -87,6 +88,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setRejectionNote('');
     setIsRejecting(false);
     setIsImageFullscreen(false);
+    setImageError(false);
     setShowApprovalModal(false); 
     setChecklist({
       amountVerified: false,
@@ -489,7 +491,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                         </div>
 
                                         {/* Renderizado del Archivo */}
-                                        <div className="flex-1 w-full h-full flex items-center justify-center bg-slate-900 relative">
+                                        <div className="flex-1 w-full h-full flex items-center justify-center bg-slate-900 relative" key={selectedPayment.id}>
                                             {isPdf(selectedPayment.receiptUrl) ? (
                                                 <div className="w-full h-full flex flex-col">
                                                      <embed
@@ -504,27 +506,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                         </span>
                                                     </div>
                                                 </div>
+                                            ) : imageError ? (
+                                                <div className="flex flex-col items-center text-slate-500">
+                                                    <AlertTriangle size={48} className="mb-2" />
+                                                    <span className="text-sm">Error cargando imagen</span>
+                                                    <button 
+                                                        onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
+                                                        className="mt-2 text-xs text-blue-400 underline"
+                                                    >
+                                                        Abrir enlace directo
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <img 
                                                     src={selectedPayment.receiptUrl} 
                                                     alt="Recibo" 
                                                     className="max-w-full max-h-full object-contain"
-                                                    onError={(e) => {
-                                                        // Fallback visual si la imagen falla
-                                                        e.currentTarget.style.display = 'none';
-                                                        const parent = e.currentTarget.parentElement;
-                                                        if (parent) {
-                                                            parent.innerHTML = `
-                                                                <div class="flex flex-col items-center text-slate-500">
-                                                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                                                    <span class="mt-2 text-sm">Error cargando imagen</span>
-                                                                    <button class="mt-2 text-xs text-blue-400 underline">Abrir enlace directo</button>
-                                                                </div>
-                                                            `;
-                                                            const btn = parent.querySelector('button');
-                                                            if(btn) btn.onclick = () => openInNewTab(selectedPayment.receiptUrl!);
-                                                        }
-                                                    }}
+                                                    onError={() => setImageError(true)}
                                                 />
                                             )}
                                         </div>
