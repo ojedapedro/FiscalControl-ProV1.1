@@ -13,16 +13,18 @@ import {
   Filter,
   Clock,
   Activity,
-  XCircle
+  XCircle,
+  Edit3
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
 interface DashboardProps {
   payments: Payment[];
   onNewPayment: () => void;
+  onEditPayment: (payment: Payment) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
 
   // Calcular totales reales basados en el estado de los pagos
@@ -239,19 +241,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
                     <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {payment.dueDate}</p>
+                    {payment.status === PaymentStatus.REJECTED && (
+                        <p className="text-pink-600 dark:text-pink-400 text-xs font-bold mt-1">Requiere Corrección</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
                   <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                      payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                      payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                      payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                      'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                  }`}>
-                      {payment.status}
-                  </span>
+                  
+                  {payment.status === PaymentStatus.REJECTED ? (
+                      <button 
+                        onClick={() => onEditPayment(payment)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-xs font-bold shadow-sm shadow-pink-200 dark:shadow-pink-900/30 transition-all active:scale-95"
+                      >
+                          <Edit3 size={12} />
+                          Corregir
+                      </button>
+                  ) : (
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                          payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
+                          {payment.status}
+                      </span>
+                  )}
                 </div>
               </div>
             ))

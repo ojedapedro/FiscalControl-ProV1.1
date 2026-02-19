@@ -25,7 +25,12 @@ function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Estado para el modal de formulario
   const [isFormOpen, setIsFormOpen] = useState(false);
+  // Estado para saber si estamos editando un pago existente (Corrección)
+  const [editingPayment, setEditingPayment] = useState<Payment | undefined>(undefined);
+
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
@@ -134,62 +139,129 @@ function App() {
     });
   };
 
-  const handleNewPayment = async (paymentData: any) => {
+  // Función para abrir formulario en modo "Nuevo"
+  const handleOpenNewPayment = () => {
+      setEditingPayment(undefined);
+      setIsFormOpen(true);
+  };
+
+  // Función para abrir formulario en modo "Edición/Corrección"
+  const handleEditPayment = (paymentToEdit: Payment) => {
+      setEditingPayment(paymentToEdit);
+      setIsFormOpen(true);
+  };
+
+  // Función consolidada para Guardar (Crear o Actualizar)
+  const handleSavePayment = async (paymentData: any) => {
     setIsLoading(true);
-    const initialLog: AuditLog = {
-      date: new Date().toISOString(),
-      action: 'CREACION',
-      actorName: currentUser?.name || 'Usuario', 
-      role: currentUser?.role || Role.ADMIN
-    };
-
-    let receiptUrl = undefined;
-    if (paymentData.file) {
-        try {
-            receiptUrl = await fileToBase64(paymentData.file);
-        } catch (e) {
-            console.error("Error converting file", e);
-        }
-    }
-
-    let justificationFileUrl = undefined;
-    if (paymentData.justificationFile) {
-        try {
-            justificationFileUrl = await fileToBase64(paymentData.justificationFile);
-        } catch (e) {
-            console.error("Error converting justification file", e);
-        }
-    }
-
-    const newPayment: Payment = {
-      id: `PAG-${Math.floor(Math.random() * 10000)}`,
-      storeId: paymentData.storeId,
-      storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
-      userId: currentUser?.id || 'U-UNK',
-      category: paymentData.category,
-      specificType: paymentData.specificType,
-      amount: paymentData.amount,
-      dueDate: paymentData.dueDate,
-      paymentDate: paymentData.paymentDate,
-      status: PaymentStatus.PENDING,
-      submittedDate: new Date().toISOString(),
-      notes: paymentData.notes,
-      history: [initialLog],
-      receiptUrl: receiptUrl,
-      justificationFileUrl: justificationFileUrl
-    };
     
-    if(paymentData.originalBudget) newPayment.originalBudget = paymentData.originalBudget;
-    if(paymentData.isOverBudget) newPayment.isOverBudget = paymentData.isOverBudget;
-    if(paymentData.justification) newPayment.justification = paymentData.justification;
-
     try {
-        await api.createPayment(newPayment);
-        setPayments(prev => [newPayment, ...prev]);
+        let receiptUrl = undefined;
+        // Si el usuario subió un archivo nuevo, lo convertimos.
+        if (paymentData.file) {
+            try {
+                receiptUrl = await fileToBase64(paymentData.file);
+            } catch (e) {
+                console.error("Error converting file", e);
+            }
+        } else if (editingPayment) {
+            // Si estamos editando y no subió archivo nuevo, mantenemos el anterior
+            receiptUrl = editingPayment.receiptUrl;
+        }
+
+        let justificationFileUrl = undefined;
+        if (paymentData.justificationFile) {
+            try {
+                justificationFileUrl = await fileToBase64(paymentData.justificationFile);
+            } catch (e) {
+                console.error("Error converting justification file", e);
+            }
+        } else if (editingPayment) {
+             justificationFileUrl = editingPayment.justificationFileUrl;
+        }
+
+        // --- LÓGICA DE ACTUALIZACIÓN (CORRECCIÓN) ---
+        if (editingPayment) {
+             const updateLog: AuditLog = {
+                date: new Date().toISOString(),
+                action: 'ACTUALIZACION', // Usamos actualización para indicar corrección
+                actorName: currentUser?.name || 'Usuario',
+                role: currentUser?.role || Role.ADMIN,
+                note: 'Corrección de datos y reenvío'
+             };
+
+             const updatedPayment: Payment = {
+                 ...editingPayment,
+                 storeId: paymentData.storeId,
+                 storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
+                 category: paymentData.category,
+                 specificType: paymentData.specificType,
+                 amount: paymentData.amount,
+                 dueDate: paymentData.dueDate,
+                 paymentDate: paymentData.paymentDate,
+                 notes: paymentData.notes,
+                 
+                 // CRÍTICO: Resetear estado a PENDING para que el auditor lo vea de nuevo
+                 status: PaymentStatus.PENDING, 
+                 
+                 // Actualizar archivos si cambiaron
+                 receiptUrl: receiptUrl,
+                 justificationFileUrl: justificationFileUrl,
+
+                 // Datos extra
+                 originalBudget: paymentData.originalBudget,
+                 isOverBudget: paymentData.isOverBudget,
+                 justification: paymentData.justification,
+                 
+                 // Añadir log al historial
+                 history: editingPayment.history ? [...editingPayment.history, updateLog] : [updateLog]
+             };
+
+             await api.updatePayment(updatedPayment);
+             setPayments(prev => prev.map(p => p.id === updatedPayment.id ? updatedPayment : p));
+             setNotification('✅ Corrección enviada al auditor.');
+
+        } else {
+             // --- LÓGICA DE CREACIÓN NUEVA ---
+             const initialLog: AuditLog = {
+                date: new Date().toISOString(),
+                action: 'CREACION',
+                actorName: currentUser?.name || 'Usuario', 
+                role: currentUser?.role || Role.ADMIN
+             };
+
+             const newPayment: Payment = {
+                id: `PAG-${Math.floor(Math.random() * 10000)}`,
+                storeId: paymentData.storeId,
+                storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
+                userId: currentUser?.id || 'U-UNK',
+                category: paymentData.category,
+                specificType: paymentData.specificType,
+                amount: paymentData.amount,
+                dueDate: paymentData.dueDate,
+                paymentDate: paymentData.paymentDate,
+                status: PaymentStatus.PENDING,
+                submittedDate: new Date().toISOString(),
+                notes: paymentData.notes,
+                history: [initialLog],
+                receiptUrl: receiptUrl,
+                justificationFileUrl: justificationFileUrl,
+                originalBudget: paymentData.originalBudget,
+                isOverBudget: paymentData.isOverBudget,
+                justification: paymentData.justification
+            };
+
+            await api.createPayment(newPayment);
+            setPayments(prev => [newPayment, ...prev]);
+            setNotification('✅ Pago nuevo registrado.');
+        }
+        
         setIsFormOpen(false);
-        setNotification('✅ Pago guardado en Google Sheets.');
+        setEditingPayment(undefined);
+
     } catch (error) {
         setNotification('❌ Error guardando pago.');
+        console.error(error);
     } finally {
         setIsLoading(false);
         setTimeout(() => setNotification(null), 3000);
@@ -291,7 +363,13 @@ function App() {
 
     switch (currentView) {
       case 'payments':
-        return <Dashboard payments={payments} onNewPayment={() => setIsFormOpen(true)} />;
+        return (
+            <Dashboard 
+                payments={payments} 
+                onNewPayment={handleOpenNewPayment} 
+                onEditPayment={handleEditPayment} 
+            />
+        );
       case 'approvals':
         return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
       case 'reports':
@@ -454,7 +532,11 @@ function App() {
         {isFormOpen && (
            <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
               <div className="bg-white dark:bg-slate-950 w-full max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                  <PaymentForm onSubmit={handleNewPayment} onCancel={() => setIsFormOpen(false)} />
+                  <PaymentForm 
+                      onSubmit={handleSavePayment} 
+                      onCancel={() => { setIsFormOpen(false); setEditingPayment(undefined); }}
+                      initialData={editingPayment}
+                  />
               </div>
            </div>
         )}
