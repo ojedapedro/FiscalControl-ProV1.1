@@ -21,6 +21,8 @@ import { Payment, PaymentStatus } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 
+import { VenezuelaMap } from './VenezuelaMap';
+
 interface ReportsProps {
   payments: Payment[];
 }
@@ -428,9 +430,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
          {/* Table of Rejected/Approved recent */}
-         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col">
+         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col lg:col-span-1">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
                 <span>Bitácora Filtrada</span>
                 <span className="text-xs font-normal text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
@@ -487,7 +489,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
          </div>
 
          {/* Distribution Chart */}
-         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center">
+         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center lg:col-span-1">
              <h3 className="text-lg font-bold text-white mb-2 self-start w-full">Distribución en el Período</h3>
              <div className="h-[250px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -515,6 +517,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                     </div>
                 ))}
              </div>
+         </div>
+
+         {/* Venezuela Map */}
+         <div className="lg:col-span-1">
+            <VenezuelaMap stores={STORES} />
          </div>
       </div>
 
