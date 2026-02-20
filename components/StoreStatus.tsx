@@ -22,6 +22,8 @@ import {
   Cell
 } from 'recharts';
 
+import VenezuelaMap from './VenezuelaMap';
+
 interface StoreStatusProps {
   payments: Payment[];
 }
@@ -84,16 +86,6 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
       textColor: 'text-red-600'
     },
   ];
-
-  // Función auxiliar para posicionar puntos en el mapa simulado (Coordenadas relativas aprox para Venezuela)
-  const getMapPosition = (location: string) => {
-    if (location.includes('Maracaibo')) return { top: '20%', left: '15%' };
-    if (location.includes('Caracas')) return { top: '25%', left: '60%' };
-    if (location.includes('Valencia')) return { top: '28%', left: '50%' };
-    if (location.includes('Barquisimeto')) return { top: '30%', left: '40%' };
-    if (location.includes('Lechería')) return { top: '30%', left: '75%' };
-    return { top: '50%', left: '50%' }; // Default
-  };
 
   const filteredStores = dynamicStores.filter(store => 
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -159,76 +151,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
                 </div>
             </div>
 
-            {/* Simulated Map Card */}
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-800 relative overflow-hidden group">
-                 <div className="flex justify-between items-start relative z-10 mb-4">
-                    <h3 className="font-bold text-lg text-white">Mapa de Cobertura</h3>
-                    <div className="bg-slate-800/80 px-3 py-1 rounded-full text-xs text-slate-300 backdrop-blur-sm border border-slate-700">
-                        Venezuela
-                    </div>
-                 </div>
-
-                 {/* Stylized Map Container */}
-                 <div className="relative w-full h-[300px] bg-slate-800/30 rounded-xl border border-slate-700/50">
-                    {/* Abstract Venezuela Shape (SVG) */}
-                    <svg className="absolute inset-0 w-full h-full text-slate-700 opacity-20 pointer-events-none" viewBox="0 0 400 300">
-                        <path fill="currentColor" d="M80,100 Q150,50 250,60 T350,100 L320,200 Q200,250 100,220 Z" />
-                    </svg>
-                    
-                    {/* Store Points */}
-                    {dynamicStores.map((store) => {
-                        const pos = getMapPosition(store.location);
-                        const isHovered = hoveredStore === store.id;
-                        return (
-                            <div 
-                                key={store.id}
-                                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300"
-                                style={{ top: pos.top, left: pos.left }}
-                                onMouseEnter={() => setHoveredStore(store.id)}
-                                onMouseLeave={() => setHoveredStore(null)}
-                            >
-                                <div className={`relative flex items-center justify-center ${isHovered ? 'z-20 scale-110' : 'z-10'}`}>
-                                    <div className={`w-4 h-4 rounded-full border-2 border-slate-900 shadow-lg ${
-                                        store.status === 'En Regla' ? 'bg-green-500' : 
-                                        store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`}></div>
-                                    
-                                    {/* Pulse effect for non-compliant stores */}
-                                    {store.status !== 'En Regla' && (
-                                        <div className={`absolute w-full h-full rounded-full animate-ping opacity-75 ${
-                                            store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
-                                        }`}></div>
-                                    )}
-
-                                    {/* Tooltip on Hover */}
-                                    {isHovered && (
-                                        <div className="absolute bottom-full mb-2 w-max bg-white dark:bg-slate-800 p-2 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-90 duration-200">
-                                            <div className="font-bold text-slate-900 dark:text-white text-xs">{store.name}</div>
-                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{store.location}</div>
-                                            <div className={`text-[10px] font-bold mt-1 ${
-                                                 store.status === 'En Regla' ? 'text-green-600' : 
-                                                 store.status === 'En Riesgo' ? 'text-yellow-600' : 'text-red-600'
-                                            }`}>
-                                                {store.status}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                 </div>
-                 
-                 {/* Legend */}
-                 <div className="absolute bottom-6 left-6 flex gap-4 z-10">
-                     {stats.map(s => (
-                         <div key={s.name} className="flex items-center gap-1.5">
-                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></span>
-                             <span className="text-xs text-slate-300">{s.name}</span>
-                         </div>
-                     ))}
-                 </div>
-            </div>
+            {/* Real Map Card */}
+            <VenezuelaMap stores={dynamicStores} />
        </div>
 
         {/* Directory List */}
