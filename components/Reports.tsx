@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import { Payment, PaymentStatus } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle } from 'lucide-react';
-import { APP_LOGO_URL } from '../constants';
+import { STORES, APP_LOGO_URL } from '../constants';
 
 interface ReportsProps {
   payments: Payment[];
@@ -96,14 +96,28 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     return new Date().toISOString().split('T')[0];
   });
 
+  // Store and Municipality Filter States
+  const [selectedStore, setSelectedStore] = useState('all');
+  const [selectedMunicipality, setSelectedMunicipality] = useState('all');
+
+  const municipalities = useMemo(() => {
+    const allMunicipalities = STORES.map(s => s.municipality || 'N/A');
+    return ['all', ...Array.from(new Set(allMunicipalities))];
+  }, []);
+
   // --- PROCESAMIENTO DE DATOS ---
 
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : p.dueDate;
-      return recordDate >= startDate && recordDate <= endDate;
+      const isDateInRange = recordDate >= startDate && recordDate <= endDate;
+      const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
+      const storeDetails = STORES.find(s => s.id === p.storeId);
+      const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
+
+      return isDateInRange && storeMatch && municipalityMatch;
     });
-  }, [payments, startDate, endDate]);
+  }, [payments, startDate, endDate, selectedStore, selectedMunicipality]);
 
   const annualData = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -299,6 +313,26 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
+            {/* Store and Municipality Filters */}
+            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
+                <select 
+                    value={selectedStore} 
+                    onChange={e => setSelectedStore(e.target.value)}
+                    className="bg-slate-800 text-white text-xs font-bold p-2 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                    <option value="all">Todas las Tiendas</option>
+                    {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <select 
+                    value={selectedMunicipality} 
+                    onChange={e => setSelectedMunicipality(e.target.value)}
+                    className="bg-slate-800 text-white text-xs font-bold p-2 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 ml-1"
+                >
+                    <option value="all">Todos los Municipios</option>
+                    {municipalities.filter(m => m !== 'all').map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+            </div>
+
             {/* Date Range Picker */}
             <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
                 <div className="flex items-center gap-2 px-3 py-2 border-r border-slate-800 text-slate-400">
