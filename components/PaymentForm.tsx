@@ -121,6 +121,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const [justificationNote, setJustificationNote] = useState('');
   const [justificationFile, setJustificationFile] = useState<File | null>(null);
   const [justificationConfirmed, setJustificationConfirmed] = useState(false);
+  const [manualOverBudget, setManualOverBudget] = useState(false);
 
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -151,6 +152,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
       
       if (itemData) {
         setSpecificType(`${itemData.code} - ${itemData.name}`);
+        setManualOverBudget(false); // Reset manual flag when item changes
         if (itemData.amount !== undefined && !itemData.isVariable) {
           setAmount(itemData.amount.toString());
           setExpectedBudget(itemData.amount); // Set budget baseline
@@ -186,14 +188,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     }
   }, [category, muniGroup]);
 
+  const isCurrentMuniItemVariable = useMemo(() => {
+    if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
+        const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
+        const itemData = groupData?.items.find(i => i.code === muniItem);
+        return itemData?.isVariable || false;
+    }
+    return false;
+  }, [category, muniGroup, muniItem]);
+
   // Budget Monitoring Logic
   useEffect(() => {
-    if (expectedBudget !== null && amount) {
-        const numericAmount = parseFloat(amount);
-        if (!isNaN(numericAmount) && numericAmount > expectedBudget) {
+    const numericAmount = parseFloat(amount);
+    if (isCurrentMuniItemVariable) {
+        // For variable items, only manual flag determines over budget
+        setIsOverBudget(manualOverBudget);
+        if (!manualOverBudget) {
+            setJustificationConfirmed(false);
+        }
+    } else if (expectedBudget !== null && amount && !isNaN(numericAmount)) {
+        // For fixed items, compare amount to budget
+        if (numericAmount > expectedBudget) {
             setIsOverBudget(true);
-            // If they modify the amount to be higher again, reset confirmation to force re-check unless it's just minor editing
-            // We'll handle the modal opening on Submit to be less intrusive, or via a warning button.
         } else {
             setIsOverBudget(false);
             setJustificationConfirmed(false); // Reset if back to normal
@@ -201,7 +217,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     } else {
         setIsOverBudget(false);
     }
-  }, [amount, expectedBudget]);
+  }, [amount, expectedBudget, manualOverBudget, isCurrentMuniItemVariable]);
 
 
   // Clean up preview URL
@@ -232,6 +248,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     if (municipalStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
     return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
   }, [municipalStatusList]);
+
+
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -345,7 +363,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                           Excedente Presupuestario
                       </h3>
                       <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
-                          El monto ingresado (${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro (${expectedBudget?.toLocaleString()}).
+                          {isCurrentMuniItemVariable
+                            ? `Se ha marcado el monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) como un excedente que requiere justificación.`
+                            : `El monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro ($${expectedBudget?.toLocaleString()}).`
+                          }
                       </p>
                   </div>
                   
@@ -672,6 +693,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                             <p className="text-green-600 dark:text-green-400 text-xs mt-1 flex items-center gap-1 font-semibold">
                                 <CheckCircle2 size={12} /> Justificación añadida
                             </p>
+                        )}
+
+                        {isCurrentMuniItemVariable && (
+                            <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg flex items-center gap-3 border border-slate-200 dark:border-slate-700">
+                                <input
+                                    type="checkbox"
+                                    id="manualOverBudget"
+                                    checked={manualOverBudget}
+                                    onChange={(e) => setManualOverBudget(e.target.checked)}
+                                    className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                />
+                                <label htmlFor="manualOverBudget" className="block text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                    Marcar este pago como un <strong>excedente presupuestario</strong> para solicitar justificación.
+                                </label>
+                            </div>
                         )}
                     </div>
 
