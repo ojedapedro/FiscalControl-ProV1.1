@@ -13,7 +13,9 @@ import {
   Filter,
   Clock,
   Activity,
-  XCircle
+  XCircle,
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
@@ -42,6 +44,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
   const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
   const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
   const averagePayment = approvedPayments.length > 0 ? totalApproved / approvedPayments.length : 0;
+
+  // Budget Logic
+  const MONTHLY_BUDGET = 6000;
+  const budgetUtilization = (totalApproved / MONTHLY_BUDGET) * 100;
+  const overBudgetPayments = payments.filter(p => p.isOverBudget);
+  const recentPayments = [...payments]
+    .sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
+    .slice(0, 5);
 
   // Filtrado de la lista para visualización
   const filteredPayments = payments.filter(payment => {
@@ -182,6 +192,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
         <Plus size={24} />
         Cargar Nuevo Pago
       </button>
+
+      {/* Quick Summary Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Budget Status Card */}
+        <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <Wallet className="text-blue-500" size={20} />
+              Estado del Presupuesto
+            </h3>
+            <span className={`text-xs font-bold px-2 py-1 rounded-full ${budgetUtilization > 90 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+              Meta: ${MONTHLY_BUDGET.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-500 dark:text-slate-400">Utilización Mensual</span>
+                <span className="font-bold text-slate-900 dark:text-white">{budgetUtilization.toFixed(1)}%</span>
+              </div>
+              <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${budgetUtilization > 90 ? 'bg-red-500' : budgetUtilization > 70 ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Ejecutado</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">${totalApproved.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Excedentes</p>
+                <p className="text-lg font-bold text-red-600">{overBudgetPayments.length}</p>
+              </div>
+            </div>
+
+            {overBudgetPayments.length > 0 && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
+                <div className="flex items-center gap-2 text-red-700 dark:text-red-400 text-xs font-bold mb-2">
+                  <AlertCircle size={14} />
+                  Alertas de Presupuesto
+                </div>
+                <div className="space-y-2">
+                  {overBudgetPayments.slice(0, 2).map(p => (
+                    <div key={p.id} className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-600 dark:text-slate-400 truncate max-w-[120px]">{p.specificType}</span>
+                      <span className="font-bold text-red-600">+${(p.amount - (p.originalBudget || 0)).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Activity Summary */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <Activity className="text-blue-500" size={20} />
+              Resumen de Actividad
+            </h3>
+            <button className="text-xs text-blue-600 font-bold hover:underline">Ver todo</button>
+          </div>
+
+          <div className="space-y-4">
+            {recentPayments.map((payment) => (
+              <div key={payment.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 ${getBgForType(payment.specificType)} rounded-lg flex items-center justify-center shrink-0`}>
+                    {getIconForType(payment.specificType)}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{payment.specificType}</h4>
+                    <p className="text-[10px] text-slate-500">{payment.storeName} • {new Date(payment.submittedDate).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</p>
+                  <span className={`text-[10px] font-bold ${
+                    payment.status === PaymentStatus.APPROVED ? 'text-green-600' : 
+                    payment.status === PaymentStatus.REJECTED ? 'text-red-600' : 'text-orange-600'
+                  }`}>
+                    {payment.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Recent Payments List */}
       <div className="space-y-4">
