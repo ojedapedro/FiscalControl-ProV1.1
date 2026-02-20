@@ -50,35 +50,77 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 
 const CustomFinancialTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const approvedEntry = payload.find((p: any) => p.dataKey === 'approved');
+    const pendingEntry = payload.find((p: any) => p.dataKey === 'pending');
+    
+    const approvedValue = approvedEntry?.value || 0;
+    const pendingValue = pendingEntry?.value || 0;
+    
+    const approvedPercent = (approvedValue / MONTHLY_BUDGET_TARGET) * 100;
+    const pendingPercent = (pendingValue / MONTHLY_BUDGET_TARGET) * 100;
+    const totalPercent = ((approvedValue + pendingValue) / MONTHLY_BUDGET_TARGET) * 100;
+
     return (
-      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[200px] z-50">
+      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
         <p className="font-bold text-slate-200 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
         
-        {payload.map((entry: any, index: number) => {
-            if (entry.dataKey === 'budget') return null; 
-            
-            let labelText = '';
-            let valueClass = 'text-white';
-            
-            if (entry.dataKey === 'approved') { labelText = 'Gasto Ejecutado'; valueClass = 'text-blue-400'; }
-            if (entry.dataKey === 'pending') { labelText = 'En Proceso / Pendiente'; valueClass = 'text-yellow-400'; }
-            
-            return (
-                <div key={index} className="flex items-center justify-between gap-4 text-xs mb-2">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                        <span className="text-slate-400">{labelText}</span>
-                    </div>
-                    <span className={`font-mono font-bold ${valueClass}`}>
-                        ${entry.value.toLocaleString()}
-                    </span>
-                </div>
-            );
-        })}
+        <div className="space-y-3">
+          {/* Gasto Ejecutado */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-slate-400">Gasto Ejecutado</span>
+              </div>
+              <span className="font-mono font-bold text-blue-400">
+                ${approvedValue.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
+                <div className="bg-blue-500 h-full" style={{ width: `${Math.min(approvedPercent, 100)}%` }}></div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">{approvedPercent.toFixed(1)}%</span>
+            </div>
+          </div>
 
-        <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-xs">
-            <span className="text-slate-500">Presupuesto Mensual:</span>
-            <span className="font-mono font-bold text-slate-300">${MONTHLY_BUDGET_TARGET.toLocaleString()}</span>
+          {/* Pendiente */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <span className="text-slate-400">Pendiente / En Proceso</span>
+              </div>
+              <span className="font-mono font-bold text-yellow-400">
+                ${pendingValue.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
+                <div className="bg-yellow-500 h-full" style={{ width: `${Math.min(pendingPercent, 100)}%` }}></div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">{pendingPercent.toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-slate-700 space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-500 font-medium">Total Proyectado:</span>
+            <span className={`font-mono font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-200'}`}>
+              ${(approvedValue + pendingValue).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-[10px]">
+            <span className="text-slate-500">Utilización Total:</span>
+            <span className={`font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-400'}`}>
+              {totalPercent.toFixed(1)}% del presupuesto
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-[10px] text-slate-600">
+            <span>Presupuesto Base:</span>
+            <span>${MONTHLY_BUDGET_TARGET.toLocaleString()}</span>
+          </div>
         </div>
       </div>
     );
