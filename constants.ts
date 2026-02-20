@@ -14,7 +14,9 @@ export const STORES: Store[] = [
     municipality: 'Chacao',
     status: 'En Regla', 
     nextDeadline: '2023-11-15', 
-    matrixId: 'HQ-01' 
+    matrixId: 'HQ-01',
+    lat: 10.4806,
+    lng: -66.9036
   },
   { 
     id: 'S145', 
@@ -24,7 +26,9 @@ export const STORES: Store[] = [
     municipality: 'Maracaibo',
     status: 'En Riesgo', 
     nextDeadline: '2023-11-01', 
-    matrixId: 'HQ-01' 
+    matrixId: 'HQ-01',
+    lat: 10.6427,
+    lng: -71.6125
   },
   { 
     id: 'S203', 
@@ -34,7 +38,9 @@ export const STORES: Store[] = [
     municipality: 'Valencia',
     status: 'En Regla', 
     nextDeadline: '2023-11-20', 
-    matrixId: 'HQ-01' 
+    matrixId: 'HQ-01',
+    lat: 10.1620,
+    lng: -68.0077
   },
   { 
     id: 'S089', 
@@ -44,7 +50,9 @@ export const STORES: Store[] = [
     municipality: 'Iribarren',
     status: 'Vencido', 
     nextDeadline: '2023-10-30', 
-    matrixId: 'HQ-01' 
+    matrixId: 'HQ-01',
+    lat: 10.0678,
+    lng: -69.3474
   },
   { 
     id: 'S112', 
@@ -54,7 +62,9 @@ export const STORES: Store[] = [
     municipality: 'Diego Bautista Urbaneja',
     status: 'En Regla', 
     nextDeadline: '2023-12-05', 
-    matrixId: 'HQ-01' 
+    matrixId: 'HQ-01',
+    lat: 10.1900,
+    lng: -64.6800
   },
 ];
 

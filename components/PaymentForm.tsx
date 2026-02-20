@@ -19,10 +19,9 @@ import {
   X,
   AlertTriangle,
   Clock,
-  FileWarning,
-  RefreshCw
+  FileWarning
 } from 'lucide-react';
-import { Category, Payment } from '../types';
+import { Category } from '../types';
 import { STORES } from '../constants';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
@@ -93,11 +92,12 @@ const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number;
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
-  initialData?: Payment; // Datos para modo edición
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) => {
   const [store, setStore] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [storeMunicipality, setStoreMunicipality] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
   
   // States for Municipal Tax Logic
@@ -130,47 +130,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [loadingText, setLoadingText] = useState('');
   const [isFileScanning, setIsFileScanning] = useState(false);
 
-  // Estado para controlar si estamos en modo edición cargado
-  const [isEditMode, setIsEditMode] = useState(false);
-
-  // Inicialización de datos para EDICIÓN
-  useEffect(() => {
-    if (initialData) {
-        setIsEditMode(true);
-        setStore(initialData.storeId);
-        setCategory(initialData.category);
-        setAmount(initialData.amount.toString());
-        setDueDate(initialData.dueDate);
-        setPaymentDate(initialData.paymentDate || new Date().toISOString().split('T')[0]);
-        setSpecificType(initialData.specificType);
-        setNotes(initialData.notes || '');
-        
-        // Manejo de archivo existente (Preview solo)
-        if (initialData.receiptUrl) {
-            setPreviewUrl(initialData.receiptUrl);
-        }
-
-        // Si es impuesto municipal, intentar inferir el grupo/item por el nombre (aproximado)
-        // O simplemente dejarlo manual si no coincide exactamente, pero la categoría ya está seteada.
-        if (initialData.category === Category.MUNICIPAL_TAX) {
-            // Lógica simple de reversa para encontrar el grupo (opcional)
-            // Se puede mejorar si guardamos el código del item en el Payment
-        }
-
-        // Cargar datos de presupuesto si existen
-        if (initialData.isOverBudget) {
-            setIsOverBudget(true);
-            setJustificationConfirmed(true);
-            setJustificationNote(initialData.justification || '');
-            setExpectedBudget(initialData.originalBudget || null);
-        }
-    }
-  }, [initialData]);
-
   // Auto-fill logic based on municipal selection (Items & Amounts)
   useEffect(() => {
-    // Solo autocompletar si NO estamos editando o si el usuario cambia activamente la selección
-    // Para evitar sobrescribir datos cargados del `initialData` al montar
+    if (store) {
+      const selectedStore = STORES.find(s => s.id === store);
+      if (selectedStore) {
+        setStoreAddress(selectedStore.address || '');
+        setStoreMunicipality(selectedStore.municipality || '');
+      }
+    } else {
+      setStoreAddress('');
+      setStoreMunicipality('');
+    }
+  }, [store]);
+
+  useEffect(() => {
     if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
       const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
       const itemData = groupData?.items.find(i => i.code === muniItem);
@@ -179,35 +153,38 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setSpecificType(`${itemData.code} - ${itemData.name}`);
         if (itemData.amount !== undefined && !itemData.isVariable) {
           setAmount(itemData.amount.toString());
-          setExpectedBudget(itemData.amount); 
+          setExpectedBudget(itemData.amount); // Set budget baseline
         } else if (itemData.isVariable) {
-           if(!isEditMode) setAmount(''); // Solo limpiar si no es edit mode
-           setExpectedBudget(null); 
+           setAmount(''); 
+           setExpectedBudget(null); // No fixed budget for variable items
         }
       }
-    } else if (category !== Category.MUNICIPAL_TAX && !isEditMode) {
-        // Limpiar solo si cambia de categoría y no es carga inicial de edición
+    } else if (category !== Category.MUNICIPAL_TAX) {
         setMuniGroup('');
         setMuniItem('');
         setExpectedBudget(null);
     }
-  }, [category, muniGroup, muniItem, isEditMode]);
+  }, [category, muniGroup, muniItem]);
 
   // Auto-fill Due Date based on Municipal Group Configuration
   useEffect(() => {
-    if (category === Category.MUNICIPAL_TAX && muniGroup && !isEditMode) {
+    if (category === Category.MUNICIPAL_TAX && muniGroup) {
         const config = MUNICIPAL_TAX_CONFIG[muniGroup];
         if (config) {
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth();
             const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Ajustar día si el mes es más corto que la fecha límite (ej. Feb 28 vs día 30)
             const targetDay = Math.min(config.deadlineDay, lastDayOfMonth);
+            
+            // Formatear a YYYY-MM-DD
             const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
             setDueDate(formattedDate);
         }
     }
-  }, [category, muniGroup, isEditMode]);
+  }, [category, muniGroup]);
 
   // Budget Monitoring Logic
   useEffect(() => {
@@ -215,23 +192,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         const numericAmount = parseFloat(amount);
         if (!isNaN(numericAmount) && numericAmount > expectedBudget) {
             setIsOverBudget(true);
+            // If they modify the amount to be higher again, reset confirmation to force re-check unless it's just minor editing
+            // We'll handle the modal opening on Submit to be less intrusive, or via a warning button.
         } else {
-            // Si estamos editando y ya estaba justificado, mantenemos el estado
-            if (!initialData?.isOverBudget) {
-                 setIsOverBudget(false);
-                 setJustificationConfirmed(false);
-            }
+            setIsOverBudget(false);
+            setJustificationConfirmed(false); // Reset if back to normal
         }
     } else {
-        if(!initialData?.isOverBudget) setIsOverBudget(false);
+        setIsOverBudget(false);
     }
-  }, [amount, expectedBudget, initialData]);
+  }, [amount, expectedBudget]);
 
 
-  // Clean up preview URL only if it's a blob (new file), not a remote URL
+  // Clean up preview URL
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
@@ -266,16 +242,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         }
         setIsFileScanning(true);
         setFile(null); 
-        // Si hay una URL previa (blob o remota), revocar si es blob
-        if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
-        
         await new Promise(resolve => setTimeout(resolve, 800));
         if (selectedFile.type.startsWith('image/')) {
             setPreviewUrl(URL.createObjectURL(selectedFile));
-        } else {
-             // Fake PDF preview placeholder logic
-             setPreviewUrl(null); 
         }
         setFile(selectedFile);
         setIsFileScanning(false);
@@ -285,16 +255,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   const clearFile = (e: React.MouseEvent) => {
       e.stopPropagation(); e.preventDefault();
-      setFile(null); 
-      setPreviewUrl(null);
+      setFile(null); setPreviewUrl(null);
   };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    if (category === Category.MUNICIPAL_TAX && !isEditMode) {
-        // En modo edición somos más laxos con la selección del menú lateral, pero estrictos en el valor
+    if (category === Category.MUNICIPAL_TAX) {
         if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal";
         if (!muniItem) newErrors.muniItem = "Seleccione el concepto";
     }
@@ -302,9 +270,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    
-    // En modo edición, el archivo es opcional si ya existe uno previo (receiptUrl)
-    if (!file && !isFileScanning && !initialData?.receiptUrl) newErrors.file = "Comprobante requerido";
+    if (!file && !isFileScanning) newErrors.file = "Comprobante requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -337,7 +303,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             dueDate,
             paymentDate,
             specificType,
-            file, // Puede ser null en edición si no se cambió
+            file,
             notes,
             // Extra Data
             originalBudget: expectedBudget,
@@ -360,6 +326,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
     setJustificationConfirmed(true);
     setShowJustificationModal(false);
+    // Optionally auto-submit here, or let user click submit again.
+    // Let's let them click submit again to be safe, or trigger it.
+    // For better UX, we just close the modal and let them hit "Enviar" again, 
+    // but visually showing it's justified.
   };
 
   return (
@@ -448,24 +418,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       )}
       {/* --------------------------- */}
 
-      {/* ALERT DE RECHAZO (SOLO MODO EDICION/CORRECCION) */}
-      {isEditMode && initialData?.rejectionReason && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 mb-6 animate-in slide-in-from-top-2 flex gap-4 items-start shadow-sm">
-             <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 dark:text-red-400">
-                 <AlertTriangle size={24} />
-             </div>
-             <div>
-                 <h3 className="font-bold text-red-800 dark:text-red-300 text-lg">Corrección Requerida</h3>
-                 <p className="text-sm font-medium text-red-700/80 dark:text-red-400/80 mt-1">
-                     El auditor ha devuelto este pago con la siguiente nota:
-                 </p>
-                 <div className="mt-2 bg-white dark:bg-slate-900 p-3 rounded-lg border border-red-100 dark:border-red-900/30 text-slate-700 dark:text-slate-300 italic text-sm">
-                     "{initialData.rejectionReason}"
-                 </div>
-             </div>
-          </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -473,12 +425,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <ChevronDown className="rotate-90" size={24} />
             </button>
             <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {isEditMode ? 'Corregir Pago' : 'Cargar Nuevo Pago'}
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                    {isEditMode ? 'Modifique los datos erróneos y reenvíe para aprobación.' : 'Registre los detalles de la transacción para auditoría.'}
-                </p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cargar Nuevo Pago</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Registre los detalles de la transacción para auditoría.</p>
             </div>
         </div>
       </div>
@@ -558,7 +506,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
                      <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
-                             <Building2 size={20} />
+                             <Calculator size={20} />
                         </div>
                         <div>
                             <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
@@ -651,6 +599,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <DollarSign size={16} /> Detalles Financieros
             </h2>
 
+            {/* Store Location Info (Auto-filled) */}
+            {store && (
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-start gap-3 animate-in fade-in slide-in-from-left-2">
+                    <MapPin className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Municipio / Alcaldía</span>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
+                        </div>
+                        <div>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Dirección de Sucursal</span>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 italic">{storeAddress || 'No especificada'}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="space-y-6">
                 <div>
                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
@@ -659,10 +624,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             type="text"
                             placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
                             value={specificType}
-                            // Permitimos editar la descripción si no es municipal, o si es municipal y estamos en modo edición (flexibilidad)
-                            readOnly={(category === Category.MUNICIPAL_TAX && !isEditMode) || isSubmitting}
+                            readOnly={category === Category.MUNICIPAL_TAX || isSubmitting}
                             onChange={(e) => setSpecificType(e.target.value)}
-                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX && !isEditMode ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                         />
                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                      </div>
@@ -759,7 +723,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                      <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
                          isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
                      } ${
-                         file || previewUrl ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                         file ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
                      }`}>
                         
                         {/* Overlay de Carga de Archivo */}
@@ -771,10 +735,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         )}
 
                         <div className="flex flex-col items-center justify-center w-full h-full">
-                            {file || previewUrl ? (
+                            {file ? (
                                 <div className="w-full h-full relative group/file">
                                     {previewUrl ? (
-                                        // Image Preview (Existing or New)
+                                        // Image Preview
                                         <div className="w-full h-full relative p-2">
                                             <img
                                                 src={previewUrl}
@@ -796,13 +760,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             </div>
                                         </div>
                                     ) : (
-                                        // PDF/File Preview (Placeholder)
+                                        // PDF/File Preview
                                         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
-                                            <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-2xl mb-3">
-                                                <FileText size={32} className="text-blue-500 dark:text-blue-400" />
+                                            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl mb-3 ring-4 ring-red-50 dark:ring-red-900/10">
+                                                <FileText size={32} className="text-red-500 dark:text-red-400" />
                                             </div>
                                             <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
-                                                {file ? file.name : 'Archivo Cargado'}
+                                                {file.name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                {(file.size / (1024 * 1024)).toFixed(2)} MB
                                             </p>
                                             <button
                                                 onClick={clearFile}
@@ -873,9 +840,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 className={`w-full md:flex-1 ${
                     isOverBudget && !justificationConfirmed 
                     ? 'bg-yellow-500 hover:bg-yellow-600' 
-                    : isEditMode 
-                        ? 'bg-indigo-600 hover:bg-indigo-700'
-                        : 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
                 } text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
                 {isSubmitting ? (
@@ -892,11 +857,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <>
                          <span>Continuar (Justificar Exceso)</span>
                          <AlertTriangle size={20} />
-                    </>
-                ) : isEditMode ? (
-                    <>
-                        <span>Corregir y Reenviar</span>
-                        <RefreshCw size={20} />
                     </>
                 ) : (
                     <>

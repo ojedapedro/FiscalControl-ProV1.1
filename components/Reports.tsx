@@ -21,7 +21,7 @@ import { Payment, PaymentStatus } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 
-import { VenezuelaMap } from './VenezuelaMap';
+import VenezuelaMap from '@/components/VenezuelaMap';
 
 interface ReportsProps {
   payments: Payment[];

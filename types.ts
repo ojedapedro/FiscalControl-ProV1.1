@@ -49,6 +49,8 @@ export interface Store {
   status: 'En Regla' | 'En Riesgo' | 'Vencido';
   nextDeadline: string;
   matrixId: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Payment {

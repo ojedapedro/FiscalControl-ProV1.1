@@ -110,8 +110,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
     title: string;
     amount: string;
     category: Category;
-    notes: string;
-  }>({ title: 'Provisión Impuesto Municipal', amount: '', category: Category.MUNICIPAL_TAX, notes: '' });
+  }>({ title: '', amount: '', category: Category.MUNICIPAL_TAX });
 
   // Estado combinado para la vista lateral
   const [dayEvents, setDayEvents] = useState<{
@@ -167,18 +166,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
     setDayEvents({ realPayments: real, deadlines: statutory, budgets: dayBudgets });
   }, [selectedDate, payments, budgets]);
 
-  // Helper para obtener título por defecto según categoría
-  const getDefaultTitleForCategory = (cat: Category) => {
-    switch (cat) {
-        case Category.NATIONAL_TAX: return 'Provisión Impuesto Nacional';
-        case Category.MUNICIPAL_TAX: return 'Provisión Impuesto Municipal';
-        case Category.UTILITY: return 'Provisión Servicios Públicos';
-        case Category.INVENTORY: return 'Provisión Inventario';
-        case Category.OTHER: return 'Provisión General';
-        default: return '';
-    }
-  };
-
   // Manejo de creación de presupuesto
   const handleAddBudget = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,19 +181,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
         date: dateStr,
         title: newBudget.title,
         amount: parseFloat(newBudget.amount),
-        category: newBudget.category,
-        notes: newBudget.notes
+        category: newBudget.category
     };
 
     setBudgets([...budgets, entry]);
     setIsBudgetModalOpen(false);
-    // Resetear formulario con valores por defecto
-    setNewBudget({ 
-        title: 'Provisión Impuesto Municipal', 
-        amount: '', 
-        category: Category.MUNICIPAL_TAX, 
-        notes: '' 
-    }); 
+    setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX }); // Reset
   };
 
   const handleDeleteBudget = (id: string) => {
@@ -327,14 +307,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                           <div className="relative">
                             <select 
                                 value={newBudget.category}
-                                onChange={(e) => {
-                                    const cat = e.target.value as Category;
-                                    setNewBudget({
-                                        ...newBudget, 
-                                        category: cat,
-                                        title: getDefaultTitleForCategory(cat)
-                                    });
-                                }}
+                                onChange={(e) => setNewBudget({...newBudget, category: e.target.value as Category})}
                                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white appearance-none"
                             >
                                 {Object.values(Category).map(cat => (
@@ -369,16 +342,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                               />
                               <DollarSign className="absolute left-3 top-3 text-slate-400" size={16} />
                           </div>
-                      </div>
-
-                      <div>
-                          <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Notas (Opcional)</label>
-                          <textarea
-                              placeholder="Detalles adicionales..."
-                              value={newBudget.notes}
-                              onChange={(e) => setNewBudget({...newBudget, notes: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white resize-none h-20"
-                          />
                       </div>
 
                       <div className="pt-4 flex gap-3">
@@ -495,10 +458,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                                 <span className="text-cyan-800 dark:text-cyan-200 font-bold text-sm">{budget.title}</span>
                             </div>
                             <p className="text-xs text-cyan-600 dark:text-cyan-400 mb-2">{budget.category}</p>
-                            {budget.notes && (
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 italic line-clamp-2">"{budget.notes}"</p>
-                            )}
-                            <div className="font-mono text-lg font-bold text-cyan-700 dark:text-cyan-300 mt-2">
+                            <div className="font-mono text-lg font-bold text-cyan-700 dark:text-cyan-300">
                                 ${budget.amount.toLocaleString()}
                             </div>
                         </div>
@@ -557,7 +517,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
             className="mt-6 w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-200 dark:shadow-cyan-900/30 transition-all active:scale-[0.99]"
         >
             <Plus size={20} />
-            Cargar Presupuesto Manual
+            Cargar Presupuesto
         </button>
       </div>
     </div>
