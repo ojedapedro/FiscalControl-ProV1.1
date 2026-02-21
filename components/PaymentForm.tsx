@@ -21,7 +21,7 @@ import {
   Clock,
   FileWarning
 } from 'lucide-react';
-import { Category } from '../types';
+import { Category, Payment, PaymentStatus } from '../types';
 import { STORES } from '../constants';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
@@ -92,38 +92,39 @@ const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number;
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
+  initialData?: Payment | null;
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) => {
-  const [store, setStore] = useState('');
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData }) => {
+  const [store, setStore] = useState(initialData?.storeId || '');
   const [storeAddress, setStoreAddress] = useState('');
   const [storeMunicipality, setStoreMunicipality] = useState('');
-  const [category, setCategory] = useState<Category | ''>('');
+  const [category, setCategory] = useState<Category | ''>(initialData?.category || '');
   
   // States for Municipal Tax Logic
   const [muniGroup, setMuniGroup] = useState('');
   const [muniItem, setMuniItem] = useState('');
 
-  const [amount, setAmount] = useState('');
-  const [expectedBudget, setExpectedBudget] = useState<number | null>(null);
+  const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+  const [expectedBudget, setExpectedBudget] = useState<number | null>(initialData?.originalBudget || null);
   
-  const [dueDate, setDueDate] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [specificType, setSpecificType] = useState('');
+  const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
+  const [paymentDate, setPaymentDate] = useState(initialData?.paymentDate || new Date().toISOString().split('T')[0]);
+  const [specificType, setSpecificType] = useState(initialData?.specificType || '');
   
   // Archivos
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.receiptUrl || null);
 
   // --- Justification State ---
-  const [isOverBudget, setIsOverBudget] = useState(false);
+  const [isOverBudget, setIsOverBudget] = useState(initialData?.isOverBudget || false);
   const [showJustificationModal, setShowJustificationModal] = useState(false);
-  const [justificationNote, setJustificationNote] = useState('');
+  const [justificationNote, setJustificationNote] = useState(initialData?.justification || '');
   const [justificationFile, setJustificationFile] = useState<File | null>(null);
-  const [justificationConfirmed, setJustificationConfirmed] = useState(false);
+  const [justificationConfirmed, setJustificationConfirmed] = useState(!!initialData?.justification);
   const [manualOverBudget, setManualOverBudget] = useState(false);
 
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialData?.notes || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Estados de carga
@@ -288,7 +289,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    if (!file && !isFileScanning) newErrors.file = "Comprobante requerido";
+    if (!file && !isFileScanning && !initialData?.receiptUrl) newErrors.file = "Comprobante requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -315,6 +316,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
 
     try {
         await onSubmit({
+            id: initialData?.id,
             storeId: store,
             category,
             amount: parseFloat(amount),
@@ -340,6 +342,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
   const handleConfirmJustification = () => {
     if (!justificationNote.trim()) {
         alert("Debe escribir una razón para el excedente.");
+        return;
+    }
+    if (isCurrentMuniItemVariable && manualOverBudget && !justificationFile) {
+        alert("Debe adjuntar un archivo de soporte para el excedente manual.");
         return;
     }
     setJustificationConfirmed(true);
@@ -383,7 +389,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
 
                       <div>
                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                              Soporte del Excedente (Opcional)
+                              Soporte del Excedente {isCurrentMuniItemVariable && manualOverBudget && <span className="text-red-500 font-bold"> (Requerido)</span>}
                           </label>
                           <div className="flex items-center gap-3">
                               <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
@@ -446,8 +452,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel }) 
                 <ChevronDown className="rotate-90" size={24} />
             </button>
             <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cargar Nuevo Pago</h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Registre los detalles de la transacción para auditoría.</p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {initialData ? 'Corregir Pago' : 'Cargar Nuevo Pago'}
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    {initialData 
+                        ? `Editando pago devuelto: ${initialData.id}` 
+                        : 'Registre los detalles de la transacción para auditoría.'
+                    }
+                </p>
             </div>
         </div>
       </div>

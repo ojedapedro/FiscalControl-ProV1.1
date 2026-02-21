@@ -15,16 +15,18 @@ import {
   Activity,
   XCircle,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 
 interface DashboardProps {
   payments: Payment[];
   onNewPayment: () => void;
+  onEditPayment: (payment: Payment) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
 
   // Calcular totales reales basados en el estado de los pagos
@@ -362,6 +364,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment }) 
                         <p className="text-[10px] text-pink-600 dark:text-pink-400 italic max-w-[200px] text-right">
                           Obs: {payment.rejectionReason}
                         </p>
+                      )}
+                      {payment.status === PaymentStatus.REJECTED && (
+                        <button 
+                          onClick={() => onEditPayment(payment)}
+                          className="mt-2 text-[10px] bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
+                        >
+                          <RefreshCw size={10} />
+                          Corregir Ahora
+                        </button>
                       )}
                     </div>
                   </div>

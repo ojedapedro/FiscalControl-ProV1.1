@@ -26,6 +26,7 @@ function App() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
@@ -136,14 +137,17 @@ function App() {
 
   const handleNewPayment = async (paymentData: any) => {
     setIsLoading(true);
-    const initialLog: AuditLog = {
+    const isUpdate = !!paymentData.id;
+    
+    const log: AuditLog = {
       date: new Date().toISOString(),
-      action: 'CREACION',
+      action: isUpdate ? 'CORRECCION' : 'CREACION',
       actorName: currentUser?.name || 'Usuario', 
-      role: currentUser?.role || Role.ADMIN
+      role: currentUser?.role || Role.ADMIN,
+      note: isUpdate ? 'Pago corregido tras devolución' : undefined
     };
 
-    let receiptUrl = undefined;
+    let receiptUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl : undefined;
     if (paymentData.file) {
         try {
             receiptUrl = await fileToBase64(paymentData.file);
@@ -152,7 +156,7 @@ function App() {
         }
     }
 
-    let justificationFileUrl = undefined;
+    let justificationFileUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.justificationFileUrl : undefined;
     if (paymentData.justificationFile) {
         try {
             justificationFileUrl = await fileToBase64(paymentData.justificationFile);
@@ -161,8 +165,8 @@ function App() {
         }
     }
 
-    const newPayment: Payment = {
-      id: `PAG-${Math.floor(Math.random() * 10000)}`,
+    const paymentToSave: Payment = {
+      id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
       storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
       userId: currentUser?.id || 'U-UNK',
@@ -171,25 +175,34 @@ function App() {
       amount: paymentData.amount,
       dueDate: paymentData.dueDate,
       paymentDate: paymentData.paymentDate,
-      status: PaymentStatus.PENDING,
-      submittedDate: new Date().toISOString(),
+      status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
+      submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       notes: paymentData.notes,
-      history: [initialLog],
+      history: isUpdate 
+        ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
+        : [log],
       receiptUrl: receiptUrl,
       justificationFileUrl: justificationFileUrl
     };
     
-    if(paymentData.originalBudget) newPayment.originalBudget = paymentData.originalBudget;
-    if(paymentData.isOverBudget) newPayment.isOverBudget = paymentData.isOverBudget;
-    if(paymentData.justification) newPayment.justification = paymentData.justification;
+    if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
+    if(paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
+    if(paymentData.justification) paymentToSave.justification = paymentData.justification;
 
     try {
-        await api.createPayment(newPayment);
-        setPayments(prev => [newPayment, ...prev]);
+        if (isUpdate) {
+            await api.updatePayment(paymentToSave);
+            setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
+            setNotification('✅ Pago corregido y enviado a revisión.');
+        } else {
+            await api.createPayment(paymentToSave);
+            setPayments(prev => [paymentToSave, ...prev]);
+            setNotification('✅ Pago guardado en Google Sheets.');
+        }
         setIsFormOpen(false);
-        setNotification('✅ Pago guardado en Google Sheets.');
+        setEditingPayment(null);
     } catch (error) {
-        setNotification('❌ Error guardando pago.');
+        setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
     } finally {
         setIsLoading(false);
         setTimeout(() => setNotification(null), 3000);
@@ -307,7 +320,19 @@ function App() {
 
     switch (currentView) {
       case 'payments':
-        return <Dashboard payments={payments} onNewPayment={() => setIsFormOpen(true)} />;
+        return (
+          <Dashboard 
+            payments={payments} 
+            onNewPayment={() => {
+              setEditingPayment(null);
+              setIsFormOpen(true);
+            }} 
+            onEditPayment={(payment) => {
+              setEditingPayment(payment);
+              setIsFormOpen(true);
+            }}
+          />
+        );
       case 'approvals':
         return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
       case 'reports':
@@ -470,7 +495,14 @@ function App() {
         {isFormOpen && (
            <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
               <div className="bg-white dark:bg-slate-950 w-full max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                  <PaymentForm onSubmit={handleNewPayment} onCancel={() => setIsFormOpen(false)} />
+                  <PaymentForm 
+                    initialData={editingPayment}
+                    onSubmit={handleNewPayment} 
+                    onCancel={() => {
+                      setIsFormOpen(false);
+                      setEditingPayment(null);
+                    }} 
+                  />
               </div>
            </div>
         )}
