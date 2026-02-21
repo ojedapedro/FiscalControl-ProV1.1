@@ -90,6 +90,44 @@ const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number;
   }
 };
 
+const NATIONAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'IVA': {
+    label: '2.1 IVA (IMPUESTO AL VALOR AGREGADO)',
+    deadlineDay: 15,
+    items: [
+      { code: '2.1.1', name: 'IVA MENSUAL - REGULAR', isVariable: true },
+      { code: '2.1.2', name: 'RETENCIONES DE IVA', isVariable: true },
+    ]
+  },
+  'ISLR': {
+    label: '2.2 ISLR (IMPUESTO SOBRE LA RENTA)',
+    deadlineDay: 10,
+    items: [
+      { code: '2.2.1', name: 'RETENCIONES ISLR - SERVICIOS', isVariable: true },
+      { code: '2.2.2', name: 'RETENCIONES ISLR - ALQUILERES', isVariable: true },
+      { code: '2.2.3', name: 'DECLARACION ESTIMADA ISLR', isVariable: true },
+      { code: '2.2.4', name: 'DECLARACION DEFINITIVA ANUAL', isVariable: true },
+    ]
+  },
+  'IGTF': {
+    label: '2.3 IGTF (GRANDES TRANSACCIONES)',
+    deadlineDay: 15,
+    items: [
+      { code: '2.3.1', name: 'IGTF - PAGO QUINCENAL', isVariable: true }
+    ]
+  },
+  'OTROS_NACIONALES': {
+    label: '2.4 OTROS IMPUESTOS NACIONALES',
+    deadlineDay: 30,
+    items: [
+      { code: '2.4.1', name: 'CONTRIBUCION PARAFISCAL (INCES)', isVariable: true },
+      { code: '2.4.2', name: 'CONTRIBUCION PARAFISCAL (IVSS)', isVariable: true },
+      { code: '2.4.3', name: 'CONTRIBUCION PARAFISCAL (FAOV)', isVariable: true },
+      { code: '2.4.4', name: 'OTRO IMPUESTO NACIONAL', isVariable: true },
+    ]
+  }
+};
+
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
@@ -102,9 +140,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [storeMunicipality, setStoreMunicipality] = useState('');
   const [category, setCategory] = useState<Category | ''>(initialData?.category || '');
   
-  // States for Municipal Tax Logic
-  const [muniGroup, setMuniGroup] = useState('');
-  const [muniItem, setMuniItem] = useState('');
+  // States for Tax Logic (Municipal & National)
+  const [taxGroup, setTaxGroup] = useState('');
+  const [taxItem, setTaxItem] = useState('');
 
   const [amount, setAmount] = useState(initialData?.amount.toString() || '');
   const [expectedBudget, setExpectedBudget] = useState<number | null>(initialData?.originalBudget || null);
@@ -148,9 +186,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [store]);
 
   useEffect(() => {
-    if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
-      const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
-      const itemData = groupData?.items.find(i => i.code === muniItem);
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+
+    if (isTaxCategory && taxGroup && taxItem) {
+      const groupData = config[taxGroup];
+      const itemData = groupData?.items.find(i => i.code === taxItem);
       
       if (itemData) {
         setSpecificType(`${itemData.code} - ${itemData.name}`);
@@ -163,17 +204,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
            setExpectedBudget(null); // No fixed budget for variable items
         }
       }
-    } else if (category !== Category.MUNICIPAL_TAX) {
-        setMuniGroup('');
-        setMuniItem('');
+    } else if (!isTaxCategory) {
+        setTaxGroup('');
+        setTaxItem('');
         setExpectedBudget(null);
     }
-  }, [category, muniGroup, muniItem]);
+  }, [category, taxGroup, taxItem]);
 
-  // Auto-fill Due Date based on Municipal Group Configuration
+  // Auto-fill Due Date based on Tax Group Configuration
   useEffect(() => {
-    if (category === Category.MUNICIPAL_TAX && muniGroup) {
-        const config = MUNICIPAL_TAX_CONFIG[muniGroup];
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+
+    if (isTaxCategory && taxGroup) {
+        const config = configMap[taxGroup];
         if (config) {
             const now = new Date();
             const year = now.getFullYear();
@@ -188,21 +232,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             setDueDate(formattedDate);
         }
     }
-  }, [category, muniGroup]);
+  }, [category, taxGroup]);
 
-  const isCurrentMuniItemVariable = useMemo(() => {
-    if (category === Category.MUNICIPAL_TAX && muniGroup && muniItem) {
-        const groupData = MUNICIPAL_TAX_CONFIG[muniGroup];
-        const itemData = groupData?.items.find(i => i.code === muniItem);
+  const isCurrentTaxItemVariable = useMemo(() => {
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+
+    if (isTaxCategory && taxGroup && taxItem) {
+        const groupData = configMap[taxGroup];
+        const itemData = groupData?.items.find(i => i.code === taxItem);
         return itemData?.isVariable || false;
     }
     return false;
-  }, [category, muniGroup, muniItem]);
+  }, [category, taxGroup, taxItem]);
 
   // Budget Monitoring Logic
   useEffect(() => {
     const numericAmount = parseFloat(amount);
-    if (isCurrentMuniItemVariable) {
+    if (isCurrentTaxItemVariable) {
         // For variable items, only manual flag determines over budget
         setIsOverBudget(manualOverBudget);
         if (!manualOverBudget) {
@@ -219,7 +266,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     } else {
         setIsOverBudget(false);
     }
-  }, [amount, expectedBudget, manualOverBudget, isCurrentMuniItemVariable]);
+  }, [amount, expectedBudget, manualOverBudget, isCurrentTaxItemVariable]);
 
 
   // Clean up preview URL
@@ -238,18 +285,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     return { color: 'bg-green-500', text: 'text-green-600', bgSoft: 'bg-green-100', status: 'En fecha', icon: CheckCircle2 };
   };
 
-  const municipalStatusList = useMemo(() => {
-    return Object.entries(MUNICIPAL_TAX_CONFIG).map(([key, config]) => {
+  const taxStatusList = useMemo(() => {
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+    return Object.entries(config).map(([key, config]) => {
         const status = getTaxStatus(config.deadlineDay);
         return { key, label: config.label, ...status };
     });
-  }, []);
+  }, [category]);
 
   const globalStatus = useMemo(() => {
-    if (municipalStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
-    if (municipalStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
+    if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
+    if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
     return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
-  }, [municipalStatusList]);
+  }, [taxStatusList]);
 
 
 
@@ -282,9 +330,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    if (category === Category.MUNICIPAL_TAX) {
-        if (!muniGroup) newErrors.muniGroup = "Seleccione el grupo fiscal";
-        if (!muniItem) newErrors.muniItem = "Seleccione el concepto";
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
+    if (isTaxCategory) {
+        if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
+        if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
     }
     if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Monto inválido";
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
@@ -345,7 +394,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         alert("Debe escribir una razón para el excedente.");
         return;
     }
-    if (isCurrentMuniItemVariable && manualOverBudget && !justificationFile) {
+    if (isCurrentTaxItemVariable && manualOverBudget && !justificationFile) {
         alert("Debe adjuntar un archivo de soporte para el excedente manual.");
         return;
     }
@@ -370,7 +419,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                           Excedente Presupuestario
                       </h3>
                       <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
-                          {isCurrentMuniItemVariable
+                          {isCurrentTaxItemVariable
                             ? `Se ha marcado el monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) como un excedente que requiere justificación.`
                             : `El monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro ($${expectedBudget?.toLocaleString()}).`
                           }
@@ -390,7 +439,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                       <div>
                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                              Soporte del Excedente {isCurrentMuniItemVariable && manualOverBudget && <span className="text-red-500 font-bold"> (Requerido)</span>}
+                              Soporte del Excedente {isCurrentTaxItemVariable && manualOverBudget && <span className="text-red-500 font-bold"> (Requerido)</span>}
                           </label>
                           <div className="flex items-center gap-3">
                               <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
@@ -545,8 +594,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </div>
         </section>
 
-        {/* Dynamic Municipal Tax Section with Traffic Light */}
-        {category === Category.MUNICIPAL_TAX && (
+        {/* Dynamic Tax Section with Traffic Light (Municipal & National) */}
+        {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) && (
             <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                 
                 {/* Header Dinámico */}
@@ -569,23 +618,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <div className="p-4 border-r border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
                         <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                            {municipalStatusList.map((item) => (
+                            {taxStatusList.map((item) => (
                                 <button
                                     key={item.key}
                                     type="button"
                                     onClick={() => {
-                                        setMuniGroup(item.key);
-                                        setMuniItem(''); 
+                                        setTaxGroup(item.key);
+                                        setTaxItem(''); 
                                     }}
                                     className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
-                                        muniGroup === item.key 
+                                        taxGroup === item.key 
                                         ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
                                         : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-3 h-3 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
-                                        <span className={`text-sm font-medium ${muniGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                                        <span className={`text-sm font-medium ${taxGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
                                             {item.label.split(' ')[1]} {item.label.split(' ')[2]}...
                                         </span>
                                     </div>
@@ -604,15 +653,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
                                 <div className="relative">
                                     <select
-                                        value={muniItem}
-                                        onChange={(e) => setMuniItem(e.target.value)}
-                                        disabled={!muniGroup || isSubmitting}
-                                        className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.muniItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
+                                        value={taxItem}
+                                        onChange={(e) => setTaxItem(e.target.value)}
+                                        disabled={!taxGroup || isSubmitting}
+                                        className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.taxItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
                                     >
                                         <option value="">
-                                            {muniGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
+                                            {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
                                         </option>
-                                        {muniGroup && MUNICIPAL_TAX_CONFIG[muniGroup].items.map((item) => (
+                                        {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup].items.map((item) => (
                                             <option key={item.code} value={item.code}>
                                                 {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
                                             </option>
@@ -622,7 +671,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <ChevronDown size={16} />
                                     </div>
                                 </div>
-                                {errors.muniItem && <p className="text-red-500 text-xs ml-1">{errors.muniItem}</p>}
+                                {errors.taxItem && <p className="text-red-500 text-xs ml-1">{errors.taxItem}</p>}
                             </div>
 
                             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
@@ -669,11 +718,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                      <div className="relative group">
                         <input
                             type="text"
-                            placeholder={category === Category.MUNICIPAL_TAX ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
+                            placeholder={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
                             value={specificType}
-                            readOnly={category === Category.MUNICIPAL_TAX || isSubmitting}
+                            readOnly={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) || isSubmitting}
                             onChange={(e) => setSpecificType(e.target.value)}
-                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${category === Category.MUNICIPAL_TAX ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                         />
                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                      </div>
@@ -721,7 +770,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             </p>
                         )}
 
-                        {isCurrentMuniItemVariable && (
+                        {isCurrentTaxItemVariable && (
                             <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg flex items-center gap-3 border border-slate-200 dark:border-slate-700">
                                 <input
                                     type="checkbox"
