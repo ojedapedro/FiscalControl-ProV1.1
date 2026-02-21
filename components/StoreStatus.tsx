@@ -9,7 +9,10 @@ import {
   Store as StoreIcon, 
   MapPin,
   Search,
-  Filter
+  Filter,
+  ArrowRightLeft,
+  X,
+  Plus
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -31,6 +34,7 @@ interface StoreStatusProps {
 export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
+  const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
 
   // Calcular el estado dinámico de las tiendas basado en los pagos reales
   const dynamicStores = useMemo(() => {
@@ -57,13 +61,37 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
         
         const nextDeadline = activePayments.length > 0 ? activePayments[0].dueDate : store.nextDeadline;
 
+        // Estadísticas para comparación
+        const totalPaid = storePayments
+            .filter(p => p.status === PaymentStatus.APPROVED)
+            .reduce((sum, p) => sum + p.amount, 0);
+        
+        const totalPending = storePayments
+            .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE)
+            .reduce((sum, p) => sum + p.amount, 0);
+
         return {
             ...store,
             status: calculatedStatus,
-            nextDeadline: nextDeadline
+            nextDeadline: nextDeadline,
+            stats: {
+                totalPaid,
+                totalPending,
+                paymentCount: storePayments.length
+            }
         };
     });
   }, [payments]);
+
+  const toggleStoreSelection = (id: string) => {
+    setSelectedStoreIds(prev => 
+        prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectedStores = useMemo(() => 
+    dynamicStores.filter(s => selectedStoreIds.includes(s.id)),
+  [dynamicStores, selectedStoreIds]);
 
   // Calcular estadísticas para el gráfico basadas en datos dinámicos
   const stats = [
@@ -152,8 +180,88 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
             </div>
 
             {/* Real Map Card */}
-            <VenezuelaMap stores={dynamicStores} />
+            <VenezuelaMap stores={dynamicStores} selectedStoreIds={selectedStoreIds} onStoreClick={toggleStoreSelection} />
        </div>
+
+       {/* Comparison Panel */}
+       {selectedStores.length > 0 && (
+           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl animate-in slide-in-from-bottom-4 duration-300">
+               <div className="flex justify-between items-center mb-6">
+                   <div className="flex items-center gap-3">
+                       <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                           <ArrowRightLeft size={20} />
+                       </div>
+                       <h3 className="font-bold text-lg text-white">Comparativa de Desempeño Fiscal</h3>
+                   </div>
+                   <button 
+                       onClick={() => setSelectedStoreIds([])}
+                       className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-sm"
+                   >
+                       <X size={16} /> Limpiar selección
+                   </button>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                   {selectedStores.map(store => (
+                       <div key={store.id} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 space-y-4">
+                           <div className="flex justify-between items-start">
+                               <div>
+                                   <h4 className="font-bold text-white text-sm">{store.name}</h4>
+                                   <p className="text-[10px] text-slate-400">{store.location}</p>
+                               </div>
+                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                    store.status === 'En Regla' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                    store.status === 'En Riesgo' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                    'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                    {store.status}
+                                </span>
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-2">
+                               <div className="bg-slate-900/50 p-2 rounded-lg">
+                                   <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">Ejecutado</p>
+                                   <p className="text-xs font-bold text-blue-400">${store.stats.totalPaid.toLocaleString()}</p>
+                               </div>
+                               <div className="bg-slate-900/50 p-2 rounded-lg">
+                                   <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">Pendiente</p>
+                                   <p className="text-xs font-bold text-orange-400">${store.stats.totalPending.toLocaleString()}</p>
+                               </div>
+                           </div>
+
+                           <div className="space-y-2">
+                               <div className="flex justify-between text-[10px]">
+                                   <span className="text-slate-400">Cumplimiento</span>
+                                   <span className="text-white font-bold">
+                                       {store.stats.paymentCount > 0 
+                                           ? Math.round((store.stats.totalPaid / (store.stats.totalPaid + store.stats.totalPending || 1)) * 100) 
+                                           : 0}%
+                                   </span>
+                               </div>
+                               <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
+                                   <div 
+                                       className={`h-full transition-all duration-500 ${
+                                           store.status === 'En Regla' ? 'bg-green-500' : 
+                                           store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
+                                       }`}
+                                       style={{ width: `${Math.round((store.stats.totalPaid / (store.stats.totalPaid + store.stats.totalPending || 1)) * 100)}%` }}
+                                   ></div>
+                               </div>
+                           </div>
+                       </div>
+                   ))}
+                   
+                   {selectedStores.length < 4 && (
+                       <div className="border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center p-4 text-center group hover:border-slate-700 transition-colors">
+                           <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 mb-2 group-hover:scale-110 transition-transform">
+                               <Plus size={20} />
+                           </div>
+                           <p className="text-[10px] text-slate-500">Seleccione otra tienda en el directorio para comparar</p>
+                       </div>
+                   )}
+               </div>
+           </div>
+       )}
 
         {/* Directory List */}
         <div className="space-y-4">
@@ -173,12 +281,20 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
                             key={store.id} 
                             onMouseEnter={() => setHoveredStore(store.id)}
                             onMouseLeave={() => setHoveredStore(null)}
-                            className={`bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border transition-all duration-300 ${
-                                hoveredStore === store.id 
+                            onClick={() => toggleStoreSelection(store.id)}
+                            className={`bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border transition-all duration-300 cursor-pointer relative ${
+                                selectedStoreIds.includes(store.id)
+                                ? 'border-blue-500 ring-2 ring-blue-500/20'
+                                : hoveredStore === store.id 
                                 ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/20 translate-y-[-2px]' 
                                 : 'border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-slate-600'
                             }`}
                         >
+                            {selectedStoreIds.includes(store.id) && (
+                                <div className="absolute top-2 right-2 text-blue-500 animate-in zoom-in duration-200">
+                                    <CheckCircle2 size={16} />
+                                </div>
+                            )}
                             <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${

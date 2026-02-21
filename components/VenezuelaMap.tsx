@@ -5,6 +5,8 @@ import { Store } from '../types';
 
 interface VenezuelaMapProps {
   stores: Store[];
+  selectedStoreIds?: string[];
+  onStoreClick?: (id: string) => void;
 }
 
 const VENEZUELA_GEOJSON: any = {
@@ -25,7 +27,7 @@ const VENEZUELA_GEOJSON: any = {
   ]
 };
 
-export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores }) => {
+export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStoreIds = [], onStoreClick }) => {
   const width = 400;
   const height = 300;
 
@@ -42,7 +44,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores }) => {
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center">
-      <h3 className="text-lg font-bold text-white mb-4 self-start w-full">Ubicación de Tiendas</h3>
+      <h3 className="text-lg font-bold text-white mb-4 self-start w-full">Mapa de Cobertura</h3>
       <div className="relative w-full h-[300px] flex items-center justify-center">
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="max-w-full h-auto">
           <g>
@@ -60,23 +62,30 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores }) => {
             {stores.map((store) => {
               if (store.lat && store.lng) {
                 const [x, y] = projection([store.lng, store.lat]) || [0, 0];
+                const isSelected = selectedStoreIds.includes(store.id);
                 return (
-                  <g key={store.id} className="group cursor-pointer">
+                  <g 
+                    key={store.id} 
+                    className="group cursor-pointer"
+                    onClick={() => onStoreClick?.(store.id)}
+                  >
                     <circle
                       cx={x}
                       cy={y}
-                      r="5"
+                      r={isSelected ? "8" : "5"}
                       fill={store.status === 'En Regla' ? '#22c55e' : store.status === 'En Riesgo' ? '#eab308' : '#ef4444'}
+                      stroke={isSelected ? "#fff" : "transparent"}
+                      strokeWidth={isSelected ? "2" : "0"}
                       className="transition-all duration-300 group-hover:r-8"
                     />
                     <circle
                       cx={x}
                       cy={y}
-                      r="8"
+                      r={isSelected ? "12" : "8"}
                       fill="transparent"
                       stroke={store.status === 'En Regla' ? '#22c55e' : store.status === 'En Riesgo' ? '#eab308' : '#ef4444'}
-                      strokeWidth="1"
-                      className="animate-ping opacity-20"
+                      strokeWidth={isSelected ? "2" : "1"}
+                      className={`${isSelected ? 'animate-pulse' : 'animate-ping'} opacity-40`}
                     />
                     <title>{store.name} - {store.location}</title>
                   </g>
