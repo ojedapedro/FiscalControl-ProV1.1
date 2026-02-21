@@ -584,7 +584,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
          </div>
 
          {/* Venezuela Map */}
-         <div className="lg:col-span-1">
+         <div className="lg:col-span-2">
             <VenezuelaMap 
                 stores={dynamicStores} 
                 selectedStoreIds={selectedStore !== 'all' ? [selectedStore] : []}

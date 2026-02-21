@@ -132,9 +132,10 @@ interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
   initialData?: Payment | null;
+  payments: Payment[];
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments }) => {
   const [store, setStore] = useState(initialData?.storeId || '');
   const [storeAddress, setStoreAddress] = useState('');
   const [storeMunicipality, setStoreMunicipality] = useState('');
@@ -191,7 +192,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     if (isTaxCategory && taxGroup && taxItem) {
       const groupData = config[taxGroup];
-      const itemData = groupData?.items.find(i => i.code === taxItem);
+      const itemData = groupData?.items?.find(i => i.code === taxItem);
       
       if (itemData) {
         setSpecificType(`${itemData.code} - ${itemData.name}`);
@@ -240,7 +241,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     if (isTaxCategory && taxGroup && taxItem) {
         const groupData = configMap[taxGroup];
-        const itemData = groupData?.items.find(i => i.code === taxItem);
+        const itemData = groupData?.items?.find(i => i.code === taxItem);
         return itemData?.isVariable || false;
     }
     return false;
@@ -268,6 +269,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [amount, expectedBudget, manualOverBudget, isCurrentTaxItemVariable]);
 
+
+  // Reset tax selection when category changes to prevent inconsistent state
+  useEffect(() => {
+    if (!initialData) { // Only reset if not in initial edit mode
+      setTaxGroup('');
+      setTaxItem('');
+      setExpectedBudget(null);
+    }
+  }, [category, initialData]);
+
+  // Calcular el estado dinámico de las tiendas para el mapa
+  const dynamicStores = useMemo(() => {
+    return STORES.map(store => {
+        const storePayments = payments.filter(p => p.storeId === store.id);
+        let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
+        
+        const hasOverdue = storePayments.some(p => p.status === PaymentStatus.OVERDUE);
+        const hasPending = storePayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+
+        if (hasOverdue) {
+            calculatedStatus = 'Vencido';
+        } else if (hasPending) {
+            calculatedStatus = 'En Riesgo';
+        }
+
+        return {
+            ...store,
+            status: calculatedStatus
+        };
+    });
+  }, [payments]);
 
   // Clean up preview URL
   useEffect(() => {
@@ -585,7 +617,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                     <div className="hidden lg:block">
                         <VenezuelaMap 
-                            stores={STORES} 
+                            stores={dynamicStores} 
                             selectedStoreIds={store ? [store] : []} 
                             onStoreClick={(id) => setStore(id)}
                         />
@@ -661,7 +693,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <option value="">
                                             {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
                                         </option>
-                                        {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup].items.map((item) => (
+                                        {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
                                             <option key={item.code} value={item.code}>
                                                 {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
                                             </option>

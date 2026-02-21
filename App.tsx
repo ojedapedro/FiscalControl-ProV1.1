@@ -497,6 +497,7 @@ function App() {
               <div className="bg-white dark:bg-slate-950 w-full max-w-4xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                   <PaymentForm 
                     initialData={editingPayment}
+                    payments={payments}
                     onSubmit={handleNewPayment} 
                     onCancel={() => {
                       setIsFormOpen(false);
