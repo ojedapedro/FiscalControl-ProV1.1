@@ -1,6 +1,6 @@
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3';
 import { Store } from '../types';
 import { Maximize2, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
