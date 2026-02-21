@@ -1,5 +1,6 @@
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import * as d3 from 'd3';
 import { Store } from '../types';
 import { Maximize2, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
@@ -77,23 +78,30 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
-      <div className="flex justify-between items-center w-full mb-4 z-10">
-        <h3 className="text-lg font-bold text-white">Mapa de Cobertura</h3>
-        <div className="flex gap-2">
-          <button onClick={handleZoomIn} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors" title="Acercar">
-            <ZoomIn size={16} />
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl"
+    >
+      <div className="flex justify-between items-center w-full mb-6 z-10">
+        <div className="flex items-center gap-3">
+            <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+            <h3 className="text-xl font-bold text-white tracking-tight">Cobertura Nacional</h3>
+        </div>
+        <div className="flex gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 backdrop-blur-md">
+          <button onClick={handleZoomIn} className="p-2 hover:bg-slate-700 text-slate-300 rounded-lg transition-all active:scale-90" title="Acercar">
+            <ZoomIn size={18} />
           </button>
-          <button onClick={handleZoomOut} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors" title="Alejar">
-            <ZoomOut size={16} />
+          <button onClick={handleZoomOut} className="p-2 hover:bg-slate-700 text-slate-300 rounded-lg transition-all active:scale-90" title="Alejar">
+            <ZoomOut size={18} />
           </button>
-          <button onClick={handleReset} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors" title="Restablecer">
-            <RefreshCw size={16} />
+          <button onClick={handleReset} className="p-2 hover:bg-slate-700 text-slate-300 rounded-lg transition-all active:scale-90" title="Restablecer">
+            <RefreshCw size={18} />
           </button>
         </div>
       </div>
 
-      <div className="relative w-full h-[350px] flex items-center justify-center cursor-move">
+      <div className="relative w-full h-[450px] flex items-center justify-center cursor-move">
         <svg 
           ref={svgRef}
           width="100%" 
@@ -102,8 +110,11 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
           className="max-w-full h-auto touch-none"
         >
           <defs>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
+            </pattern>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
             <linearGradient id="mapGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -111,11 +122,18 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
               <stop offset="100%" stopColor="#0f172a" />
             </linearGradient>
           </defs>
+          
+          {/* Background Grid */}
+          <rect width="100%" height="100%" fill="url(#grid)" />
+
           <g ref={gRef}>
             <g>
               {VENEZUELA_GEOJSON.features.map((feature: any, i: number) => (
-                <path
+                <motion.path
                   key={i}
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 2, ease: "easeInOut" }}
                   d={pathGenerator(feature) || ''}
                   fill="url(#mapGradient)"
                   stroke="#334155"
@@ -156,7 +174,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                       <circle
                         cx={x}
                         cy={y}
-                        r={isSelected ? "14" : "10"}
+                        r={isSelected ? "18" : "12"}
                         fill="transparent"
                         stroke={color}
                         strokeWidth="2"
@@ -165,27 +183,32 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                       
                       {/* Selection ring */}
                       {isSelected && (
-                        <circle
+                        <motion.circle
+                          initial={{ r: 0 }}
+                          animate={{ r: 14 }}
                           cx={x}
                           cy={y}
-                          r="10"
                           fill="none"
                           stroke="#fff"
                           strokeWidth="2"
-                          className="animate-in zoom-in duration-300"
+                          strokeDasharray="4 2"
+                          className="animate-[spin_4s_linear_infinite]"
                         />
                       )}
 
                       {/* Main point */}
-                      <circle
+                      <motion.circle
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 1 }}
                         cx={x}
                         cy={y}
-                        r={isSelected ? "7" : "5"}
+                        r={isSelected ? "8" : "6"}
                         fill={color}
                         stroke={isSelected ? "#fff" : "rgba(0,0,0,0.3)"}
-                        strokeWidth={isSelected ? "2" : "1"}
+                        strokeWidth={isSelected ? "2.5" : "1.5"}
                         filter={isSelected ? "url(#glow)" : ""}
-                        className="transition-all duration-300 group-hover:r-8"
+                        className="transition-all duration-300 shadow-2xl"
                       />
                     </g>
                   );
@@ -197,61 +220,69 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
         </svg>
 
         {/* Custom Tooltip */}
-        {tooltip && (
-          <div 
-            className="absolute z-50 pointer-events-none bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 min-w-[150px]"
-            style={{ 
-              left: tooltip.x, 
-              top: tooltip.y - 10,
-              transform: 'translate(-50%, -100%)'
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${
-                tooltip.store.status === 'En Regla' ? 'bg-green-500' : 
-                tooltip.store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
-              }`}></div>
-              <p className="font-bold text-white text-xs">{tooltip.store.name}</p>
-            </div>
-            <p className="text-[10px] text-slate-400 flex items-center gap-1">
-              <Maximize2 size={10} /> {tooltip.store.location}
-            </p>
-            <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center">
-              <span className="text-[9px] text-slate-500 uppercase font-bold">Estado</span>
-              <span className={`text-[10px] font-bold ${
-                tooltip.store.status === 'En Regla' ? 'text-green-400' : 
-                tooltip.store.status === 'En Riesgo' ? 'text-yellow-400' : 'text-red-400'
-              }`}>
-                {tooltip.store.status}
-              </span>
-            </div>
-            {/* Arrow */}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
-          </div>
-        )}
+        <AnimatePresence>
+            {tooltip && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute z-50 pointer-events-none bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[180px]"
+                style={{ 
+                  left: tooltip.x, 
+                  top: tooltip.y - 15,
+                  transform: 'translate(-50%, -100%)'
+                }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
+                    tooltip.store.status === 'En Regla' ? 'bg-green-500' : 
+                    tooltip.store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}></div>
+                  <p className="font-bold text-white text-sm tracking-tight">{tooltip.store.name}</p>
+                </div>
+                <div className="space-y-1.5">
+                    <p className="text-[11px] text-slate-400 flex items-center gap-2">
+                      <Maximize2 size={12} className="text-slate-500" /> {tooltip.store.location}
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Estado Fiscal</span>
+                      <span className={`text-[11px] font-black uppercase tracking-wider ${
+                        tooltip.store.status === 'En Regla' ? 'text-green-400' : 
+                        tooltip.store.status === 'En Riesgo' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {tooltip.store.status}
+                      </span>
+                    </div>
+                </div>
+                {/* Arrow */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-[10px] border-transparent border-t-slate-900/90"></div>
+              </motion.div>
+            )}
+        </AnimatePresence>
       </div>
 
       {/* Legend */}
-      <div className="flex justify-center gap-6 text-[10px] mt-4 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700/50">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></span>
-          <span className="text-slate-300 font-medium">En Regla</span>
+      <div className="flex flex-wrap justify-center gap-6 text-[11px] mt-6 bg-slate-800/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-700/30">
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]"></span>
+          <span className="text-slate-200 font-bold tracking-wide">Cumplimiento Total</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]"></span>
-          <span className="text-slate-300 font-medium">En Riesgo</span>
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]"></span>
+          <span className="text-slate-200 font-bold tracking-wide">Alerta de Plazo</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
-          <span className="text-slate-300 font-medium">Vencido</span>
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]"></span>
+          <span className="text-slate-200 font-bold tracking-wide">Vencimiento Crítico</span>
         </div>
       </div>
 
       {/* Interaction Hint */}
-      <div className="absolute bottom-4 right-6 text-[9px] text-slate-500 italic opacity-0 group-hover:opacity-100 transition-opacity">
-        Usa el scroll para zoom • Arrastra para mover
+      <div className="absolute bottom-6 right-8 text-[10px] text-slate-500 font-medium tracking-wide opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+        <RefreshCw size={12} className="animate-spin-slow" />
+        Navegación Interactiva Habilitada
       </div>
-    </div>
+    </motion.div>
   );
 };
 
