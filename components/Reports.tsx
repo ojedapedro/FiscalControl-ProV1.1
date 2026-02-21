@@ -163,6 +163,28 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     });
   }, [payments, startDate, endDate, selectedStore, selectedMunicipality]);
 
+  // Calcular el estado dinámico de las tiendas para el mapa en el reporte
+  const dynamicStores = useMemo(() => {
+    return STORES.map(store => {
+        const storePayments = payments.filter(p => p.storeId === store.id);
+        let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
+        
+        const hasOverdue = storePayments.some(p => p.status === PaymentStatus.OVERDUE);
+        const hasPending = storePayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+
+        if (hasOverdue) {
+            calculatedStatus = 'Vencido';
+        } else if (hasPending) {
+            calculatedStatus = 'En Riesgo';
+        }
+
+        return {
+            ...store,
+            status: calculatedStatus
+        };
+    });
+  }, [payments]);
+
   const annualData = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -563,7 +585,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
 
          {/* Venezuela Map */}
          <div className="lg:col-span-1">
-            <VenezuelaMap stores={STORES} />
+            <VenezuelaMap 
+                stores={dynamicStores} 
+                selectedStoreIds={selectedStore !== 'all' ? [selectedStore] : []}
+                onStoreClick={(id) => setSelectedStore(id === selectedStore ? 'all' : id)}
+            />
          </div>
       </div>
 

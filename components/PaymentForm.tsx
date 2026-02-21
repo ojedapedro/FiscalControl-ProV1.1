@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus } from '../types';
 import { STORES } from '../constants';
+import VenezuelaMap from './VenezuelaMap';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
 const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
@@ -474,60 +475,72 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </h2>
             
             <div className="space-y-6">
-                {/* Store Selection */}
-                <div className="relative">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
-                    <div className="relative group">
-                        <select 
-                            value={store}
-                            onChange={(e) => setStore(e.target.value)}
-                            disabled={isSubmitting}
-                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
-                        >
-                            <option value="">Seleccionar ubicación...</option>
-                            {STORES.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
-                    </div>
-                    {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
-                </div>
-
-                {/* Category Grid */}
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {[
-                            { id: Category.NATIONAL_TAX, label: 'Impuesto Nacional', icon: Landmark, color: 'blue' },
-                            { id: Category.MUNICIPAL_TAX, label: 'Impuesto Municipal', icon: Building2, color: 'indigo' },
-                            { id: Category.UTILITY, label: 'Servicio Público', icon: Zap, color: 'yellow' },
-                        ].map((cat) => {
-                            const Icon = cat.icon;
-                            const isSelected = category === cat.id;
-                            return (
-                                <button
-                                    key={cat.id}
-                                    type="button"
+                {/* Store Selection & Map */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                        <div className="relative">
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
+                            <div className="relative group">
+                                <select 
+                                    value={store}
+                                    onChange={(e) => setStore(e.target.value)}
                                     disabled={isSubmitting}
-                                    onClick={() => setCategory(cat.id)}
-                                    className={`relative overflow-hidden flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 group ${
-                                        isSelected 
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
-                                        : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
                                 >
-                                    <div className={`p-2 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
-                                        <Icon size={24} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
-                                    </div>
-                                    <span className="text-sm font-bold">{cat.label}</span>
-                                    {isSelected && <div className="absolute top-2 right-2 text-blue-500"><CheckCircle2 size={16} /></div>}
-                                </button>
-                            )
-                        })}
+                                    <option value="">Seleccionar ubicación...</option>
+                                    {STORES.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                            </div>
+                            {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
+                        </div>
+
+                        {/* Category Grid (Moved inside grid for better layout when map is present) */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {[
+                                    { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue' },
+                                    { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo' },
+                                    { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow' },
+                                ].map((cat) => {
+                                    const Icon = cat.icon;
+                                    const isSelected = category === cat.id;
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            type="button"
+                                            disabled={isSubmitting}
+                                            onClick={() => setCategory(cat.id)}
+                                            className={`relative overflow-hidden flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 group ${
+                                                isSelected 
+                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
+                                                : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <div className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
+                                                <Icon size={18} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
+                                            </div>
+                                            <span className="text-xs font-bold">{cat.label}</span>
+                                            {isSelected && <div className="absolute top-1 right-1 text-blue-500"><CheckCircle2 size={12} /></div>}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                            {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
+                        </div>
                     </div>
-                     {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
+
+                    <div className="hidden lg:block">
+                        <VenezuelaMap 
+                            stores={STORES} 
+                            selectedStoreIds={store ? [store] : []} 
+                            onStoreClick={(id) => setStore(id)}
+                        />
+                    </div>
                 </div>
             </div>
         </section>
