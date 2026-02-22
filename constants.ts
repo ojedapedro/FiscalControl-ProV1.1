@@ -215,3 +215,12 @@ export const MOCK_ALERTS: AlertItem[] = [
     dueDate: '2023-11-28'
   }
 ];
+
+export const MUNICIPAL_SALES_TAX_RATES: Record<string, number> = {
+  'Chacao': 0.03, // 3% para Chacao
+  'Maracaibo': 0.02, // 2% para Maracaibo
+  'Valencia': 0.025, // 2.5% para Valencia
+  'Iribarren': 0.015, // 1.5% para Iribarren
+  'Diego Bautista Urbaneja': 0.035, // 3.5% para Lechería (Diego Bautista Urbaneja)
+  // Añadir más municipios según sea necesario
+};
