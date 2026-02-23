@@ -49,7 +49,10 @@ function handleRequest(e) {
         
       // --- USER MANAGEMENT ---
       case 'getUsers':
-        result.data = getData(ss, 'Users');
+        result.data = getData(ss, 'Users').map(u => {
+          if (u.username && !u.name) u.name = u.username;
+          return u;
+        });
         break;
 
       case 'addUser':
@@ -59,6 +62,10 @@ function handleRequest(e) {
         if (exists) {
           result = { status: 'error', message: 'El correo ya existe' };
         } else {
+          // Map name to username if needed
+          if (data.name && !data.username) {
+            data.username = data.name;
+          }
           addRow(ss, 'Users', data);
           result = { status: 'success', message: 'Usuario creado' };
         }
@@ -306,11 +313,12 @@ function setupDatabase(ss) {
   const schema = {
     'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl', 'originalBudget', 'isOverBudget', 'justification', 'justificationFileUrl'],
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
-    'Users': ['id', 'name', 'email', 'role', 'password'],
+    'Users': ['id', 'username', 'role', 'email', 'password'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled']
   };
 
   const created = [];
+  const updated = [];
 
   for (const [sheetName, headers] of Object.entries(schema)) {
     let sheet = ss.getSheetByName(sheetName);
@@ -319,10 +327,27 @@ function setupDatabase(ss) {
       sheet.appendRow(headers); 
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f3f4f6');
       created.push(sheetName);
+    } else {
+      // Check for missing columns and add them
+      const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
+      let addedColumns = false;
+      
+      headers.forEach(header => {
+        if (!existingHeaders.includes(header)) {
+          sheet.insertColumnAfter(sheet.getLastColumn() || 1);
+          sheet.getRange(1, (sheet.getLastColumn() || 1) + 1).setValue(header).setFontWeight('bold').setBackground('#f3f4f6');
+          existingHeaders.push(header);
+          addedColumns = true;
+        }
+      });
+      
+      if (addedColumns) {
+        updated.push(sheetName);
+      }
     }
   }
 
-  return { message: 'Estructura creada/verificada correctamente', sheets: created };
+  return { message: 'Estructura creada/verificada correctamente', sheets: created, updatedSheets: updated };
 }
 
 function getData(ss, sheetName) {

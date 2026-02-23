@@ -11,7 +11,7 @@ import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
@@ -112,7 +112,7 @@ function App({ isDemoMode = false }: AppProps) {
             storeId: 'S-001',
             storeName: 'Tienda Central',
             userId: 'demo-admin',
-            category: 'Mantenimiento',
+            category: Category.OTHER,
             specificType: 'Reparación AC',
             amount: 1500,
             dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
@@ -127,7 +127,7 @@ function App({ isDemoMode = false }: AppProps) {
             storeId: 'S-002',
             storeName: 'Sucursal Norte',
             userId: 'demo-admin',
-            category: 'Servicios',
+            category: Category.UTILITY,
             specificType: 'Internet',
             amount: 800,
             dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
