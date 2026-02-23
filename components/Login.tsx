@@ -18,9 +18,10 @@ import { APP_LOGO_URL } from '../constants';
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
+  isDemoMode?: boolean;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) => {
   const [isRecovering, setIsRecovering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -250,7 +251,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 )}
                 
                 {/* Demo Roles Shortcut (Solo para demostración) */}
-                {!isRecovering && (
+                {!isRecovering && isDemoMode && (
                     <div className="mt-10 pt-6 border-t border-slate-700">
                         <p className="text-xs text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
                         <div className="flex gap-2 justify-center">

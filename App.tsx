@@ -485,7 +485,7 @@ function App({ isDemoMode = false }: AppProps) {
   }, [currentView, currentUser]);
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLogin} />;
+    return <Login onLoginSuccess={handleLogin} isDemoMode={isDemoMode} />;
   }
 
   return (
