@@ -16,10 +16,16 @@ import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing } from 'lucide-
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
 
-function App() {
+interface AppProps {
+  isDemoMode?: boolean;
+}
+
+function App({ isDemoMode = false }: AppProps) {
   // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(
+    isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
+  );
+  const [isAuthenticated, setIsAuthenticated] = useState(isDemoMode);
 
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('dashboard');
@@ -98,8 +104,48 @@ function App() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getPayments();
-      setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
+      if (isDemoMode) {
+        // Mock data for demo mode
+        const mockPayments: Payment[] = [
+          {
+            id: 'PAG-1001',
+            storeId: 'S-001',
+            storeName: 'Tienda Central',
+            userId: 'demo-admin',
+            category: 'Mantenimiento',
+            specificType: 'Reparación AC',
+            amount: 1500,
+            dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+            paymentDate: undefined,
+            status: PaymentStatus.PENDING,
+            submittedDate: new Date().toISOString(),
+            notes: 'Reparación urgente del aire acondicionado.',
+            history: [{ date: new Date().toISOString(), action: 'CREACION', actorName: 'Admin Demo', role: Role.ADMIN }]
+          },
+          {
+            id: 'PAG-1002',
+            storeId: 'S-002',
+            storeName: 'Sucursal Norte',
+            userId: 'demo-admin',
+            category: 'Servicios',
+            specificType: 'Internet',
+            amount: 800,
+            dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+            paymentDate: undefined,
+            status: PaymentStatus.APPROVED,
+            submittedDate: new Date(Date.now() - 86400000).toISOString(),
+            notes: 'Pago mensual de internet.',
+            history: [
+              { date: new Date(Date.now() - 86400000).toISOString(), action: 'CREACION', actorName: 'Admin Demo', role: Role.ADMIN },
+              { date: new Date().toISOString(), action: 'APROBACION', actorName: 'Auditor Demo', role: Role.AUDITOR }
+            ]
+          }
+        ];
+        setPayments(mockPayments);
+      } else {
+        const data = await api.getPayments();
+        setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
+      }
     } catch (error) {
       setNotification('❌ Error conectando con Google Sheets');
     } finally {
@@ -108,6 +154,10 @@ function App() {
   };
 
   const handleSetupDatabase = async () => {
+    if (isDemoMode) {
+      setNotification('✅ Base de datos configurada (Modo Demo)');
+      return;
+    }
     if(!confirm("¿Estás seguro? Esto creará las hojas en tu Google Sheet si no existen.")) return;
     setIsLoading(true);
     try {
@@ -191,11 +241,11 @@ function App() {
 
     try {
         if (isUpdate) {
-            await api.updatePayment(paymentToSave);
+            if (!isDemoMode) await api.updatePayment(paymentToSave);
             setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
             setNotification('✅ Pago corregido y enviado a revisión.');
         } else {
-            await api.createPayment(paymentToSave);
+            if (!isDemoMode) await api.createPayment(paymentToSave);
             setPayments(prev => [paymentToSave, ...prev]);
             setNotification('✅ Pago guardado en Google Sheets.');
         }
@@ -236,7 +286,7 @@ function App() {
         };
 
         try {
-            await api.updatePayment(updatedPayment);
+            if (!isDemoMode) await api.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
         } catch (error) {
@@ -268,7 +318,7 @@ function App() {
           };
 
           try {
-            await api.updatePayment(updatedPayment);
+            if (!isDemoMode) await api.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Rechazado y Sincronizado`);
 

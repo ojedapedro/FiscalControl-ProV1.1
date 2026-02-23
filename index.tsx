@@ -3,7 +3,6 @@ import * as React from 'react';
 import { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import DemoApp from './DemoApp';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
 
@@ -82,7 +81,7 @@ if (container) {
       <React.StrictMode>
         <ErrorBoundary>
           <ThemeProvider>
-            {isDemoMode ? <DemoApp /> : <App />}
+            <App isDemoMode={isDemoMode} />
           </ThemeProvider>
         </ErrorBoundary>
       </React.StrictMode>
