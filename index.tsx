@@ -3,6 +3,7 @@ import * as React from 'react';
 import { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import DemoApp from './DemoApp';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
 
@@ -74,11 +75,14 @@ const container = document.getElementById('root');
 if (container) {
   try {
     const root = ReactDOM.createRoot(container);
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDemoMode = urlParams.get('demo') === 'true';
+
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
           <ThemeProvider>
-            <App />
+            {isDemoMode ? <DemoApp /> : <App />}
           </ThemeProvider>
         </ErrorBoundary>
       </React.StrictMode>
