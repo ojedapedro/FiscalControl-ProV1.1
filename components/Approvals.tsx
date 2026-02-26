@@ -30,7 +30,7 @@ import {
 
 interface ApprovalsProps {
   payments: Payment[];
-  onApprove: (id: string, newDueDate?: string) => void;
+  onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number) => void;
   onReject: (id: string, reason: string) => void;
 }
 
@@ -59,6 +59,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   // --- Estados para el Modal de Confirmación de Fecha ---
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [confirmationDate, setConfirmationDate] = useState('');
+  const [updateBudget, setUpdateBudget] = useState(false);
+  const [confirmationBudget, setConfirmationBudget] = useState<number | ''>('');
 
   // Filtrado y Ordenamiento
   const processedPayments = useMemo(() => {
@@ -117,6 +119,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const handleInitialApproveClick = () => {
       if (selectedPayment) {
           setConfirmationDate(selectedPayment.dueDate);
+          setUpdateBudget(false);
+          setConfirmationBudget(selectedPayment.originalBudget || '');
           setShowApprovalModal(true);
       }
   };
@@ -124,7 +128,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const handleConfirmApproval = () => {
       if (selectedId && selectedPayment && confirmationDate) {
           const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
-          onApprove(selectedId, dateToSend);
+          const budgetToSend = updateBudget && confirmationBudget !== '' ? Number(confirmationBudget) : undefined;
+          onApprove(selectedId, dateToSend, budgetToSend);
           setShowApprovalModal(false);
           setSelectedId(null);
       }
@@ -274,6 +279,39 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                               <p className="text-xs text-slate-400 mt-1">
                                   Mantenga la fecha actual si es correcta.
                               </p>
+                          )}
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                  type="checkbox" 
+                                  checked={updateBudget}
+                                  onChange={(e) => setUpdateBudget(e.target.checked)}
+                                  className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
+                              />
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                  ¿Desea actualizar el monto de presupuesto?
+                              </span>
+                          </label>
+                          
+                          {updateBudget && (
+                              <div className="mt-2">
+                                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nuevo Presupuesto</label>
+                                  <div className="relative">
+                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                      <input 
+                                          type="number" 
+                                          value={confirmationBudget}
+                                          onChange={(e) => setConfirmationBudget(e.target.value ? Number(e.target.value) : '')}
+                                          placeholder="0.00"
+                                          className="w-full pl-8 p-4 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 outline-none transition-all font-bold focus:border-blue-600"
+                                      />
+                                  </div>
+                                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-2 font-medium">
+                                      <RefreshCw size={12} /> Se actualizará el presupuesto original.
+                                  </p>
+                              </div>
                           )}
                       </div>
                   </div>

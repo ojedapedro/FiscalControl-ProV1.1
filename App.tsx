@@ -259,15 +259,24 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  const handleApprove = async (id: string, newDueDate?: string) => {
+  const handleApprove = async (id: string, newDueDate?: string, newBudgetAmount?: number) => {
       setIsLoading(true);
       const paymentToUpdate = payments.find(p => p.id === id);
       if (paymentToUpdate) {
         let actionNote = undefined;
         let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
+        const notes = [];
 
         if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            actionNote = `Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`;
+            notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
+        }
+
+        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
+            notes.push(`Presupuesto: ${paymentToUpdate.originalBudget || 'N/A'} ➔ ${newBudgetAmount}`);
+        }
+
+        if (notes.length > 0) {
+            actionNote = notes.join(' | ');
         }
 
         const log: AuditLog = {
@@ -282,8 +291,13 @@ function App({ isDemoMode = false }: AppProps) {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
             dueDate: newDueDate || paymentToUpdate.dueDate,
+            originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
         };
+
+        if (newBudgetAmount !== undefined) {
+            updatedPayment.isOverBudget = paymentToUpdate.amount > newBudgetAmount;
+        }
 
         try {
             if (!isDemoMode) await api.updatePayment(updatedPayment);
