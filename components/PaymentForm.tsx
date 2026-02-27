@@ -555,411 +555,411 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <MapPin size={16} /> Ubicación y Tipo
             </h2>
             
-            <div className="space-y-6">
-                {/* Store Selection & Map */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-6">
-                        <div className="relative">
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
-                            <div className="relative group">
-                                <select 
-                                    value={store}
-                                    onChange={(e) => setStore(e.target.value)}
-                                    disabled={isSubmitting}
-                                    className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
-                                >
-                                    <option value="">Seleccionar ubicación...</option>
-                                    {STORES.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                </select>
-                                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
-                            </div>
-                            {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
-                        </div>
-
-                        {/* Category Grid (Moved inside grid for better layout when map is present) */}
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {[
-                                    { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue' },
-                                    { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo' },
-                                    { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow' },
-                                ].map((cat) => {
-                                    const Icon = cat.icon;
-                                    const isSelected = category === cat.id;
-                                    return (
-                                        <button
-                                            key={cat.id}
-                                            type="button"
-                                            disabled={isSubmitting}
-                                            onClick={() => setCategory(cat.id)}
-                                            className={`relative overflow-hidden flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 group ${
-                                                isSelected 
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
-                                                : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        >
-                                            <div className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
-                                                <Icon size={18} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
-                                            </div>
-                                            <span className="text-xs font-bold">{cat.label}</span>
-                                            {isSelected && <div className="absolute top-1 right-1 text-blue-500"><CheckCircle2 size={12} /></div>}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                            {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
-                        </div>
-                    </div>
-
-                    <div className="hidden lg:block">
-                        <VenezuelaMap 
-                            stores={dynamicStores} 
-                            selectedStoreIds={store ? [store] : []} 
-                            onStoreClick={(id) => setStore(id)}
-                        />
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {/* Dynamic Tax Section with Traffic Light (Municipal & National) */}
-        {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) && (
-            <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
-                
-                {/* Header Dinámico */}
-                <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
-                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
-                             <Calculator size={20} />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 opacity-80">Estado fiscal actualizado al día de hoy</p>
-                        </div>
-                     </div>
-                     <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-white/50 dark:bg-black/20 ${globalStatus.text} ${globalStatus.border}`}>
-                         {globalStatus.label}
-                     </div>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2">
-                    <div className="p-4 border-r border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
-                        <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                            {taxStatusList.map((item) => (
-                                <button
-                                    key={item.key}
-                                    type="button"
-                                    onClick={() => {
-                                        setTaxGroup(item.key);
-                                        setTaxItem(''); 
-                                    }}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
-                                        taxGroup === item.key 
-                                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
-                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-3 h-3 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
-                                        <span className={`text-sm font-medium ${taxGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
-                                            {item.label.split(' ')[1]} {item.label.split(' ')[2]}...
-                                        </span>
-                                    </div>
-                                    <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${item.bgSoft} ${item.text}`}>
-                                        <item.icon size={10} />
-                                        <span className="hidden sm:inline">{item.status}</span>
-                                    </div>
-                                </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
+                    <div className="relative group">
+                        <select 
+                            value={store}
+                            onChange={(e) => setStore(e.target.value)}
+                            disabled={isSubmitting}
+                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
+                        >
+                            <option value="">Seleccionar ubicación...</option>
+                            {STORES.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
-                        </div>
+                        </select>
+                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
                     </div>
-
-                    <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900">
-                         <div className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
-                                <div className="relative">
-                                    <select
-                                        value={taxItem}
-                                        onChange={(e) => setTaxItem(e.target.value)}
-                                        disabled={!taxGroup || isSubmitting}
-                                        className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.taxItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
-                                    >
-                                        <option value="">
-                                            {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
-                                        </option>
-                                        {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
-                                            <option key={item.code} value={item.code}>
-                                                {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                        <ChevronDown size={16} />
-                                    </div>
-                                </div>
-                                {errors.taxItem && <p className="text-red-500 text-xs ml-1">{errors.taxItem}</p>}
-                            </div>
-
-                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                                <div className="flex gap-2">
-                                    <AlertCircle size={14} className="mt-0.5 text-blue-500" />
-                                    <p>
-                                        Seleccione el rubro en la lista de la izquierda para ver su estado actual. 
-                                        El color indica la urgencia del pago según la fecha de vencimiento.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
                 </div>
-            </section>
-        )}
 
-        {/* Section 2: Detalles Financieros */}
-        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                <DollarSign size={16} /> Detalles Financieros
-            </h2>
-
-            {/* Store Location Info (Auto-filled) */}
-            {store && (
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-start gap-3 animate-in fade-in slide-in-from-left-2">
-                    <MapPin className="text-blue-500 shrink-0 mt-0.5" size={18} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                        <div>
-                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Municipio / Alcaldía</span>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
-                        </div>
-                        <div>
-                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Dirección de Sucursal</span>
-                            <p className="text-xs text-slate-700 dark:text-slate-300 italic">{storeAddress || 'No especificada'}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="space-y-6">
                 <div>
-                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
-                     <div className="relative group">
-                        <input
-                            type="text"
-                            placeholder={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
-                            value={specificType}
-                            readOnly={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) || isSubmitting}
-                            onChange={(e) => setSpecificType(e.target.value)}
-                            className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
-                        />
-                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                     </div>
-                     {errors.specificType && <p className="text-red-500 text-xs mt-1 ml-1">{errors.specificType}</p>}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Amount */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monto Total</label>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-blue-500 font-bold transition-colors">$</div>
-                            <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={amount}
-                                disabled={isSubmitting}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${
-                                    isOverBudget 
-                                        ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/30' 
-                                        : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
-                                } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
-                            />
-                            {/* Warning Indicator Icon */}
-                            {isOverBudget && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-500 animate-pulse" title="Excede Presupuesto">
-                                    <AlertTriangle size={20} />
-                                </div>
-                            )}
-                        </div>
-                        {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
-                        
-                        {/* Budget Status Message */}
-                        {isOverBudget && (
-                            <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1.5 font-bold flex items-center gap-1">
-                                <AlertTriangle size={12} />
-                                Excede presupuesto (${expectedBudget?.toLocaleString()})
-                            </p>
-                        )}
-                        {justificationConfirmed && (
-                            <p className="text-green-600 dark:text-green-400 text-xs mt-1 flex items-center gap-1 font-semibold">
-                                <CheckCircle2 size={12} /> Justificación añadida
-                            </p>
-                        )}
-
-                        {isCurrentTaxItemVariable && (
-                            <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg flex items-center gap-3 border border-slate-200 dark:border-slate-700">
-                                <input
-                                    type="checkbox"
-                                    id="manualOverBudget"
-                                    checked={manualOverBudget}
-                                    onChange={(e) => setManualOverBudget(e.target.checked)}
-                                    className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0"
-                                />
-                                <label htmlFor="manualOverBudget" className="block text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                    Marcar este pago como un <strong>excedente presupuestario</strong> para solicitar justificación.
-                                </label>
-                            </div>
-                        )}
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue' },
+                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo' },
+                            { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow' },
+                        ].map((cat) => {
+                            const Icon = cat.icon;
+                            const isSelected = category === cat.id;
+                            return (
+                                <button
+                                    key={cat.id}
+                                    type="button"
+                                    disabled={isSubmitting}
+                                    onClick={() => setCategory(cat.id)}
+                                    className={`relative overflow-hidden flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 group ${
+                                        isSelected 
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
+                                        : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <div className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
+                                        <Icon size={18} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
+                                    </div>
+                                    <span className="text-xs font-bold">{cat.label}</span>
+                                    {isSelected && <div className="absolute top-1 right-1 text-blue-500"><CheckCircle2 size={12} /></div>}
+                                </button>
+                            )
+                        })}
                     </div>
-
-                    {/* Due Date */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
-                        <div className="relative group">
-                            <input
-                                type="date"
-                                value={dueDate}
-                                disabled={isSubmitting}
-                                onChange={(e) => setDueDate(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all disabled:opacity-50`}
-                            />
-                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                        </div>
-                        {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
-                    </div>
-
-                     {/* Payment Date */}
-                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha de Pago</label>
-                        <div className="relative group">
-                            <input
-                                type="date"
-                                value={paymentDate}
-                                disabled={isSubmitting}
-                                onChange={(e) => setPaymentDate(e.target.value)}
-                                className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all disabled:opacity-50`}
-                            />
-                            <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors" size={20} />
-                        </div>
-                        {errors.paymentDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.paymentDate}</p>}
-                    </div>
+                    {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
                 </div>
             </div>
         </section>
 
-        {/* Section 3: Soportes y Notas */}
-        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                <Upload size={16} /> Soportes y Notas
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* File Upload */}
-                <div>
-                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
-                     <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
-                         isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                     } ${
-                         file ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
-                     }`}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-7 space-y-8">
+                {/* Dynamic Tax Section with Traffic Light (Municipal & National) */}
+                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) && (
+                    <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                         
-                        {/* Overlay de Carga de Archivo */}
-                        {isFileScanning && (
-                            <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm">
-                                <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-2" />
-                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Analizando archivo...</span>
+                        {/* Header Dinámico */}
+                        <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
+                                    <Calculator size={20} />
+                                </div>
+                                <div>
+                                    <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 opacity-80">Estado fiscal actualizado al día de hoy</p>
+                                </div>
                             </div>
-                        )}
-
-                        <div className="flex flex-col items-center justify-center w-full h-full">
-                            {file ? (
-                                <div className="w-full h-full relative group/file">
-                                    {previewUrl ? (
-                                        // Image Preview
-                                        <div className="w-full h-full relative p-2">
-                                            <img
-                                                src={previewUrl}
-                                                alt="Preview"
-                                                className="w-full h-full object-contain rounded-xl shadow-sm bg-slate-100 dark:bg-slate-950/50"
-                                            />
-                                            <div className="absolute inset-0 m-2 rounded-xl bg-black/40 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                                 <button
-                                                    onClick={clearFile}
-                                                    type="button"
-                                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transform hover:scale-105 transition-all"
-                                                 >
-                                                    <Trash2 size={18} />
-                                                    <span>Eliminar Imagen</span>
-                                                 </button>
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-white/50 dark:bg-black/20 ${globalStatus.text} ${globalStatus.border}`}>
+                                {globalStatus.label}
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1">
+                            <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                                    {taxStatusList.map((item) => (
+                                        <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => {
+                                                setTaxGroup(item.key);
+                                                setTaxItem(''); 
+                                            }}
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
+                                                taxGroup === item.key 
+                                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
+                                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                <span className={`text-[11px] font-medium ${taxGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                    {item.label.split(' ')[1]} {item.label.split(' ')[2]}...
+                                                </span>
                                             </div>
-                                            <div className="absolute top-4 right-4 bg-green-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
-                                                <CheckCircle2 size={16} />
+                                            <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${item.bgSoft} ${item.text}`}>
+                                                <item.icon size={8} />
+                                                <span className="hidden sm:inline">{item.status}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900">
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
+                                        <div className="relative">
+                                            <select
+                                                value={taxItem}
+                                                onChange={(e) => setTaxItem(e.target.value)}
+                                                disabled={!taxGroup || isSubmitting}
+                                                className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.taxItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
+                                            >
+                                                <option value="">
+                                                    {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
+                                                </option>
+                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
+                                                    <option key={item.code} value={item.code}>
+                                                        {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                                <ChevronDown size={16} />
                                             </div>
                                         </div>
-                                    ) : (
-                                        // PDF/File Preview
-                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
-                                            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl mb-3 ring-4 ring-red-50 dark:ring-red-900/10">
-                                                <FileText size={32} className="text-red-500 dark:text-red-400" />
-                                            </div>
-                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
-                                                {file.name}
+                                        {errors.taxItem && <p className="text-red-500 text-xs ml-1">{errors.taxItem}</p>}
+                                    </div>
+
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="flex gap-2">
+                                            <AlertCircle size={14} className="mt-0.5 text-blue-500" />
+                                            <p>
+                                                Seleccione el rubro en la lista de arriba para ver su estado actual. 
+                                                El color indica la urgencia del pago según la fecha de vencimiento.
                                             </p>
-                                            <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                                                {(file.size / (1024 * 1024)).toFixed(2)} MB
-                                            </p>
-                                            <button
-                                                onClick={clearFile}
-                                                type="button"
-                                                className="text-red-500 hover:text-red-600 text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 size={14} /> Eliminar adjunto
-                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {/* Section 2: Detalles Financieros */}
+                <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                        <DollarSign size={16} /> Detalles Financieros
+                    </h2>
+
+                    {/* Store Location Info (Auto-filled) */}
+                    {store && (
+                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-start gap-3 animate-in fade-in slide-in-from-left-2">
+                            <MapPin className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                <div>
+                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Municipio / Alcaldía</span>
+                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Dirección de Sucursal</span>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">{storeAddress || 'No especificada'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    placeholder={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
+                                    value={specificType}
+                                    readOnly={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) || isSubmitting}
+                                    onChange={(e) => setSpecificType(e.target.value)}
+                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                />
+                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                            </div>
+                            {errors.specificType && <p className="text-red-500 text-xs mt-1 ml-1">{errors.specificType}</p>}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Amount */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monto Total</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-blue-500 font-bold transition-colors">$</div>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={amount}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        className={`bg-slate-50 dark:bg-slate-800 border ${
+                                            isOverBudget 
+                                                ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/30' 
+                                                : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
+                                        } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
+                                    />
+                                    {isOverBudget && (
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-500 animate-pulse" title="Excede Presupuesto">
+                                            <AlertTriangle size={20} />
                                         </div>
                                     )}
                                 </div>
-                            ) : (
-                                <>
-                                    <div className={`p-4 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
-                                        <Upload size={24} />
-                                    </div>
-                                    <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir comprobante</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-500">Soporta: PDF, JPG, PNG (Max 5MB)</p>
-                                </>
-                            )}
-                        </div>
-                        <input 
-                            type="file" 
-                            className="hidden" 
-                            accept=".pdf,.jpg,.jpeg,.png" 
-                            onChange={handleFileChange} 
-                            disabled={isSubmitting || isFileScanning}
-                        />
-                    </label>
-                    {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
-                </div>
+                                {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
+                                
+                                {isOverBudget && (
+                                    <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1.5 font-bold flex items-center gap-1">
+                                        <AlertTriangle size={12} />
+                                        Excede presupuesto (${expectedBudget?.toLocaleString()})
+                                    </p>
+                                )}
 
-                {/* Notes */}
-                <div className="flex flex-col">
-                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
-                     <div className="relative h-full">
-                         <textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            disabled={isSubmitting}
-                            placeholder="Añada notas adicionales para el auditor..."
-                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
-                         ></textarea>
-                     </div>
+                                {justificationConfirmed && (
+                                    <p className="text-green-600 dark:text-green-400 text-xs mt-1 flex items-center gap-1 font-semibold">
+                                        <CheckCircle2 size={12} /> Justificación añadida
+                                    </p>
+                                )}
+
+                                {isCurrentTaxItemVariable && (
+                                    <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg flex items-center gap-3 border border-slate-200 dark:border-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            id="manualOverBudget"
+                                            checked={manualOverBudget}
+                                            onChange={(e) => setManualOverBudget(e.target.checked)}
+                                            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                        />
+                                        <label htmlFor="manualOverBudget" className="block text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                            Marcar este pago como un <strong>excedente presupuestario</strong> para solicitar justificación.
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Due Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={dueDate}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => setDueDate(e.target.value)}
+                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                    />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                </div>
+                                {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
+                            </div>
+
+                            {/* Payment Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha de Pago</label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={paymentDate}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => setPaymentDate(e.target.value)}
+                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                    />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                </div>
+                                {errors.paymentDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.paymentDate}</p>}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Section 3: Soportes y Notas */}
+                <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                        <Upload size={16} /> Soportes y Notas
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* File Upload */}
+                        <div>
+                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
+                             <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
+                                 isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                             } ${
+                                 file ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                             }`}>
+                                
+                                {/* Overlay de Carga de Archivo */}
+                                {isFileScanning && (
+                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm">
+                                        <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-2" />
+                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Analizando archivo...</span>
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col items-center justify-center w-full h-full">
+                                    {file ? (
+                                        <div className="w-full h-full relative group/file">
+                                            {previewUrl ? (
+                                                // Image Preview
+                                                <div className="w-full h-full relative p-2">
+                                                    <img
+                                                        src={previewUrl}
+                                                        alt="Preview"
+                                                        className="w-full h-full object-contain rounded-xl shadow-sm bg-slate-100 dark:bg-slate-950/50"
+                                                    />
+                                                    <div className="absolute inset-0 m-2 rounded-xl bg-black/40 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                                         <button
+                                                            onClick={clearFile}
+                                                            type="button"
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transform hover:scale-105 transition-all"
+                                                         >
+                                                            <Trash2 size={18} />
+                                                            <span>Eliminar Imagen</span>
+                                                         </button>
+                                                    </div>
+                                                    <div className="absolute top-4 right-4 bg-green-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
+                                                        <CheckCircle2 size={16} />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // PDF/File Preview
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
+                                                    <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl mb-3 ring-4 ring-red-50 dark:ring-red-900/10">
+                                                        <FileText size={32} className="text-red-500 dark:text-red-400" />
+                                                    </div>
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
+                                                        {file.name}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                    </p>
+                                                    <button
+                                                        onClick={clearFile}
+                                                        type="button"
+                                                        className="text-red-500 hover:text-red-600 text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={14} /> Eliminar adjunto
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={`p-4 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
+                                                <Upload size={24} />
+                                            </div>
+                                            <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir comprobante</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-500">Soporta: PDF, JPG, PNG (Max 5MB)</p>
+                                        </>
+                                    )}
+                                </div>
+                                <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept=".pdf,.jpg,.jpeg,.png" 
+                                    onChange={handleFileChange} 
+                                    disabled={isSubmitting || isFileScanning}
+                                />
+                            </label>
+                            {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+                        </div>
+
+                        {/* Notes */}
+                        <div className="flex flex-col">
+                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
+                             <div className="relative h-full">
+                                 <textarea
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    disabled={isSubmitting}
+                                    placeholder="Añada notas adicionales para el auditor..."
+                                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
+                                 ></textarea>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {/* Right Column: Map (Sticky) */}
+            <div className="lg:col-span-5 hidden lg:block">
+                <div className="sticky top-8">
+                    <VenezuelaMap 
+                        stores={dynamicStores} 
+                        selectedStoreIds={store ? [store] : []} 
+                        onStoreClick={(id) => setStore(id)}
+                    />
                 </div>
             </div>
-        </section>
+        </div>
 
         {Object.keys(errors).length > 0 && (
             <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-bottom-2">
