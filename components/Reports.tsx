@@ -18,14 +18,15 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus } from '../types';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Payment, PaymentStatus, User, Role } from '../types';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 
 import VenezuelaMap from '@/components/VenezuelaMap';
 
 interface ReportsProps {
   payments: Payment[];
+  currentUser: User | null;
 }
 
 // Configuración simulada de presupuesto mensual (En un caso real vendría del backend)
@@ -129,8 +130,9 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export const Reports: React.FC<ReportsProps> = ({ payments }) => {
+export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Date Filter State (Default to current month)
   const [startDate, setStartDate] = useState(() => {
@@ -275,7 +277,41 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
     });
   };
 
+  const handleDownloadCSV = () => {
+    const headers = ['ID', 'Tienda', 'Concepto', 'Monto', 'Fecha Vencimiento', 'Fecha Pago', 'Estado', 'Notas', 'Presupuesto Original', 'Excede Presupuesto'];
+    
+    const csvData = filteredPayments.map(p => [
+      p.id,
+      `"${p.storeName}"`,
+      `"${p.specificType}"`,
+      p.amount,
+      p.dueDate,
+      p.paymentDate || '',
+      p.status,
+      `"${p.notes || ''}"`,
+      p.originalBudget || '',
+      p.isOverBudget ? 'Sí' : 'No'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Reporte_Fiscal_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportMenu(false);
+  };
+
   const handleDownloadPDF = async () => {
+    setShowExportMenu(false);
     setIsGeneratingPdf(true);
     await new Promise(r => setTimeout(r, 100));
 
@@ -378,7 +414,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 <TrendingUp size={28} />
              </div>
              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Panel de Presidencia</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                    {currentUser?.role === Role.ADMIN ? 'Panel de Administración' : 'Panel de Presidencia'}
+                </h1>
                 <div className="flex items-center gap-2 mt-1">
                     <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <p className="text-slate-400 text-sm font-medium">Supervisión en Tiempo Real • Auditoría Fiscal</p>
@@ -430,14 +468,51 @@ export const Reports: React.FC<ReportsProps> = ({ payments }) => {
                 </div>
             </div>
 
-            <button 
-                onClick={handleDownloadPDF}
-                disabled={isGeneratingPdf}
-                className="flex items-center justify-center gap-2 bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold px-6 py-2.5 rounded-2xl transition-all shadow-lg shadow-yellow-500/20 active:scale-95 group"
-            >
-                {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />}
-                <span>Exportar Reporte</span>
-            </button>
+            {/* Export Menu */}
+            <div className="relative">
+                <button 
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center justify-center gap-2 bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold px-6 py-2.5 rounded-2xl transition-all shadow-lg shadow-yellow-500/20 active:scale-95 group"
+                >
+                    {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />}
+                    <span>Exportar Reporte</span>
+                    <ChevronDown size={16} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                    {showExportMenu && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50"
+                        >
+                            <div className="p-1">
+                                <button 
+                                    onClick={handleDownloadPDF}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
+                                >
+                                    <div className="p-1.5 bg-red-500/10 text-red-400 rounded-lg">
+                                        <FileText size={16} />
+                                    </div>
+                                    Exportar como PDF
+                                </button>
+                                <button 
+                                    onClick={handleDownloadCSV}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
+                                >
+                                    <div className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                                        <FileSpreadsheet size={16} />
+                                    </div>
+                                    Exportar como CSV
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
       </motion.header>
 

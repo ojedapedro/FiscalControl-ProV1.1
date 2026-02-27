@@ -400,7 +400,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'approvals':
         return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
       case 'reports':
-        return <Reports payments={payments} />;
+        return <Reports payments={payments} currentUser={currentUser} />;
       case 'network':
         return <StoreStatus payments={payments} />;
       case 'calendar':
