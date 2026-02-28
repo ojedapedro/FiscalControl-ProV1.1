@@ -439,7 +439,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+    <div className="p-6 lg:p-10 w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
       {/* --- JUSTIFICATION MODAL --- */}
       {showJustificationModal && (
