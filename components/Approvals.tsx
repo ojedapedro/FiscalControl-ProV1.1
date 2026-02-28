@@ -61,6 +61,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [confirmationDate, setConfirmationDate] = useState('');
   const [updateBudget, setUpdateBudget] = useState(false);
   const [confirmationBudget, setConfirmationBudget] = useState<number | ''>('');
+  const [approvedPaymentId, setApprovedPaymentId] = useState<string | null>(null);
 
   // Filtrado y Ordenamiento
   const processedPayments = useMemo(() => {
@@ -129,9 +130,15 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       if (selectedId && selectedPayment && confirmationDate) {
           const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
           const budgetToSend = updateBudget && confirmationBudget !== '' ? Number(confirmationBudget) : undefined;
-          onApprove(selectedId, dateToSend, budgetToSend);
+          
+          setApprovedPaymentId(selectedId);
           setShowApprovalModal(false);
-          setSelectedId(null);
+          
+          setTimeout(() => {
+              onApprove(selectedId, dateToSend, budgetToSend);
+              setSelectedId(null);
+              setApprovedPaymentId(null);
+          }, 1500);
       }
   };
 
@@ -466,6 +473,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       <div className={`flex-1 bg-slate-50 dark:bg-slate-950 relative flex flex-col h-full ${!selectedId ? 'hidden lg:flex' : 'flex'}`}>
         {selectedPayment ? (
             <>
+                {/* Overlay de Aprobación Animado */}
+                {approvedPaymentId === selectedPayment.id && (
+                    <div className="absolute inset-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
+                        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                            <CheckCircle2 className="text-green-500 dark:text-green-400" size={48} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">¡Pago Aprobado!</h2>
+                        <p className="text-slate-500 dark:text-slate-400 mt-2">El pago ha sido validado correctamente.</p>
+                    </div>
+                )}
+
                 {/* Detail Header */}
                 <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-3">
