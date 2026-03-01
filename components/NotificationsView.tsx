@@ -102,7 +102,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
             severity = 'critical';
             timeLabel = 'Vence HOY';
         } else if (diffDays <= (config.daysBeforeWarning || 5)) {
-            severity = 'upcoming';
+            severity = 'scheduled';
             timeLabel = `Vence en ${diffDays} día(s)`;
         } else {
             severity = 'scheduled';
@@ -128,7 +128,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       })
       .sort((a, b) => {
           // Ordenar: Críticas primero, luego próximas
-          const severityOrder = { 'critical': 0, 'upcoming': 1, 'scheduled': 2 };
+          const severityOrder = { 'critical': 0, 'scheduled': 1 };
           return severityOrder[a.severity] - severityOrder[b.severity];
       });
   }, [payments, config.daysBeforeWarning]);
@@ -186,7 +186,6 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
   const getSeverityIcon = (severity: AlertSeverity) => {
     switch (severity) {
       case 'critical': return <AlertTriangle size={18} />;
-      case 'upcoming': return <Clock size={18} />;
       case 'scheduled': return <Calendar size={18} />;
       default: return <Bell size={18} />;
     }
@@ -368,7 +367,6 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
         {[
             { id: 'all', label: 'Todas las Alertas' },
             { id: 'critical', label: 'Críticas (Vencidas)' },
-            { id: 'upcoming', label: 'Próximas' },
             { id: 'scheduled', label: 'Programadas' }
         ].map(item => (
             <button
@@ -400,12 +398,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                 {visibleAlerts.map((alert) => (
                     <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Status Strip */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : alert.severity === 'upcoming' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
 
                         <div className="flex-1 flex gap-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                                 alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
-                                alert.severity === 'upcoming' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
                                 'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
                             }`}>
                                 {getSeverityIcon(alert.severity)}
@@ -418,8 +415,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
                                 <p className={`text-sm font-medium ${
-                                    alert.severity === 'critical' ? 'text-red-600' : 
-                                    alert.severity === 'upcoming' ? 'text-yellow-600' : 'text-slate-500'
+                                    alert.severity === 'critical' ? 'text-red-600' : 'text-blue-600'
                                 }`}>
                                     {alert.timeLabel} • Vence: {alert.dueDate}
                                 </p>
