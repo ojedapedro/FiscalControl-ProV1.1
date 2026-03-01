@@ -746,8 +746,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-8">
-                {/* Dynamic Tax Section with Traffic Light (Municipal, National & Object) */}
-                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT) && (
+                {/* Dynamic Tax Section with Traffic Light (Municipal, National, Object & Institutions) */}
+                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS) && (
                     <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                         
                         {/* Header Dinámico */}
@@ -813,7 +813,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <option value="">
                                                     {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
                                                 </option>
-                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
+                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
                                                     <option key={item.code} value={item.code}>
                                                         {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
                                                     </option>
