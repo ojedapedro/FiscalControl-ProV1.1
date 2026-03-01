@@ -19,6 +19,10 @@ export enum Category {
   MUNICIPAL_TAX = 'Impuesto Municipal',
   OBJECT = 'Objeto',
   INSTITUTIONS = 'Instituciones Nacionales y Regionales',
+  TRANSPORT = 'Transporte',
+  SENIAT_DECLARATIONS = 'SENIAT Declaraciones y Contabilidad',
+  SENIAT_BOOKS = 'SENIAT Libros',
+  SYSTEMS = 'Sistemas, Marketing y Oficinas',
   UTILITY = 'Servicio Público',
   INVENTORY = 'Inventario',
   OTHER = 'Otro'

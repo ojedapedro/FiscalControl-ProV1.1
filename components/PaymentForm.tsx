@@ -244,6 +244,102 @@ const INSTITUTIONS_TAX_CONFIG: Record<string, { label: string; deadlineDay: numb
   }
 };
 
+const TRANSPORT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'CHOFER': {
+    label: '5.1 DOCUMENTOS DEL CHOFER',
+    deadlineDay: 30,
+    items: [
+      { code: '5.1.1', name: 'CEDULA DE IDENTIDAD', isVariable: true },
+      { code: '5.1.2', name: 'CARNET DE CIRCULACION', isVariable: true },
+      { code: '5.1.3', name: 'CERTIFICADO DE SABERES', isVariable: true },
+      { code: '5.1.4', name: 'LICENCIA DE CONDUCIR', isVariable: true },
+      { code: '5.1.5', name: 'CERTIFICADO MEDICO', isVariable: true },
+    ]
+  },
+  'VEHICULO': {
+    label: '5.2 DOCUMENTOS DEL VEHICULO',
+    deadlineDay: 30,
+    items: [
+      { code: '5.2.1', name: 'TITULO DE PROPIEDAD', isVariable: true },
+      { code: '5.2.2', name: 'CARNET DE CIRCULACION', isVariable: true },
+      { code: '5.2.3', name: 'SEGURO (RCV)', isVariable: true },
+      { code: '5.2.4', name: 'IMPUESTO TRIMESTRAL', isVariable: true },
+      { code: '5.2.5', name: 'ROTC', isVariable: true },
+      { code: '5.2.6', name: 'FLOTA VEHICULAR ROCT', isVariable: true },
+      { code: '5.2.7', name: 'RACDA TRANSPORTE', isVariable: true },
+      { code: '5.2.8', name: 'GPS', isVariable: true },
+    ]
+  },
+  'MANTENIMIENTO': {
+    label: '5.3 KILOMETRO MANTENIMIENTO',
+    deadlineDay: 30,
+    items: [
+      { code: '5.3.1', name: 'FLUIDOS', isVariable: true },
+      { code: '5.3.2', name: 'FILTROS', isVariable: true },
+      { code: '5.3.3', name: 'CAUCHOS', isVariable: true },
+      { code: '5.3.4', name: 'FRENOS', isVariable: true },
+    ]
+  }
+};
+
+const SENIAT_DECLARATIONS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'DECLARACIONES': {
+    label: '7 SENIAT DECLARACIONES Y CONTABILIDAD',
+    deadlineDay: 15,
+    items: [
+      { code: '7.1', name: 'LIBRO DE COMPRA', isVariable: true },
+      { code: '7.2.1', name: 'LIBRO DE VENTA - CODIGO 1', isVariable: true },
+      { code: '7.2.2', name: 'LIBRO DE VENTA - CODIGO 2', isVariable: true },
+      { code: '7.2.3', name: 'LIBRO DE VENTA - CODIGO 3', isVariable: true },
+      { code: '7.2.4', name: 'LIBRO DE VENTA - TOTAL', isVariable: true },
+      { code: '7.3', name: 'DECLARACION DE IVA', isVariable: true },
+      { code: '7.4', name: 'DECLARACION DE IVA RET', isVariable: true },
+      { code: '7.5', name: 'DECLARACION DE ANT ISLR', isVariable: true },
+      { code: '7.6', name: 'DECLARACION DE IGTF', isVariable: true },
+      { code: '7.7', name: 'DECLARACION DE ISLR RETENIDO', isVariable: true },
+      { code: '7.8', name: 'DECLARACION DE FONDO DE PENSIONES', isVariable: true },
+      { code: '7.9', name: 'CARPETA CONTABLE', isVariable: true },
+      { code: '7.10', name: 'HONORARIOS', isVariable: true },
+      { code: '7.11', name: 'DECLARACION DE IGP', isVariable: true },
+      { code: '7.12', name: 'DECLARACION DE ISLR', isVariable: true },
+    ]
+  }
+};
+
+const SENIAT_BOOKS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'LIBROS': {
+    label: '8 SENIAT LIBROS',
+    deadlineDay: 30,
+    items: [
+      { code: '8.1', name: 'LIBRO MAYOR', isVariable: true },
+      { code: '8.2', name: 'LIBRO DE INVENTARIO', isVariable: true },
+      { code: '8.3', name: 'LIBRO DE ACTAS', isVariable: true },
+      { code: '8.4', name: 'LIBRO DE COMPRA', isVariable: true },
+      { code: '8.5', name: 'LIBRO DE VENTA', isVariable: true },
+    ]
+  }
+};
+
+const SYSTEMS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'SISTEMAS': {
+    label: '9 SISTEMAS, MARKETING Y OFICINAS',
+    deadlineDay: 30,
+    items: [
+      { code: '9.1', name: 'SERVIDOR', isVariable: true },
+      { code: '9.2', name: 'RED', isVariable: true },
+      { code: '9.3', name: 'SOFTWARE ADMINISTRATIVO', isVariable: true },
+      { code: '9.4', name: 'SOFTWARE CONTABLE', isVariable: true },
+      { code: '9.5', name: 'PROGRAMA (GASTOS FIJOS)', isVariable: true },
+      { code: '9.6', name: 'PAGINA WEB', isVariable: true },
+      { code: '9.7', name: 'PUBLICIDAD (DISEÑADOR)', isVariable: true },
+      { code: '9.8', name: 'MARKETING (REDES SOCIALES)', isVariable: true },
+      { code: '9.9', name: 'CONTROL DE DAÑOS', isVariable: true },
+      { code: '9.10', name: 'PAPELERIA DE OFICINA EN GENERAL', isVariable: true },
+      { code: '9.11', name: 'MOBILIARIO', isVariable: true },
+    ]
+  }
+};
+
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
@@ -302,11 +398,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [store]);
 
-  useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
+  const getTaxConfig = (cat: Category | '') => {
+    switch (cat) {
+      case Category.MUNICIPAL_TAX: return MUNICIPAL_TAX_CONFIG;
+      case Category.NATIONAL_TAX: return NATIONAL_TAX_CONFIG;
+      case Category.OBJECT: return OBJECT_TAX_CONFIG;
+      case Category.INSTITUTIONS: return INSTITUTIONS_TAX_CONFIG;
+      case Category.TRANSPORT: return TRANSPORT_TAX_CONFIG;
+      case Category.SENIAT_DECLARATIONS: return SENIAT_DECLARATIONS_TAX_CONFIG;
+      case Category.SENIAT_BOOKS: return SENIAT_BOOKS_TAX_CONFIG;
+      case Category.SYSTEMS: return SYSTEMS_TAX_CONFIG;
+      default: return null;
+    }
+  };
 
-    if (isTaxCategory && taxGroup && taxItem) {
+  useEffect(() => {
+    const config = getTaxConfig(category);
+    const isTaxCategory = !!config;
+
+    if (isTaxCategory && config && taxGroup && taxItem) {
       const groupData = config[taxGroup];
       const itemData = groupData?.items?.find(i => i.code === taxItem);
       
@@ -330,10 +440,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Auto-fill Due Date based on Tax Group Configuration
   useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
+    const configMap = getTaxConfig(category);
+    const isTaxCategory = !!configMap;
 
-    if (isTaxCategory && taxGroup) {
+    if (isTaxCategory && configMap && taxGroup) {
         const config = configMap[taxGroup];
         if (config) {
             const now = new Date();
@@ -352,10 +462,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup]);
 
   const isCurrentTaxItemVariable = useMemo(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
+    const configMap = getTaxConfig(category);
+    const isTaxCategory = !!configMap;
 
-    if (isTaxCategory && taxGroup && taxItem) {
+    if (isTaxCategory && configMap && taxGroup && taxItem) {
         const groupData = configMap[taxGroup];
         const itemData = groupData?.items?.find(i => i.code === taxItem);
         return itemData?.isVariable || false;
@@ -434,7 +544,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   };
 
   const taxStatusList = useMemo(() => {
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
+    const config = getTaxConfig(category);
+    if (!config) return [];
     return Object.entries(config).map(([key, config]) => {
         const status = getTaxStatus(config.deadlineDay);
         return { key, label: config.label, ...status };
@@ -478,7 +589,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
+    const isTaxCategory = !!getTaxConfig(category);
     if (isTaxCategory) {
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
@@ -694,12 +805,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                         {[
                             { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue', desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
                             { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo', desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
                             { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald', desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
                             { id: Category.INSTITUTIONS, label: 'Instituciones', icon: Landmark, color: 'purple', desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
+                            { id: Category.TRANSPORT, label: 'Transporte', icon: FileText, color: 'orange', desc: 'Documentos de chofer, vehículo y mantenimiento.' },
+                            { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText, color: 'teal', desc: 'Declaraciones y Contabilidad SENIAT.' },
+                            { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText, color: 'cyan', desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
+                            { id: Category.SYSTEMS, label: 'Sistemas', icon: FileText, color: 'rose', desc: 'Sistemas, Marketing y Oficinas.' },
                             { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow', desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                         ].map((cat) => {
                             const Icon = cat.icon;
@@ -734,6 +849,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
                                     { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
                                     { id: Category.INSTITUTIONS, desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
+                                    { id: Category.TRANSPORT, desc: 'Documentos de chofer, vehículo y mantenimiento.' },
+                                    { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
+                                    { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
+                                    { id: Category.SYSTEMS, desc: 'Sistemas, Marketing y Oficinas.' },
                                     { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                                 ].find(c => c.id === category)?.desc}
                             </p>
@@ -746,8 +865,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-8">
-                {/* Dynamic Tax Section with Traffic Light (Municipal, National, Object & Institutions) */}
-                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS) && (
+                {/* Dynamic Tax Section with Traffic Light */}
+                {!!getTaxConfig(category) && (
                     <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                         
                         {/* Header Dinámico */}
@@ -813,7 +932,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <option value="">
                                                     {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
                                                 </option>
-                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
+                                                {taxGroup && getTaxConfig(category)?.[taxGroup]?.items?.map((item) => (
                                                     <option key={item.code} value={item.code}>
                                                         {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
                                                     </option>
