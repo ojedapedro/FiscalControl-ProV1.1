@@ -128,6 +128,68 @@ const NATIONAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; 
   }
 };
 
+const OBJECT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'SENCAMER_CERT': {
+    label: '2.1 CERTIFICADO DE SENCAMER (REM 36357)',
+    deadlineDay: 30,
+    items: [
+      { code: '2.1.1', name: 'CONSTANCIA DE REGISTRO', isVariable: true },
+      { code: '2.1.2', name: 'PAGO DE RENOVACION REM', isVariable: true },
+      { code: '2.1.3', name: 'CERTIFICADO REM', isVariable: true },
+    ]
+  },
+  'SENCAMER_CPE': {
+    label: '2.2 CPE SENCAMER',
+    deadlineDay: 30,
+    items: [
+      { code: '2.2.1', name: 'PAGO DE ARANCELES', isVariable: true },
+      { code: '2.2.2', name: 'CONSTANCIA DE VERIFICACION DE PRODUCTO', isVariable: true },
+      { code: '2.2.3', name: 'SOLVENCIA DEL PRODUCTO', isVariable: true },
+    ]
+  },
+  'RACDA': {
+    label: '2.3 REGISTRO DE ACTIVIDADES CAPACES DE DEGRADAR EL AMBIENTE (RACDA)',
+    deadlineDay: 30,
+    items: [
+      { code: '2.3.1', name: 'LICENCIA RACDA', isVariable: true },
+      { code: '2.3.2', name: 'PAGOS DEL PROFESIONAL PARA DECLARACION EFLUENTES', isVariable: true },
+      { code: '2.3.3', name: 'DECLARACION EFLUENTES', isVariable: true },
+      { code: '2.3.4', name: 'DISPOSICION FINAL (ANUAL) INFORME', isVariable: true },
+    ]
+  },
+  'SOLVENCIA_AMBIENTAL': {
+    label: '2.4 SOLVENCIA POLICIAL NACIONAL AMBIENTAL',
+    deadlineDay: 30,
+    items: [
+      { code: '2.4.1', name: 'ACTA DE SOLVENCIA', isVariable: true },
+    ]
+  },
+  'DISPOSICION_FINAL': {
+    label: '2.5 EMPRESA DE DISPOSICION FINAL',
+    deadlineDay: 30,
+    items: [
+      { code: '2.5.1', name: 'CONTRATO EMPRESA DISPOSICION FINAL', isVariable: true },
+      { code: '2.5.2', name: 'RETIRO DE DESECHOS', isVariable: true },
+    ]
+  },
+  'POLIZA_SEGURO': {
+    label: '2.7 POLIZA DE SEGURO FABRICA (RESPONSABILIDAD CIVIL GENERAL)',
+    deadlineDay: 30,
+    items: [
+      { code: '2.7.1', name: 'PAGO DE ARANCELES', isVariable: true },
+      { code: '2.7.2', name: 'POLIZA', isVariable: true },
+    ]
+  },
+  'SAPI': {
+    label: '2.8 SERVICIO AUTONOMO DE LA PROPIEDAD INTELECTUAL (SAPI)',
+    deadlineDay: 30,
+    items: [
+      { code: '2.8.1', name: 'SAPI (MARCA)', isVariable: true },
+      { code: '2.8.2', name: 'SAPI (LOGO)', isVariable: true },
+    ]
+  }
+};
+
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
@@ -187,8 +249,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [store]);
 
   useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup && taxItem) {
       const groupData = config[taxGroup];
@@ -214,8 +276,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Auto-fill Due Date based on Tax Group Configuration
   useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup) {
         const config = configMap[taxGroup];
@@ -236,8 +298,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup]);
 
   const isCurrentTaxItemVariable = useMemo(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup && taxItem) {
         const groupData = configMap[taxGroup];
@@ -318,7 +380,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   };
 
   const taxStatusList = useMemo(() => {
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG;
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
     return Object.entries(config).map(([key, config]) => {
         const status = getTaxStatus(config.deadlineDay);
         return { key, label: config.label, ...status };
@@ -362,7 +424,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
     if (isTaxCategory) {
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
@@ -578,10 +640,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
                             { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue' },
                             { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo' },
+                            { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald' },
                             { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow' },
                         ].map((cat) => {
                             const Icon = cat.icon;
@@ -614,8 +677,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-8">
-                {/* Dynamic Tax Section with Traffic Light (Municipal & National) */}
-                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) && (
+                {/* Dynamic Tax Section with Traffic Light (Municipal, National & Object) */}
+                {(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT) && (
                     <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
                         
                         {/* Header Dinámico */}
@@ -681,7 +744,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <option value="">
                                                     {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
                                                 </option>
-                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : NATIONAL_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
+                                                {taxGroup && (category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG)[taxGroup]?.items?.map((item) => (
                                                     <option key={item.code} value={item.code}>
                                                         {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
                                                     </option>

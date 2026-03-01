@@ -17,6 +17,7 @@ export enum PaymentStatus {
 export enum Category {
   NATIONAL_TAX = 'Impuesto Nacional',
   MUNICIPAL_TAX = 'Impuesto Municipal',
+  OBJECT = 'Objeto',
   UTILITY = 'Servicio Público',
   INVENTORY = 'Inventario',
   OTHER = 'Otro'
