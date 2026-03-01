@@ -347,6 +347,8 @@ interface PaymentFormProps {
   payments: Payment[];
 }
 
+import { TaxInfoSearch } from './TaxInfoSearch';
+
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments }) => {
   const [store, setStore] = useState(initialData?.storeId || '');
   const [storeAddress, setStoreAddress] = useState('');
@@ -943,6 +945,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             </div>
                                         </div>
                                         {errors.taxItem && <p className="text-red-500 text-xs ml-1">{errors.taxItem}</p>}
+                                        
+                                        {taxItem && (
+                                            <TaxInfoSearch category={category} taxItem={taxItem} />
+                                        )}
                                     </div>
 
                                     <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
