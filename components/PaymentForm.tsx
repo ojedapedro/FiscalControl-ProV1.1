@@ -642,10 +642,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue' },
-                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo' },
-                            { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald' },
-                            { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow' },
+                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue', desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
+                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo', desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
+                            { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald', desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
+                            { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow', desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                         ].map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
@@ -670,6 +670,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             )
                         })}
                     </div>
+                    {category && (
+                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                {[
+                                    { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
+                                    { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
+                                    { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
+                                    { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
+                                ].find(c => c.id === category)?.desc}
+                            </p>
+                        </div>
+                    )}
                     {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
                 </div>
             </div>
