@@ -18,6 +18,7 @@ export enum Category {
   NATIONAL_TAX = 'Impuesto Nacional',
   MUNICIPAL_TAX = 'Impuesto Municipal',
   OBJECT = 'Objeto',
+  INSTITUTIONS = 'Instituciones Nacionales y Regionales',
   UTILITY = 'Servicio Público',
   INVENTORY = 'Inventario',
   OTHER = 'Otro'

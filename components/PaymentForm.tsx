@@ -190,6 +190,60 @@ const OBJECT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; it
   }
 };
 
+const INSTITUTIONS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'SNC': {
+    label: '3.1 SERVICIO NACIONAL DE CONTRATISTA (SNC)',
+    deadlineDay: 30,
+    items: [
+      { code: '3.1.1', name: 'EXPEDIENTE CONTABLE', isVariable: true },
+      { code: '3.1.2', name: 'PAGO DE ARANCEL', isVariable: true },
+      { code: '3.1.3', name: 'CERTIFICADO', isVariable: true },
+    ]
+  },
+  'RUPDAE': {
+    label: '3.2 RUPDAE',
+    deadlineDay: 30,
+    items: [
+      { code: '3.2.1', name: 'INSCRIPCION', isVariable: true },
+      { code: '3.2.2', name: 'ARANCEL', isVariable: true },
+    ]
+  },
+  'FONACIT': {
+    label: '3.3 FONACIT',
+    deadlineDay: 30,
+    items: [
+      { code: '3.3.1', name: 'DECLARACION', isVariable: true },
+      { code: '3.3.2', name: 'PAGO', isVariable: true },
+    ]
+  },
+  'FONA': {
+    label: '3.4 FONA',
+    deadlineDay: 30,
+    items: [
+      { code: '3.4.1', name: 'DECLARACION', isVariable: true },
+      { code: '3.4.2', name: 'PAGO', isVariable: true },
+    ]
+  },
+  'FONDO_DEPORTE': {
+    label: '3.5 FONDO DE DEPORTE',
+    deadlineDay: 30,
+    items: [
+      { code: '3.5.1', name: 'DECLARACION', isVariable: true },
+      { code: '3.5.2', name: 'PAGO', isVariable: true },
+    ]
+  },
+  'INSALUD': {
+    label: '3.6 PERMISOS SANITARIO (INSALUD)',
+    deadlineDay: 30,
+    items: [
+      { code: '3.6.1', name: 'CERTIFICADO DE FUMIGACION', isVariable: true },
+      { code: '3.6.2', name: 'CERTIFICADO DE LIMPIEZA DE TANQUES', isVariable: true },
+      { code: '3.6.3', name: 'CERTIFICADO DE DESRATIZACION', isVariable: true },
+      { code: '3.6.4', name: 'PERMISO SANITARIO', isVariable: true },
+    ]
+  }
+};
+
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
   onCancel: () => void;
@@ -249,8 +303,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [store]);
 
   useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup && taxItem) {
       const groupData = config[taxGroup];
@@ -276,8 +330,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Auto-fill Due Date based on Tax Group Configuration
   useEffect(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup) {
         const config = configMap[taxGroup];
@@ -298,8 +352,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup]);
 
   const isCurrentTaxItemVariable = useMemo(() => {
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
-    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
+    const configMap = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
 
     if (isTaxCategory && taxGroup && taxItem) {
         const groupData = configMap[taxGroup];
@@ -380,7 +434,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   };
 
   const taxStatusList = useMemo(() => {
-    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : OBJECT_TAX_CONFIG;
+    const config = category === Category.MUNICIPAL_TAX ? MUNICIPAL_TAX_CONFIG : category === Category.NATIONAL_TAX ? NATIONAL_TAX_CONFIG : category === Category.OBJECT ? OBJECT_TAX_CONFIG : INSTITUTIONS_TAX_CONFIG;
     return Object.entries(config).map(([key, config]) => {
         const status = getTaxStatus(config.deadlineDay);
         return { key, label: config.label, ...status };
@@ -424,7 +478,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
     if (!category) newErrors.category = "La categoría es obligatoria";
-    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT;
+    const isTaxCategory = category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX || category === Category.OBJECT || category === Category.INSTITUTIONS;
     if (isTaxCategory) {
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
@@ -640,11 +694,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         {[
                             { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue', desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
                             { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo', desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
                             { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald', desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
+                            { id: Category.INSTITUTIONS, label: 'Instituciones', icon: Landmark, color: 'purple', desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
                             { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow', desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                         ].map((cat) => {
                             const Icon = cat.icon;
@@ -664,7 +719,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <div className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
                                         <Icon size={18} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
                                     </div>
-                                    <span className="text-xs font-bold">{cat.label}</span>
+                                    <span className="text-xs font-bold text-center">{cat.label}</span>
                                     {isSelected && <div className="absolute top-1 right-1 text-blue-500"><CheckCircle2 size={12} /></div>}
                                 </button>
                             )
@@ -678,6 +733,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
                                     { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
                                     { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
+                                    { id: Category.INSTITUTIONS, desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
                                     { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                                 ].find(c => c.id === category)?.desc}
                             </p>
