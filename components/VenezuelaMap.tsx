@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Store } from '../types';
 import { Maximize2, RefreshCw } from 'lucide-react';
@@ -12,7 +12,7 @@ interface VenezuelaMapProps {
 }
 
 export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStoreIds = [], onStoreClick }) => {
-  const [activeStore, setActiveStore] = useState<Store | null>(null);
+  const [activeStore, setActiveStore] = React.useState<Store | null>(null);
 
   // Use a placeholder key if not provided in env
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Loader2, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
@@ -10,11 +10,11 @@ interface TaxInfoSearchProps {
 }
 
 export const TaxInfoSearch: React.FC<TaxInfoSearchProps> = ({ category, taxItem }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [urls, setUrls] = useState<{ title: string; uri: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [result, setResult] = React.useState<string | null>(null);
+  const [urls, setUrls] = React.useState<{ title: string; uri: string }[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!category || !taxItem) return;

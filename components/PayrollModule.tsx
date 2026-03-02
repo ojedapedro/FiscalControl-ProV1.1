@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { 
   Users, 
@@ -30,7 +29,7 @@ import {
   UserX,
   Wand2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { PayrollEntry, Employee } from '../types';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 

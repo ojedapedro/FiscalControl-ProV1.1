@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { User, Role } from '../types';
 import { api } from '../services/api';
 import { 
@@ -15,22 +15,22 @@ import {
 } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [showForm, setShowForm] = React.useState(false);
   
   // Form State
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = React.useState({
     name: '',
     email: '',
     password: '',
     role: Role.ADMIN
   });
   
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadUsers();
   }, []);
 
