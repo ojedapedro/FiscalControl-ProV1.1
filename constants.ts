@@ -190,7 +190,7 @@ export const MOCK_ALERTS: AlertItem[] = [
     category: 'SERVICIOS',
     title: 'Factura Electricidad - Tienda B',
     amount: 850.00,
-    severity: 'upcoming',
+    severity: 'scheduled',
     timeLabel: 'Vence en 5h',
     dueDate: '2023-10-28'
   },
@@ -200,7 +200,7 @@ export const MOCK_ALERTS: AlertItem[] = [
     category: 'INVENTARIO',
     title: 'Reposición de Inventario',
     amount: 12400.00,
-    severity: 'upcoming',
+    severity: 'scheduled',
     timeLabel: 'Vence mañana',
     dueDate: '2023-10-29'
   },

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { 
   FileText, 
   CheckSquare, 
@@ -42,9 +42,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onInstallClick
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const [imgError, setImgError] = useState(false);
+  const [imgError, setImgError] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setImgError(false);
   }, [APP_LOGO_URL]);
   

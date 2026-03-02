@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard'; 
 import { PaymentForm } from './components/PaymentForm';
@@ -12,7 +12,7 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
 
@@ -20,28 +20,31 @@ interface AppProps {
   isDemoMode?: boolean;
 }
 
+import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
+
 function App({ isDemoMode = false }: AppProps) {
   // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(
+  const [currentUser, setCurrentUser] = React.useState<User | null>(
     isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
   );
-  const [isAuthenticated, setIsAuthenticated] = useState(isDemoMode);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(isDemoMode);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = useState('dashboard');
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [currentView, setCurrentView] = React.useState('dashboard');
+  const [payments, setPayments] = React.useState<Payment[]>([]);
+  const [exchangeRate, setExchangeRate] = React.useState<number>(1);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [editingPayment, setEditingPayment] = React.useState<Payment | null>(null);
+  const [notification, setNotification] = React.useState<string | null>(null);
+  const [pushPermission, setPushPermission] = React.useState<NotificationPermission>('default');
 
   // --- MOBILE & PWA STATE ---
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [installPrompt, setInstallPrompt] = React.useState<any>(null);
 
   // PWA Install Prompt Listener
-  useEffect(() => {
+  React.useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       // Prevenir que Chrome en Android muestre el prompt automáticamente
       e.preventDefault();
@@ -83,7 +86,7 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAuthenticated && currentUser) {
       setCurrentView(getInitialView(currentUser.role));
       loadData();
@@ -145,6 +148,10 @@ function App({ isDemoMode = false }: AppProps) {
       } else {
         const data = await api.getPayments();
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
+        const settings = await api.getSettings();
+        if (settings && settings.exchangeRate) {
+          setExchangeRate(settings.exchangeRate);
+        }
       }
     } catch (error) {
       setNotification('❌ Error conectando con Google Sheets');
@@ -442,6 +449,55 @@ function App({ isDemoMode = false }: AppProps) {
             <div className="grid gap-6">
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
+                       <DollarSign size={20} /> Configuración Financiera
+                   </h3>
+                   <div className="max-w-xs">
+                       <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
+                       <div className="flex gap-2">
+                           <div className="relative flex-1">
+                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
+                               <input 
+                                   type="number" 
+                                   step="0.01"
+                                   value={exchangeRate}
+                                   onChange={(e) => setExchangeRate(Number(e.target.value))}
+                                   className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
+                               />
+                           </div>
+                           <button 
+                               onClick={async () => {
+                                   setIsLoading(true);
+                                   try {
+                                       const currentSettings = await api.getSettings() || {
+                                           whatsappEnabled: false,
+                                           whatsappPhone: '',
+                                           whatsappGatewayUrl: '',
+                                           daysBeforeWarning: 5,
+                                           daysBeforeCritical: 2,
+                                           emailEnabled: false,
+                                           exchangeRate: 1
+                                       };
+                                       await api.saveSettings({ ...currentSettings, exchangeRate });
+                                       setNotification('✅ Tasa de cambio actualizada');
+                                   } catch (e) {
+                                       setNotification('❌ Error actualizando tasa');
+                                   } finally {
+                                       setIsLoading(false);
+                                   }
+                               }}
+                               className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                           >
+                               Actualizar
+                           </button>
+                       </div>
+                       <p className="text-[10px] text-slate-500 mt-2 italic">
+                           Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
+                       </p>
+                   </div>
+                </div>
+
+                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                   <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
                        <Building2 size={20} /> Conexión Google Drive
                    </h3>
                    <p className="text-sm text-slate-400 mb-4">
@@ -484,7 +540,7 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!currentUser) return;
     const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports'];
     const allowedViews: Record<Role, string[]> = {
@@ -503,81 +559,83 @@ function App({ isDemoMode = false }: AppProps) {
   }
 
   return (
-    <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
-      
-      {/* Sidebar Responsive */}
-      <Sidebar 
-        currentView={currentView} 
-        setCurrentView={setCurrentView} 
-        currentRole={currentUser?.role || Role.ADMIN}
-        onChangeRole={() => {}} 
-        onLogout={handleLogout}
-        isMobileOpen={isMobileMenuOpen}
-        closeMobileMenu={() => setIsMobileMenuOpen(false)}
-        installPrompt={installPrompt}
-        onInstallClick={handleInstallClick}
-      />
-      
-      {/* Contenedor Principal */}
-      <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
+    <ExchangeRateProvider exchangeRate={exchangeRate}>
+      <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
         
-        {/* Header Móvil */}
-        <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
-           <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 text-white hover:bg-slate-800 rounded-lg"
-              >
-                  <Menu size={24} />
-              </button>
-              <span className="font-bold text-lg text-white">FiscalCtl</span>
-           </div>
-           <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
-               <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-           </div>
-        </div>
-
-        {/* Loading Overlay */}
-        {isLoading && (
-            <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                <RefreshCw size={12} className="animate-spin" />
-                Sincronizando...
-            </div>
-        )}
-
-        {/* Notificaciones Toast */}
-        {notification && (
-          <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-             <div className="bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4">
-                <span className="font-medium">{notification}</span>
-                <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+        {/* Sidebar Responsive */}
+        <Sidebar 
+          currentView={currentView} 
+          setCurrentView={setCurrentView} 
+          currentRole={currentUser?.role || Role.ADMIN}
+          onChangeRole={() => {}} 
+          onLogout={handleLogout}
+          isMobileOpen={isMobileMenuOpen}
+          closeMobileMenu={() => setIsMobileMenuOpen(false)}
+          installPrompt={installPrompt}
+          onInstallClick={handleInstallClick}
+        />
+        
+        {/* Contenedor Principal */}
+        <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
+          
+          {/* Header Móvil */}
+          <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
+             <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 text-white hover:bg-slate-800 rounded-lg"
+                >
+                    <Menu size={24} />
+                </button>
+                <span className="font-bold text-lg text-white">FiscalCtl</span>
+             </div>
+             <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
+                 <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
              </div>
           </div>
-        )}
 
-        {/* Modal Formulario */}
-        {isFormOpen && (
-           <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-              <div className="bg-white dark:bg-slate-950 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                  <PaymentForm 
-                    initialData={editingPayment}
-                    payments={payments}
-                    onSubmit={handleNewPayment} 
-                    onCancel={() => {
-                      setIsFormOpen(false);
-                      setEditingPayment(null);
-                    }} 
-                  />
+          {/* Loading Overlay */}
+          {isLoading && (
+              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+                  <RefreshCw size={12} className="animate-spin" />
+                  Sincronizando...
               </div>
-           </div>
-        )}
+          )}
 
-        {/* Contenido Scrollable */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-           {renderContent()}
-        </div>
-      </main>
-    </div>
+          {/* Notificaciones Toast */}
+          {notification && (
+            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
+               <div className="bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4">
+                  <span className="font-medium">{notification}</span>
+                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+               </div>
+            </div>
+          )}
+
+          {/* Modal Formulario */}
+          {isFormOpen && (
+             <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-slate-950 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
+                    <PaymentForm 
+                      initialData={editingPayment}
+                      payments={payments}
+                      onSubmit={handleNewPayment} 
+                      onCancel={() => {
+                        setIsFormOpen(false);
+                        setEditingPayment(null);
+                      }} 
+                    />
+                </div>
+             </div>
+          )}
+
+          {/* Contenido Scrollable */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+             {renderContent()}
+          </div>
+        </main>
+      </div>
+    </ExchangeRateProvider>
   );
 }
 

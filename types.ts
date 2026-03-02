@@ -111,4 +111,5 @@ export interface SystemSettings {
   daysBeforeWarning: number;
   daysBeforeCritical: number;
   emailEnabled: boolean;
+  exchangeRate: number;
 }

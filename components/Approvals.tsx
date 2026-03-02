@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import * as React from 'react';
 import { Payment, PaymentStatus } from '../types';
 import { 
   CheckCircle2, 
@@ -34,19 +34,22 @@ interface ApprovalsProps {
   onReject: (id: string, reason: string) => void;
 }
 
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
+
 type SortOption = 'urgency' | 'date_desc' | 'amount_desc' | 'amount_asc';
 
 export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onReject }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [rejectionNote, setRejectionNote] = useState('');
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<SortOption>('urgency');
-  const [isImageFullscreen, setIsImageFullscreen] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [rejectionNote, setRejectionNote] = React.useState('');
+  const [isRejecting, setIsRejecting] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [sortOption, setSortOption] = React.useState<SortOption>('urgency');
+  const [isImageFullscreen, setIsImageFullscreen] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
+  const { exchangeRate } = useExchangeRate();
   
   // --- Checklist State ---
-  const [checklist, setChecklist] = useState({
+  const [checklist, setChecklist] = React.useState({
     amountVerified: false,
     receiptValid: false,
     dateCorrect: false,
@@ -57,14 +60,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const isChecklistComplete = Object.values(checklist).every(val => val === true);
 
   // --- Estados para el Modal de Confirmación de Fecha ---
-  const [showApprovalModal, setShowApprovalModal] = useState(false);
-  const [confirmationDate, setConfirmationDate] = useState('');
-  const [updateBudget, setUpdateBudget] = useState(false);
-  const [confirmationBudget, setConfirmationBudget] = useState<number | ''>('');
-  const [approvedPaymentId, setApprovedPaymentId] = useState<string | null>(null);
+  const [showApprovalModal, setShowApprovalModal] = React.useState(false);
+  const [confirmationDate, setConfirmationDate] = React.useState('');
+  const [updateBudget, setUpdateBudget] = React.useState(false);
+  const [confirmationBudget, setConfirmationBudget] = React.useState<number | ''>('');
+  const [approvedPaymentId, setApprovedPaymentId] = React.useState<string | null>(null);
 
   // Filtrado y Ordenamiento
-  const processedPayments = useMemo(() => {
+  const processedPayments = React.useMemo(() => {
     let filtered = payments.filter(p => 
       (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE) &&
       (p.storeName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -87,7 +90,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
   const selectedPayment = payments.find(p => p.id === selectedId);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setRejectionNote('');
     setIsRejecting(false);
     setIsImageFullscreen(false);
@@ -213,7 +216,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
 
   const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
 
-  const budgetAnalysis = useMemo(() => {
+  const budgetAnalysis = React.useMemo(() => {
       if (!selectedPayment || !selectedPayment.isOverBudget) return null;
       
       const amount = Number(selectedPayment.amount);
@@ -435,9 +438,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                      </h3>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <div className="flex items-center justify-end gap-1">
+                                    <div className="flex flex-col items-end gap-0.5">
                                         <span className="text-sm font-bold text-slate-900 dark:text-white font-mono tracking-tight">
                                             ${payment.amount.toLocaleString()}
+                                        </span>
+                                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                            Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                     {payment.isOverBudget && (
@@ -628,6 +634,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                     </div>
                                                     <div className="font-mono text-slate-900 dark:text-white font-bold">
                                                         ${Number(selectedPayment.amount).toLocaleString()}
+                                                    </div>
+                                                    <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                                                        Bs. {(Number(selectedPayment.amount) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
                                                 <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-xl border border-red-200 dark:border-red-800 text-center">

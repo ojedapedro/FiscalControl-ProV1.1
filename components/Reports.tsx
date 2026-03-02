@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart, 
@@ -23,6 +23,7 @@ import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, Trendin
 import { STORES, APP_LOGO_URL } from '../constants';
 
 import VenezuelaMap from '@/components/VenezuelaMap';
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface ReportsProps {
   payments: Payment[];
@@ -51,6 +52,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 };
 
 const CustomFinancialTooltip = ({ active, payload, label }: any) => {
+  const { exchangeRate } = useExchangeRate();
   if (active && payload && payload.length) {
     const approvedEntry = payload.find((p: any) => p.dataKey === 'approved');
     const pendingEntry = payload.find((p: any) => p.dataKey === 'pending');
@@ -74,9 +76,14 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                 <span className="text-slate-400">Gasto Ejecutado</span>
               </div>
-              <span className="font-mono font-bold text-blue-400">
-                ${approvedValue.toLocaleString()}
-              </span>
+              <div className="text-right">
+                <div className="font-mono font-bold text-blue-400">
+                  ${approvedValue.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Bs. {(approvedValue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
             </div>
             <div className="flex justify-between items-center">
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
@@ -93,9 +100,14 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
                 <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                 <span className="text-slate-400">Pendiente / En Proceso</span>
               </div>
-              <span className="font-mono font-bold text-yellow-400">
-                ${pendingValue.toLocaleString()}
-              </span>
+              <div className="text-right">
+                <div className="font-mono font-bold text-yellow-400">
+                  ${pendingValue.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Bs. {(pendingValue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
             </div>
             <div className="flex justify-between items-center">
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
@@ -109,9 +121,14 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
         <div className="mt-4 pt-3 border-t border-slate-700 space-y-2">
           <div className="flex justify-between items-center text-xs">
             <span className="text-slate-500 font-medium">Total Proyectado:</span>
-            <span className={`font-mono font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-200'}`}>
-              ${(approvedValue + pendingValue).toLocaleString()}
-            </span>
+            <div className="text-right">
+              <div className={`font-mono font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-200'}`}>
+                ${(approvedValue + pendingValue).toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Bs. {((approvedValue + pendingValue) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
           </div>
           <div className="flex justify-between items-center text-[10px]">
             <span className="text-slate-500">Utilización Total:</span>
@@ -131,30 +148,31 @@ const CustomFinancialTooltip = ({ active, payload, label }: any) => {
 };
 
 export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+  const [showExportMenu, setShowExportMenu] = React.useState(false);
 
   // Date Filter State (Default to current month)
-  const [startDate, setStartDate] = useState(() => {
+  const [startDate, setStartDate] = React.useState(() => {
     const date = new Date();
     return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
   });
-  const [endDate, setEndDate] = useState(() => {
+  const [endDate, setEndDate] = React.useState(() => {
     return new Date().toISOString().split('T')[0];
   });
 
   // Store and Municipality Filter States
-  const [selectedStore, setSelectedStore] = useState('all');
-  const [selectedMunicipality, setSelectedMunicipality] = useState('all');
+  const [selectedStore, setSelectedStore] = React.useState('all');
+  const [selectedMunicipality, setSelectedMunicipality] = React.useState('all');
+  const { exchangeRate } = useExchangeRate();
 
-  const municipalities = useMemo(() => {
+  const municipalities = React.useMemo(() => {
     const allMunicipalities = STORES.map(s => s.municipality || 'N/A');
     return ['all', ...Array.from(new Set(allMunicipalities))];
   }, []);
 
   // --- PROCESAMIENTO DE DATOS ---
 
-  const filteredPayments = useMemo(() => {
+  const filteredPayments = React.useMemo(() => {
     return payments.filter(p => {
       const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : p.dueDate;
       const isDateInRange = recordDate >= startDate && recordDate <= endDate;
@@ -167,7 +185,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   }, [payments, startDate, endDate, selectedStore, selectedMunicipality]);
 
   // Calcular el estado dinámico de las tiendas para el mapa en el reporte
-  const dynamicStores = useMemo(() => {
+  const dynamicStores = React.useMemo(() => {
     return STORES.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -188,7 +206,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
     });
   }, [payments]);
 
-  const annualData = useMemo(() => {
+  const annualData = React.useMemo(() => {
     const currentYear = new Date().getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     
@@ -519,8 +537,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: 'Monto Aprobado', value: `$${totalApproved.toLocaleString()}`, icon: CheckCircle2, color: 'emerald', sub: 'En selección' },
-            { label: 'Desviación Ppto.', value: `$${totalOverBudgetSum.toLocaleString()}`, icon: AlertTriangle, color: 'orange', sub: 'Excedente acumulado' },
+            { label: 'Monto Aprobado', value: `$${totalApproved.toLocaleString()}`, bsValue: `Bs. ${(totalApproved * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CheckCircle2, color: 'emerald', sub: 'En selección' },
+            { label: 'Desviación Ppto.', value: `$${totalOverBudgetSum.toLocaleString()}`, bsValue: `Bs. ${(totalOverBudgetSum * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: AlertTriangle, color: 'orange', sub: 'Excedente acumulado' },
             { label: 'Pagos Rechazados', value: totalRejectedCount, icon: XCircle, color: 'red', sub: 'Revisiones fallidas' },
             { label: 'En Espera', value: totalPendingCount, icon: Clock, color: 'yellow', sub: 'Pendientes de firma' }
           ].map((kpi, i) => (
@@ -542,6 +560,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                     </div>
                     <div className="text-slate-400 text-sm font-semibold tracking-wide">{kpi.label}</div>
                     <div className="text-3xl font-bold text-white mt-1 font-mono">{kpi.value}</div>
+                    {kpi.bsValue && (
+                      <div className="text-sm font-medium text-slate-400 mt-1">{kpi.bsValue}</div>
+                    )}
                     <p className={`text-xs text-${kpi.color}-400/70 mt-3 flex items-center gap-1.5 font-medium`}>
                         <ArrowUpRight size={14} />
                         {kpi.sub}
@@ -576,11 +597,17 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                 <div className="flex gap-3">
                     <div className="px-5 py-3 bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-inner">
                         <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-widest mb-1">Presupuesto Anual</span>
-                        <span className="text-xl font-bold text-white font-mono">${totalAnnualBudget.toLocaleString()}</span>
+                        <div className="flex flex-col">
+                          <span className="text-xl font-bold text-white font-mono">${totalAnnualBudget.toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Bs. {(totalAnnualBudget * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
+                        </div>
                     </div>
                     <div className="px-5 py-3 bg-blue-500/10 backdrop-blur-md rounded-2xl border border-blue-500/20 shadow-inner">
                         <span className="text-[10px] text-blue-400 block uppercase font-bold tracking-widest mb-1">Ejecutado YTD</span>
-                        <span className="text-xl font-bold text-blue-400 font-mono">${totalYTDExecuted.toLocaleString()}</span>
+                        <div className="flex flex-col">
+                          <span className="text-xl font-bold text-blue-400 font-mono">${totalYTDExecuted.toLocaleString()}</span>
+                          <span className="text-[10px] text-blue-400/70 font-bold">Bs. {(totalYTDExecuted * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
+                        </div>
                     </div>
                 </div>
             </div>

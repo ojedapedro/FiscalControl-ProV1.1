@@ -49,7 +49,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       whatsappGatewayUrl: '',
       daysBeforeWarning: 3,
       daysBeforeCritical: 1,
-      emailEnabled: true
+      emailEnabled: true,
+      exchangeRate: 1
   });
 
   // Auto-refresh Timer
@@ -294,6 +295,30 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                   onChange={(e) => setConfig({...config, daysBeforeCritical: Number(e.target.value)})}
                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white"
                                />
+                           </div>
+                       </div>
+                  </div>
+
+                  {/* Exchange Rate Settings */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                       <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                           <RefreshCw size={20} className="text-emerald-500" />
+                           Tasa de Cambio ($/Bs)
+                       </h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Tasa Manual (Bs por $1)</label>
+                               <div className="relative">
+                                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
+                                   <input 
+                                      type="number" 
+                                      step="0.01"
+                                      value={config.exchangeRate}
+                                      onChange={(e) => setConfig({...config, exchangeRate: Number(e.target.value)})}
+                                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-12 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white font-mono"
+                                   />
+                               </div>
+                               <p className="text-[10px] text-slate-500 mt-2">Esta tasa se usará para convertir todos los montos en dólares a bolívares en el sistema.</p>
                            </div>
                        </div>
                   </div>

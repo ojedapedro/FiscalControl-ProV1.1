@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import * as React from 'react';
 import { 
   Building2, 
   Landmark, 
@@ -24,6 +24,7 @@ import {
 import { Category, Payment, PaymentStatus } from '../types';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
 const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
@@ -350,44 +351,45 @@ interface PaymentFormProps {
 import { TaxInfoSearch } from './TaxInfoSearch';
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments }) => {
-  const [store, setStore] = useState(initialData?.storeId || '');
-  const [storeAddress, setStoreAddress] = useState('');
-  const [storeMunicipality, setStoreMunicipality] = useState('');
-  const [category, setCategory] = useState<Category | ''>(initialData?.category || '');
+  const { exchangeRate } = useExchangeRate();
+  const [store, setStore] = React.useState(initialData?.storeId || '');
+  const [storeAddress, setStoreAddress] = React.useState('');
+  const [storeMunicipality, setStoreMunicipality] = React.useState('');
+  const [category, setCategory] = React.useState<Category | ''>(initialData?.category || '');
   
   // States for Tax Logic (Municipal & National)
-  const [taxGroup, setTaxGroup] = useState('');
-  const [taxItem, setTaxItem] = useState('');
+  const [taxGroup, setTaxGroup] = React.useState('');
+  const [taxItem, setTaxItem] = React.useState('');
 
-  const [amount, setAmount] = useState(initialData?.amount.toString() || '');
-  const [expectedBudget, setExpectedBudget] = useState<number | null>(initialData?.originalBudget || null);
+  const [amount, setAmount] = React.useState(initialData?.amount.toString() || '');
+  const [expectedBudget, setExpectedBudget] = React.useState<number | null>(initialData?.originalBudget || null);
   
-  const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
-  const [paymentDate, setPaymentDate] = useState(initialData?.paymentDate || new Date().toISOString().split('T')[0]);
-  const [specificType, setSpecificType] = useState(initialData?.specificType || '');
+  const [dueDate, setDueDate] = React.useState(initialData?.dueDate || '');
+  const [paymentDate, setPaymentDate] = React.useState(initialData?.paymentDate || new Date().toISOString().split('T')[0]);
+  const [specificType, setSpecificType] = React.useState(initialData?.specificType || '');
   
   // Archivos
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.receiptUrl || null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialData?.receiptUrl || null);
 
   // --- Justification State ---
-  const [isOverBudget, setIsOverBudget] = useState(initialData?.isOverBudget || false);
-  const [showJustificationModal, setShowJustificationModal] = useState(false);
-  const [justificationNote, setJustificationNote] = useState(initialData?.justification || '');
-  const [justificationFile, setJustificationFile] = useState<File | null>(null);
-  const [justificationConfirmed, setJustificationConfirmed] = useState(!!initialData?.justification);
-  const [manualOverBudget, setManualOverBudget] = useState(false);
+  const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
+  const [showJustificationModal, setShowJustificationModal] = React.useState(false);
+  const [justificationNote, setJustificationNote] = React.useState(initialData?.justification || '');
+  const [justificationFile, setJustificationFile] = React.useState<File | null>(null);
+  const [justificationConfirmed, setJustificationConfirmed] = React.useState(!!initialData?.justification);
+  const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
-  const [notes, setNotes] = useState(initialData?.notes || '');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [notes, setNotes] = React.useState(initialData?.notes || '');
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
   
   // Estados de carga
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingText, setLoadingText] = useState('');
-  const [isFileScanning, setIsFileScanning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [loadingText, setLoadingText] = React.useState('');
+  const [isFileScanning, setIsFileScanning] = React.useState(false);
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
-  useEffect(() => {
+  React.useEffect(() => {
     if (store) {
       const selectedStore = STORES.find(s => s.id === store);
       if (selectedStore) {
@@ -414,7 +416,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     const config = getTaxConfig(category);
     const isTaxCategory = !!config;
 
@@ -441,7 +443,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup, taxItem]);
 
   // Auto-fill Due Date based on Tax Group Configuration
-  useEffect(() => {
+  React.useEffect(() => {
     const configMap = getTaxConfig(category);
     const isTaxCategory = !!configMap;
 
@@ -463,7 +465,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [category, taxGroup]);
 
-  const isCurrentTaxItemVariable = useMemo(() => {
+  const isCurrentTaxItemVariable = React.useMemo(() => {
     const configMap = getTaxConfig(category);
     const isTaxCategory = !!configMap;
 
@@ -476,7 +478,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup, taxItem]);
 
   // Budget Monitoring Logic
-  useEffect(() => {
+  React.useEffect(() => {
     const numericAmount = parseFloat(amount);
     if (isCurrentTaxItemVariable) {
         // For variable items, only manual flag determines over budget
@@ -499,7 +501,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
 
   // Reset tax selection when category changes to prevent inconsistent state
-  useEffect(() => {
+  React.useEffect(() => {
     if (!initialData) { // Only reset if not in initial edit mode
       setTaxGroup('');
       setTaxItem('');
@@ -508,7 +510,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, initialData]);
 
   // Calcular el estado dinámico de las tiendas para el mapa
-  const dynamicStores = useMemo(() => {
+  const dynamicStores = React.useMemo(() => {
     return STORES.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -530,7 +532,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [payments]);
 
   // Clean up preview URL
-  useEffect(() => {
+  React.useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
@@ -545,7 +547,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     return { color: 'bg-green-500', text: 'text-green-600', bgSoft: 'bg-green-100', status: 'En fecha', icon: CheckCircle2 };
   };
 
-  const taxStatusList = useMemo(() => {
+  const taxStatusList = React.useMemo(() => {
     const config = getTaxConfig(category);
     if (!config) return [];
     return Object.entries(config).map(([key, config]) => {
@@ -554,7 +556,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     });
   }, [category]);
 
-  const globalStatus = useMemo(() => {
+  const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
     if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
     return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
@@ -1025,6 +1027,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
                                         } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all disabled:opacity-50`}
                                     />
+                                    <div className="mt-2 text-sm font-bold text-slate-600 dark:text-slate-400">
+                                        Equivalente: Bs. {(parseFloat(amount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
                                     {isOverBudget && (
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-500 animate-pulse" title="Excede Presupuesto">
                                             <AlertTriangle size={20} />

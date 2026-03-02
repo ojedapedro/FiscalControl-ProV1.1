@@ -1,96 +1,24 @@
 
 import * as React from 'react';
-import { ReactNode } from 'react';
-import ReactDOM from 'react-dom/client';
+import * as ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
 
-// Registro de Service Worker para PWA (Ruta absoluta para scope global)
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('SW registered with scope: ', registration.scope);
-      })
-      .catch(registrationError => {
-        console.log('SW registration failed: ', registrationError);
-      });
-  });
-}
-
-// Definición de tipos para ErrorBoundary
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: any;
-}
-
-// Componente para capturar errores de renderizado (Error Boundary)
-class ErrorBoundary extends (React.Component as any) {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: any, errorInfo: any) {
-    console.error("React Error Boundary caught:", error, errorInfo);
-  }
-
-  render() {
-    const { hasError, error } = this.state;
-    if (hasError) {
-      return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
-          <div className="bg-red-900/20 border border-red-500/50 p-6 rounded-xl max-w-lg">
-            <h1 className="text-xl font-bold text-red-400 mb-2">Error de Aplicación</h1>
-            <p className="text-sm text-slate-300 mb-4">La aplicación encontró un problema inesperado.</p>
-            <pre className="text-xs bg-black/50 p-4 rounded text-left overflow-auto max-h-40 text-red-200 font-mono">
-              {error?.toString()}
-            </pre>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold transition-colors"
-            >
-              Intentar Recargar
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 const container = document.getElementById('root');
 
 if (container) {
-  try {
-    const root = ReactDOM.createRoot(container);
-    const urlParams = new URLSearchParams(window.location.search);
-    const isDemoMode = urlParams.get('demo') === 'true';
+  const root = ReactDOM.createRoot(container);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDemoMode = urlParams.get('demo') === 'true';
 
-    root.render(
-      <React.StrictMode>
-        <ErrorBoundary>
-          <ThemeProvider>
-            <App isDemoMode={isDemoMode} />
-          </ThemeProvider>
-        </ErrorBoundary>
-      </React.StrictMode>
-    );
-    console.log("React app mounted successfully.");
-  } catch (e) {
-    console.error("Failed to mount React app:", e);
-    container.innerHTML = '<div style="color:red; padding:20px;">Fatal Error: Failed to mount application. Check console.</div>';
-  }
+  root.render(
+    <React.StrictMode>
+      <ThemeProvider>
+        <App isDemoMode={isDemoMode} />
+      </ThemeProvider>
+    </React.StrictMode>
+  );
 } else {
   console.error("FATAL: Element with id 'root' not found in the document.");
 }
