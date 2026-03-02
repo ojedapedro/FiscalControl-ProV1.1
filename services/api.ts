@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbyxVkNV8XIqvDgTOY5kj5FQsHCR6BWkHHnxaQ78rMW5kPm_EWoOc3iusVxiG3Dyfp9e/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbx62qzGZBgFax1tCG6S9aac9wwlWubCMCz9ByOCdsH-vgVbkw6CVND_2aMhLKFlnQP_pQ/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -165,6 +165,64 @@ export const api = {
     }
 
     const response = await fetch(`${API_URL}?action=deletePayment`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    return await response.json();
+  },
+
+  // --- EMPLEADOS (NÓMINA) ---
+  
+  // Obtener Empleados
+  getEmployees: async (): Promise<any[]> => {
+    if (isMockMode()) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return []; // Return empty mock data for now
+    }
+    try {
+      const response = await fetch(`${API_URL}?action=getEmployees`);
+      const json = await response.json();
+      if (json.status === 'error') return [];
+      return json.data || [];
+    } catch (e) {
+      console.error("Error fetching employees", e);
+      return [];
+    }
+  },
+
+  // Crear Empleado
+  createEmployee: async (employee: any) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Empleado simulado creado' };
+    }
+    const response = await fetch(`${API_URL}?action=addEmployee`, {
+      method: 'POST',
+      body: JSON.stringify(employee)
+    });
+    return await response.json();
+  },
+
+  // Actualizar Empleado
+  updateEmployee: async (employee: any) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Empleado simulado actualizado' };
+    }
+    const response = await fetch(`${API_URL}?action=updateEmployee`, {
+      method: 'POST',
+      body: JSON.stringify(employee)
+    });
+    return await response.json();
+  },
+
+  // Borrar Empleado
+  deleteEmployee: async (id: string) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Empleado simulado eliminado' };
+    }
+    const response = await fetch(`${API_URL}?action=deleteEmployee`, {
       method: 'POST',
       body: JSON.stringify({ id })
     });

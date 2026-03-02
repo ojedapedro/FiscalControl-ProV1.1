@@ -116,19 +116,52 @@ function App({ isDemoMode = false }: AppProps) {
     setNotification('🗑️ Registro de nómina eliminado');
   };
 
-  const handleAddEmployee = (employee: Employee) => {
-    setEmployees([...employees, employee]);
-    setNotification('✅ Expediente de empleado creado');
+  const handleAddEmployee = async (employee: Employee) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.createEmployee(employee);
+      }
+      setEmployees(prev => [...prev, employee]);
+      setNotification('✅ Expediente de empleado creado');
+    } catch (error) {
+      setNotification('❌ Error guardando expediente');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
-  const handleUpdateEmployee = (employee: Employee) => {
-    setEmployees(employees.map(e => e.id === employee.id ? employee : e));
-    setNotification('✅ Expediente actualizado');
+  const handleUpdateEmployee = async (employee: Employee) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.updateEmployee(employee);
+      }
+      setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
+      setNotification('✅ Expediente actualizado');
+    } catch (error) {
+      setNotification('❌ Error actualizando expediente');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
-  const handleDeleteEmployee = (id: string) => {
-    setEmployees(employees.filter(e => e.id !== id));
-    setNotification('🗑️ Expediente eliminado');
+  const handleDeleteEmployee = async (id: string) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.deleteEmployee(id);
+      }
+      setEmployees(prev => prev.filter(e => e.id !== id));
+      setNotification('🗑️ Expediente eliminado');
+    } catch (error) {
+      setNotification('❌ Error eliminando expediente');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   const handleLogout = () => {
@@ -181,6 +214,11 @@ function App({ isDemoMode = false }: AppProps) {
       } else {
         const data = await api.getPayments();
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
+        
+        // Cargar empleados
+        const employeesData = await api.getEmployees();
+        setEmployees(employeesData);
+
         const settings = await api.getSettings();
         if (settings && settings.exchangeRate) {
           setExchangeRate(settings.exchangeRate);
