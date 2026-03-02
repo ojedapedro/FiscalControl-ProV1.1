@@ -10,8 +10,9 @@ import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
+import { PayrollModule } from './components/PayrollModule';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
@@ -32,6 +33,7 @@ function App({ isDemoMode = false }: AppProps) {
   // --- APP STATE ---
   const [currentView, setCurrentView] = React.useState('dashboard');
   const [payments, setPayments] = React.useState<Payment[]>([]);
+  const [payrollEntries, setPayrollEntries] = React.useState<PayrollEntry[]>([]);
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -96,6 +98,21 @@ function App({ isDemoMode = false }: AppProps) {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+  };
+
+  const handleAddPayrollEntry = (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
+    const newEntry: PayrollEntry = {
+      ...entry,
+      id: `PAY-${Date.now()}`,
+      submittedDate: new Date().toISOString()
+    };
+    setPayrollEntries([newEntry, ...payrollEntries]);
+    setNotification('✅ Nómina cargada exitosamente');
+  };
+
+  const handleDeletePayrollEntry = (id: string) => {
+    setPayrollEntries(payrollEntries.filter(e => e.id !== id));
+    setNotification('🗑️ Registro de nómina eliminado');
   };
 
   const handleLogout = () => {
@@ -412,6 +429,14 @@ function App({ isDemoMode = false }: AppProps) {
         return <StoreStatus payments={payments} />;
       case 'calendar':
         return <CalendarView payments={payments} />;
+      case 'payroll':
+        return (
+          <PayrollModule 
+            entries={payrollEntries} 
+            onAddEntry={handleAddPayrollEntry} 
+            onDeleteEntry={handleDeletePayrollEntry} 
+          />
+        );
       case 'notifications':
         return (
           <NotificationsView 

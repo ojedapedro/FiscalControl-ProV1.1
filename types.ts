@@ -25,6 +25,7 @@ export enum Category {
   SYSTEMS = 'Sistemas, Marketing y Oficinas',
   UTILITY = 'Servicio Público',
   INVENTORY = 'Inventario',
+  PAYROLL = 'Nómina y Pasivos Laborales',
   OTHER = 'Otro'
 }
 
@@ -112,4 +113,25 @@ export interface SystemSettings {
   daysBeforeCritical: number;
   emailEnabled: boolean;
   exchangeRate: number;
+}
+
+export interface PayrollLiability {
+  name: string;
+  amount: number;
+  type: 'WORKER' | 'EMPLOYER';
+}
+
+export interface PayrollEntry {
+  id: string;
+  employeeName: string;
+  employeeId: string;
+  month: string;
+  baseSalary: number;
+  bonuses: { name: string; amount: number }[];
+  deductions: { name: string; amount: number }[];
+  employerLiabilities: { name: string; amount: number }[];
+  totalWorkerNet: number;
+  totalEmployerCost: number;
+  status: 'PENDIENTE' | 'PROCESADO';
+  submittedDate: string;
 }

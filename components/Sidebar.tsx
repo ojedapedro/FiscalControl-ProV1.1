@@ -12,7 +12,8 @@ import {
   Sun,
   Moon,
   Download,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import { Role } from '../types';
 import { useTheme } from './ThemeContext';
@@ -54,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'calendar', label: 'Calendario Fiscal', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
+    { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
   ];
