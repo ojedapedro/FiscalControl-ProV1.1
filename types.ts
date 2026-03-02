@@ -135,3 +135,17 @@ export interface PayrollEntry {
   status: 'PENDIENTE' | 'PROCESADO';
   submittedDate: string;
 }
+
+export interface Employee {
+  id: string; // Cédula/ID
+  name: string;
+  position: string;
+  department: string;
+  hireDate: string;
+  baseSalary: number;
+  isActive: boolean;
+  bankAccount?: string;
+  defaultBonuses: { name: string; amount: number }[];
+  defaultDeductions: { name: string; amount: number }[];
+  defaultEmployerLiabilities: { name: string; amount: number }[];
+}

@@ -12,7 +12,7 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
@@ -34,6 +34,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [currentView, setCurrentView] = React.useState('dashboard');
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [payrollEntries, setPayrollEntries] = React.useState<PayrollEntry[]>([]);
+  const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -113,6 +114,21 @@ function App({ isDemoMode = false }: AppProps) {
   const handleDeletePayrollEntry = (id: string) => {
     setPayrollEntries(payrollEntries.filter(e => e.id !== id));
     setNotification('🗑️ Registro de nómina eliminado');
+  };
+
+  const handleAddEmployee = (employee: Employee) => {
+    setEmployees([...employees, employee]);
+    setNotification('✅ Expediente de empleado creado');
+  };
+
+  const handleUpdateEmployee = (employee: Employee) => {
+    setEmployees(employees.map(e => e.id === employee.id ? employee : e));
+    setNotification('✅ Expediente actualizado');
+  };
+
+  const handleDeleteEmployee = (id: string) => {
+    setEmployees(employees.filter(e => e.id !== id));
+    setNotification('🗑️ Expediente eliminado');
   };
 
   const handleLogout = () => {
@@ -433,8 +449,12 @@ function App({ isDemoMode = false }: AppProps) {
         return (
           <PayrollModule 
             entries={payrollEntries} 
+            employees={employees}
             onAddEntry={handleAddPayrollEntry} 
             onDeleteEntry={handleDeletePayrollEntry} 
+            onAddEmployee={handleAddEmployee}
+            onUpdateEmployee={handleUpdateEmployee}
+            onDeleteEmployee={handleDeleteEmployee}
           />
         );
       case 'notifications':
