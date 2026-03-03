@@ -1,34 +1,30 @@
 import * as React from 'react';
 import { 
   Users, 
+  Briefcase, 
   Plus, 
+  Search, 
   DollarSign, 
+  FileText, 
+  Calculator, 
   TrendingUp, 
   TrendingDown, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  Search, 
-  Filter,
-  ArrowUpRight,
-  ArrowDownRight,
-  Briefcase,
-  ShieldCheck,
-  Building2,
+  Calendar, 
+  ShieldCheck, 
+  Contact, 
   Trash2,
   ChevronRight,
-  Calculator,
   UserPlus,
-  Contact,
-  Calendar,
   LayoutGrid,
   List,
   Edit3,
   UserCheck,
   UserX,
   Wand2,
-  Download
+  Download,
+  FileSignature,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PayrollEntry, Employee } from '../types';
@@ -133,6 +129,62 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     ]
   });
   const [employeeIdInput, setEmployeeIdInput] = React.useState('');
+
+  // --- AR-I Form State ---
+  const [isAriModalOpen, setIsAriModalOpen] = React.useState(false);
+  const [ariEmployee, setAriEmployee] = React.useState<Employee | null>(null);
+  const [ariData, setAriData] = React.useState({
+    estimatedIncomeBs: 0,
+    estimatedExpensesBs: 0,
+    dependents: 0,
+    taxUnitValueBs: 9.00
+  });
+
+  const calculateARI = () => {
+    const { estimatedIncomeBs, estimatedExpensesBs, dependents, taxUnitValueBs } = ariData;
+    if (taxUnitValueBs <= 0) return { percentage: 0, totalTaxBs: 0, isObligated: false, incomeUT: 0 };
+
+    const incomeUT = estimatedIncomeBs / taxUnitValueBs;
+    const expensesUT = estimatedExpensesBs / taxUnitValueBs;
+    
+    const isObligated = incomeUT > 1000;
+    
+    const taxableIncomeUT = Math.max(0, incomeUT - expensesUT);
+    
+    let taxUT = 0;
+    if (taxableIncomeUT <= 1000) {
+      taxUT = taxableIncomeUT * 0.06;
+    } else if (taxableIncomeUT <= 1500) {
+      taxUT = (taxableIncomeUT * 0.09) - 30;
+    } else if (taxableIncomeUT <= 2000) {
+      taxUT = (taxableIncomeUT * 0.12) - 75;
+    } else if (taxableIncomeUT <= 2500) {
+      taxUT = (taxableIncomeUT * 0.16) - 155;
+    } else if (taxableIncomeUT <= 3000) {
+      taxUT = (taxableIncomeUT * 0.20) - 255;
+    } else if (taxableIncomeUT <= 4000) {
+      taxUT = (taxableIncomeUT * 0.24) - 375;
+    } else if (taxableIncomeUT <= 6000) {
+      taxUT = (taxableIncomeUT * 0.29) - 575;
+    } else {
+      taxUT = (taxableIncomeUT * 0.34) - 875;
+    }
+
+    // Rebajas
+    const rebajaPersonalUT = 10;
+    const rebajaCargasUT = dependents * 10;
+    const totalRebajasUT = rebajaPersonalUT + rebajaCargasUT;
+
+    const finalTaxUT = Math.max(0, taxUT - totalRebajasUT);
+    const finalTaxBs = finalTaxUT * taxUnitValueBs;
+    
+    let percentage = 0;
+    if (estimatedIncomeBs > 0) {
+      percentage = (finalTaxBs / estimatedIncomeBs) * 100;
+    }
+
+    return { percentage, totalTaxBs: finalTaxBs, isObligated, incomeUT };
+  };
 
   const applyLawCalculationsToPayroll = () => {
     const { deductions, liabilities } = calculateParafiscales(payrollFormData.baseSalary, payrollFormData.bonuses);
@@ -708,6 +760,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                          <button 
+                            onClick={() => {
+                              setAriEmployee(emp);
+                              setAriData({
+                                estimatedIncomeBs: (emp.baseSalary * exchangeRate) * 12,
+                                estimatedExpensesBs: 0,
+                                dependents: 0,
+                                taxUnitValueBs: 9.00
+                              });
+                              setIsAriModalOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg"
+                            title="Calcular AR-I (ISLR)"
+                          >
+                            <FileSignature size={18} />
+                          </button>
                           <button 
                             onClick={() => setViewingEmployee(emp)}
                             className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
@@ -1317,6 +1385,151 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AR-I Modal */}
+      <AnimatePresence>
+        {isAriModalOpen && ariEmployee && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAriModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <div className="p-2 bg-purple-500/20 rounded-xl text-purple-400">
+                      <FileSignature size={24} />
+                    </div>
+                    Formulario AR-I (ISLR)
+                  </h2>
+                  <p className="text-slate-400 mt-1 text-sm">Cálculo de retención para {ariEmployee.name}</p>
+                </div>
+                <button 
+                  onClick={() => setIsAriModalOpen(false)}
+                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                >
+                  <Plus size={24} className="rotate-45" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ingresos Estimados (Bs/Año)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-slate-500 font-bold">Bs.</span>
+                      </div>
+                      <input 
+                        type="number" 
+                        value={ariData.estimatedIncomeBs || ''}
+                        onChange={(e) => setAriData({...ariData, estimatedIncomeBs: Number(e.target.value)})}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500">Equivale a ${(ariData.estimatedIncomeBs / exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})} USD</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Desgravámenes Estimados (Bs/Año)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-slate-500 font-bold">Bs.</span>
+                      </div>
+                      <input 
+                        type="number" 
+                        value={ariData.estimatedExpensesBs || ''}
+                        onChange={(e) => setAriData({...ariData, estimatedExpensesBs: Number(e.target.value)})}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cargas Familiares</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={ariData.dependents}
+                      onChange={(e) => setAriData({...ariData, dependents: Number(e.target.value)})}
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor Unidad Tributaria (Bs)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={ariData.taxUnitValueBs}
+                      onChange={(e) => setAriData({...ariData, taxUnitValueBs: Number(e.target.value)})}
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Results Section */}
+                <div className="mt-8 p-6 bg-slate-800/30 border border-slate-700 rounded-2xl">
+                  <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <Calculator size={16} className="text-purple-400" /> Resultados del Cálculo
+                  </h3>
+                  
+                  {(() => {
+                    const result = calculateARI();
+                    return (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                          <span className="text-sm text-slate-400">Ingresos en UT</span>
+                          <span className="font-mono font-bold text-white">{result.incomeUT.toLocaleString(undefined, {maximumFractionDigits: 2})} UT</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                          <span className="text-sm text-slate-400">Obligación de Presentar AR-I</span>
+                          <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
+                            result.isObligated ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {result.isObligated ? 'Obligatorio (> 1000 UT)' : 'No Obligatorio'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                          <span className="text-sm text-slate-400">Impuesto Anual Estimado</span>
+                          <span className="font-mono font-bold text-white">Bs. {result.totalTaxBs.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                          <span className="font-bold text-purple-300">Porcentaje de Retención Mensual</span>
+                          <span className="text-2xl font-bold text-purple-400">{result.percentage.toFixed(2)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+              
+              <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsAriModalOpen(false)}
+                  className="px-6 py-3 text-slate-300 hover:text-white font-bold transition-colors"
+                >
+                  Cerrar
+                </button>
               </div>
             </motion.div>
           </div>
