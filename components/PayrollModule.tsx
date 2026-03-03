@@ -167,17 +167,30 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         totalWorkerNet: 0,
         totalEmployerCost: 0,
         totalStateLiabilities: 0,
-        entriesCount: 0
+        entriesCount: 0,
+        ssoTotal: 0,
+        lphTotal: 0,
+        incesTotal: 0
       };
     }
     acc[entry.month].totalWorkerNet += entry.totalWorkerNet;
     acc[entry.month].totalEmployerCost += entry.totalEmployerCost;
     acc[entry.month].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
     acc[entry.month].entriesCount += 1;
+    
+    entry.employerLiabilities.forEach(l => {
+      const name = l.name.toLowerCase();
+      if (name.includes('sso') || name.includes('seguro social')) acc[entry.month].ssoTotal += l.amount;
+      else if (name.includes('lph') || name.includes('vivienda')) acc[entry.month].lphTotal += l.amount;
+      else if (name.includes('inces')) acc[entry.month].incesTotal += l.amount;
+    });
+
     return acc;
-  }, {} as Record<string, { month: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number }>);
+  }, {} as Record<string, { month: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number, ssoTotal: number, lphTotal: number, incesTotal: number }>);
 
   const sortedMonths = Object.values(payrollByMonth).sort((a, b) => b.month.localeCompare(a.month));
+  const currentYear = new Date().getFullYear().toString();
+  const currentYearMonths = sortedMonths.filter(m => m.month.startsWith(currentYear));
 
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
@@ -345,6 +358,60 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <td className="px-6 py-4 text-right">
                           <div className="font-mono font-bold text-blue-400">${m.totalEmployerCost.toLocaleString()}</div>
                           <div className="text-[10px] text-slate-500">Bs. {(m.totalEmployerCost * exchangeRate).toLocaleString()}</div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Desglose de Pasivos Laborales */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-800">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="text-orange-500" size={20} />
+                Desglose de Pasivos Laborales ({currentYear})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/50">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">SSO</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">LPH</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">INCES</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total Pasivos</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {currentYearMonths.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                        No hay pasivos registrados para el año actual.
+                      </td>
+                    </tr>
+                  ) : (
+                    currentYearMonths.map((m) => (
+                      <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-white font-bold">{m.month}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-slate-300">${m.ssoTotal.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.ssoTotal * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-slate-300">${m.lphTotal.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.lphTotal * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-slate-300">${m.incesTotal.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.incesTotal * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-orange-400">${m.totalStateLiabilities.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.totalStateLiabilities * exchangeRate).toLocaleString()}</div>
                         </td>
                       </tr>
                     ))
