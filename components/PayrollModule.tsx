@@ -27,7 +27,8 @@ import {
   Edit3,
   UserCheck,
   UserX,
-  Wand2
+  Wand2,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PayrollEntry, Employee } from '../types';
@@ -149,6 +150,60 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       defaultDeductions: deductions,
       defaultEmployerLiabilities: liabilities
     }));
+  };
+
+  const exportToCSV = () => {
+    // Define headers
+    const headers = [
+      'Trabajador',
+      'Cédula/ID',
+      'Mes',
+      'Sueldo Base ($)',
+      'Total Bonos ($)',
+      'Total Deducciones ($)',
+      'Total Pasivos Empresa ($)',
+      'Neto Trabajador ($)',
+      'Costo Total Empresa ($)',
+      'Estado',
+      'Fecha Registro'
+    ];
+
+    // Map data to rows
+    const rows = filteredEntries.map(entry => {
+      const totalBonuses = entry.bonuses.reduce((sum, b) => sum + b.amount, 0);
+      const totalDeductions = entry.deductions.reduce((sum, d) => sum + d.amount, 0);
+      const totalLiabilities = entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+      
+      return [
+        `"${entry.employeeName}"`,
+        `"${entry.employeeId}"`,
+        `"${entry.month}"`,
+        entry.baseSalary.toFixed(2),
+        totalBonuses.toFixed(2),
+        totalDeductions.toFixed(2),
+        totalLiabilities.toFixed(2),
+        entry.totalWorkerNet.toFixed(2),
+        entry.totalEmployerCost.toFixed(2),
+        `"${entry.status}"`,
+        `"${new Date(entry.submittedDate).toLocaleDateString()}"`
+      ];
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `historico_nomina_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const calculateTotals = (data: any) => {
@@ -495,6 +550,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
+              <button
+                onClick={exportToCSV}
+                disabled={filteredEntries.length === 0}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download size={18} />
+                Exportar CSV
+              </button>
             </div>
 
             <div className="overflow-x-auto">
