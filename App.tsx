@@ -492,6 +492,7 @@ function App({ isDemoMode = false }: AppProps) {
         return (
           <Dashboard 
             payments={payments} 
+            payrollEntries={payrollEntries}
             onNewPayment={() => {
               setEditingPayment(null);
               setIsFormOpen(true);

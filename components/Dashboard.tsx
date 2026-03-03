@@ -18,17 +18,18 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import { Payment, PaymentStatus } from '../types';
+import { Payment, PaymentStatus, PayrollEntry } from '../types';
 
 interface DashboardProps {
   payments: Payment[];
+  payrollEntries: PayrollEntry[];
   onNewPayment: () => void;
   onEditPayment: (payment: Payment) => void;
 }
 
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
-export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, onEditPayment }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
   const { exchangeRate } = useExchangeRate();
 
@@ -40,6 +41,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, on
   const totalOverdue = payments
     .filter(p => p.status === PaymentStatus.OVERDUE)
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Calcular total de pasivos laborales
+  const totalLiabilities = payrollEntries.reduce((acc, entry) => {
+    const entryLiabilities = entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+    return acc + entryLiabilities;
+  }, 0);
 
   // Nuevas Estadísticas
   // Nota: pendingCount incluye PENDING y UPLOADED
@@ -110,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, on
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {/* Card 1: Total Due */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="relative z-10">
@@ -149,7 +156,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, on
            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 3: Rejected Count */}
+        {/* Card 3: Total Liabilities */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
+           <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+              <AlertCircle size={18} className="text-orange-500" />
+              Pasivos Laborales
+            </div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+              Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+             <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
+              SSO, LPH, INCES
+            </div>
+          </div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+        </div>
+
+        {/* Card 4: Rejected Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
@@ -164,22 +189,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, onNewPayment, on
            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-50 dark:bg-pink-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 4: Pending Count */}
+        {/* Card 5: Pending Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <Clock size={18} className="text-orange-500" />
+              <Clock size={18} className="text-yellow-500" />
               Pagos Pendientes
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</div>
-             <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
+             <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold mt-3 bg-yellow-50 dark:bg-yellow-900/20 w-fit px-2 py-1 rounded-lg">
               En cola de revisión
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-yellow-50 dark:bg-yellow-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 5: Average Payment */}
+        {/* Card 6: Average Payment */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
