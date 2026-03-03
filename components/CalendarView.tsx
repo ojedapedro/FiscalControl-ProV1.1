@@ -14,10 +14,11 @@ import {
   DollarSign,
   Tag
 } from 'lucide-react';
-import { Payment, PaymentStatus, Category } from '../types';
+import { Payment, PaymentStatus, Category, PayrollEntry } from '../types';
 
 interface CalendarViewProps {
   payments: Payment[];
+  payrollEntries?: PayrollEntry[];
 }
 
 // Definición de Obligación Estatutaria (Basada en el cuadro)
@@ -97,7 +98,7 @@ const TAX_RULES: StatutoryDeadline[] = [
   }
 ];
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ payments, payrollEntries = [] }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
@@ -115,7 +116,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   // Estado combinado para la vista lateral
   const [dayEvents, setDayEvents] = useState<{
     realPayments: Payment[];
-    deadlines: StatutoryDeadline[];
+    deadlines: (StatutoryDeadline & { amount?: number })[];
     budgets: BudgetEntry[];
   }>({ realPayments: [], deadlines: [], budgets: [] });
 
@@ -135,21 +136,82 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
   // Obtener obligaciones para un día específico
-  const getDeadlinesForDate = (date: Date): StatutoryDeadline[] => {
+  const getDeadlinesForDate = (date: Date): (StatutoryDeadline & { amount?: number })[] => {
     const day = date.getDate();
     const month = date.getMonth();
+    const year = date.getFullYear();
     const lastDayOfMonth = getDaysInMonth(date);
 
-    return TAX_RULES.filter(rule => {
-      // Chequeo de mes (si es anual)
+    // Reglas estáticas
+    const staticDeadlines = TAX_RULES.filter(rule => {
       if (rule.month !== undefined && rule.month !== month) return false;
-
-      // Chequeo de día
-      if (rule.day === 'end') {
-        return day === lastDayOfMonth;
-      }
+      if (rule.day === 'end') return day === lastDayOfMonth;
       return rule.day === day;
     });
+
+    // Obligaciones dinámicas de nómina (del mes anterior)
+    const dynamicDeadlines: (StatutoryDeadline & { amount?: number })[] = [];
+    
+    // El mes anterior en formato YYYY-MM
+    const prevMonthDate = new Date(year, month - 1, 1);
+    const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Filtrar nóminas del mes anterior
+    const prevMonthPayroll = payrollEntries.filter(e => e.month === prevMonthStr);
+    
+    if (prevMonthPayroll.length > 0) {
+      // Sumar pasivos
+      let ssoTotal = 0;
+      let lphTotal = 0;
+      let incesTotal = 0;
+      
+      prevMonthPayroll.forEach(entry => {
+        entry.employerLiabilities.forEach(l => {
+          const name = l.name.toLowerCase();
+          if (name.includes('sso') || name.includes('seguro social')) ssoTotal += l.amount;
+          else if (name.includes('lph') || name.includes('vivienda')) lphTotal += l.amount;
+          else if (name.includes('inces')) incesTotal += l.amount;
+        });
+      });
+
+      if (ssoTotal > 0 && day === 15) {
+        dynamicDeadlines.push({
+          id: `dyn-sso-${prevMonthStr}`,
+          day: 15,
+          title: 'Aporte Patronal SSO',
+          category: Category.PAYROLL,
+          description: `Pago Seguro Social correspondiente a ${prevMonthStr}`,
+          frequency: 'Mensual',
+          amount: ssoTotal
+        });
+      }
+      
+      if (lphTotal > 0 && day === 10) {
+        dynamicDeadlines.push({
+          id: `dyn-lph-${prevMonthStr}`,
+          day: 10,
+          title: 'Aporte Patronal LPH',
+          category: Category.PAYROLL,
+          description: `Pago Ley de Política Habitacional correspondiente a ${prevMonthStr}`,
+          frequency: 'Mensual',
+          amount: lphTotal
+        });
+      }
+      
+      if (incesTotal > 0 && day === 10) {
+        dynamicDeadlines.push({
+          id: `dyn-inces-${prevMonthStr}`,
+          day: 10,
+          title: 'Aporte Patronal INCES',
+          category: Category.PAYROLL,
+          description: `Pago INCES correspondiente a ${prevMonthStr}`,
+          frequency: 'Mensual',
+          amount: incesTotal
+        });
+      }
+    }
+
+    return [...staticDeadlines, ...dynamicDeadlines];
   };
 
   // Efecto para actualizar el panel lateral al cambiar fecha
@@ -252,9 +314,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
                 {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
             </div>
 
-            {/* Indicadores de Reglas Fiscales (Alcaldía) */}
+            {/* Indicadores de Reglas Fiscales (Alcaldía y Nómina) */}
             {dayDeadlines.map((rule, idx) => (
-                <div key={idx} className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] px-1.5 py-0.5 rounded truncate font-medium border border-purple-200 dark:border-purple-800/50 flex items-center gap-1">
+                <div key={idx} className={`text-[10px] px-1.5 py-0.5 rounded truncate font-medium border flex items-center gap-1 ${
+                  rule.category === Category.PAYROLL 
+                    ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
+                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50'
+                }`}>
                     <Landmark size={8} />
                     {rule.title}
                 </div>
@@ -395,6 +461,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
+            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
             <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
         </div>
       </div>
@@ -413,20 +480,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments }) => {
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             
-            {/* Sección de Obligaciones Estatutarias */}
+            {/* Sección de Obligaciones Estatutarias y Nómina */}
             {dayEvents.deadlines.length > 0 && (
                 <div className="space-y-3">
                     <h3 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                        <Landmark size={12} /> Recordatorios Alcaldía
+                        <Landmark size={12} /> Obligaciones y Recordatorios
                     </h3>
                     {dayEvents.deadlines.map((rule, idx) => (
-                        <div key={idx} className="p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 bg-purple-50 dark:bg-purple-900/10">
+                        <div key={idx} className={`p-4 rounded-xl border ${
+                          rule.category === Category.PAYROLL
+                            ? 'border-orange-100 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10'
+                            : 'border-purple-100 dark:border-purple-900/30 bg-purple-50 dark:bg-purple-900/10'
+                        }`}>
                             <div className="flex justify-between items-start mb-1">
-                                <span className="text-purple-700 dark:text-purple-300 font-bold text-sm">{rule.title}</span>
-                                <span className="text-[10px] bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full">{rule.frequency}</span>
+                                <span className={`font-bold text-sm ${
+                                  rule.category === Category.PAYROLL ? 'text-orange-700 dark:text-orange-300' : 'text-purple-700 dark:text-purple-300'
+                                }`}>{rule.title}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                                  rule.category === Category.PAYROLL 
+                                    ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200'
+                                    : 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
+                                }`}>{rule.frequency}</span>
                             </div>
                             <p className="text-xs text-slate-600 dark:text-slate-400">{rule.description}</p>
-                            <div className="mt-2 flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                            {rule.amount !== undefined && (
+                              <div className="mt-2 text-lg font-bold font-mono text-slate-800 dark:text-slate-200">
+                                ${rule.amount.toLocaleString()}
+                              </div>
+                            )}
+                            <div className={`mt-2 flex items-center gap-1 text-[10px] font-medium ${
+                              rule.category === Category.PAYROLL ? 'text-orange-600 dark:text-orange-400' : 'text-purple-600 dark:text-purple-400'
+                            }`}>
                                 <AlertOctagon size={10} />
                                 Fecha Límite Estricta
                             </div>
