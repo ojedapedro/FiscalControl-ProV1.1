@@ -189,8 +189,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   }, {} as Record<string, { month: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number, ssoTotal: number, lphTotal: number, incesTotal: number }>);
 
   const sortedMonths = Object.values(payrollByMonth).sort((a, b) => b.month.localeCompare(a.month));
-  const currentYear = new Date().getFullYear().toString();
-  const currentYearMonths = sortedMonths.filter(m => m.month.startsWith(currentYear));
 
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
@@ -372,7 +370,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="p-6 border-b border-slate-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <ShieldCheck className="text-orange-500" size={20} />
-                Desglose de Pasivos Laborales ({currentYear})
+                Desglose de Pasivos Laborales
               </h2>
             </div>
             <div className="overflow-x-auto">
@@ -387,14 +385,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {currentYearMonths.length === 0 ? (
+                  {sortedMonths.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                        No hay pasivos registrados para el año actual.
+                        No hay pasivos registrados.
                       </td>
                     </tr>
                   ) : (
-                    currentYearMonths.map((m) => (
+                    sortedMonths.map((m) => (
                       <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
                         <td className="px-6 py-4 text-white font-bold">{m.month}</td>
                         <td className="px-6 py-4 text-right">
