@@ -58,6 +58,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [isAddingEntry, setIsAddingEntry] = React.useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
+  const [viewingEmployee, setViewingEmployee] = React.useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const { exchangeRate } = useExchangeRate();
 
@@ -395,12 +396,18 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     filteredEntries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-slate-800/30 transition-colors group">
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 font-bold">
+                          <div 
+                            className="flex items-center gap-3 cursor-pointer group/name"
+                            onClick={() => {
+                              const emp = employees.find(e => e.id === entry.employeeId);
+                              if (emp) setViewingEmployee(emp);
+                            }}
+                          >
+                            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 font-bold group-hover/name:bg-blue-500 group-hover/name:text-white transition-colors">
                               {entry.employeeName.charAt(0)}
                             </div>
                             <div>
-                              <div className="font-bold text-white">{entry.employeeName}</div>
+                              <div className="font-bold text-white group-hover/name:text-blue-400 transition-colors">{entry.employeeName}</div>
                               <div className="text-xs text-slate-500 font-mono">{entry.employeeId}</div>
                             </div>
                           </div>
@@ -970,6 +977,124 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* View Employee Modal */}
+      <AnimatePresence>
+        {viewingEmployee && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setViewingEmployee(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold text-2xl">
+                    {viewingEmployee.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">{viewingEmployee.name}</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-slate-400 font-mono text-sm">{viewingEmployee.id}</span>
+                      <span className="text-slate-600">•</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        viewingEmployee.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {viewingEmployee.isActive ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setViewingEmployee(null)}
+                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                >
+                  <Plus size={24} className="rotate-45" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cargo</div>
+                    <div className="text-white font-medium">{viewingEmployee.position}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Departamento</div>
+                    <div className="text-white font-medium">{viewingEmployee.department}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Ingreso</div>
+                    <div className="text-white font-medium">{viewingEmployee.hireDate}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sueldo Base</div>
+                    <div className="text-white font-bold font-mono text-lg">${viewingEmployee.baseSalary.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">Bs. {(viewingEmployee.baseSalary * exchangeRate).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                {/* Configuración de Nómina */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <Calculator size={16} className="text-indigo-400" /> Configuración de Nómina
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Bonos */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <TrendingUp size={14} /> Bonos Fijos
+                      </h4>
+                      {viewingEmployee.defaultBonuses.length > 0 ? (
+                        <div className="space-y-2">
+                          {viewingEmployee.defaultBonuses.map((b, i) => (
+                            <div key={i} className="flex justify-between items-center bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
+                              <span className="text-sm text-slate-300">{b.name}</span>
+                              <span className="text-sm font-bold text-emerald-400 font-mono">+${b.amount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-500 italic">No hay bonos configurados</div>
+                      )}
+                    </div>
+
+                    {/* Deducciones */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <TrendingDown size={14} /> Deducciones Fijas
+                      </h4>
+                      {viewingEmployee.defaultDeductions.length > 0 ? (
+                        <div className="space-y-2">
+                          {viewingEmployee.defaultDeductions.map((d, i) => (
+                            <div key={i} className="flex justify-between items-center bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
+                              <span className="text-sm text-slate-300">{d.name}</span>
+                              <span className="text-sm font-bold text-red-400 font-mono">-${d.amount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-500 italic">No hay deducciones configuradas</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
