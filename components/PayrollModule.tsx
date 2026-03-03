@@ -62,6 +62,29 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [searchTerm, setSearchTerm] = React.useState('');
   const { exchangeRate } = useExchangeRate();
 
+  const calculateParafiscales = (baseSalary: number, bonuses: {amount: number}[]) => {
+    const totalBonuses = bonuses.reduce((sum, b) => sum + b.amount, 0);
+    const salarioNormal = baseSalary;
+    const salarioIntegral = baseSalary + totalBonuses;
+    const totalPagos = baseSalary + totalBonuses;
+
+    return {
+      deductions: [
+        { name: 'SSO (4%)', amount: Number((salarioNormal * 0.04).toFixed(2)) },
+        { name: 'RPE / Paro Forzoso (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) },
+        { name: 'FAOV / LPH (1%)', amount: Number((salarioIntegral * 0.01).toFixed(2)) },
+        { name: 'INCES (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) }
+      ],
+      liabilities: [
+        { name: 'Aporte Patronal SSO (9%)', amount: Number((salarioNormal * 0.09).toFixed(2)) },
+        { name: 'Aporte Patronal RPE (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
+        { name: 'Aporte Patronal FAOV (2%)', amount: Number((salarioIntegral * 0.02).toFixed(2)) },
+        { name: 'Aporte Patronal INCES (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
+        { name: 'Fondo de Pensiones (9%)', amount: Number((totalPagos * 0.09).toFixed(2)) }
+      ]
+    };
+  };
+
   // --- Payroll Entry Form State ---
   const [payrollFormData, setPayrollFormData] = React.useState({
     employeeName: '',
@@ -69,8 +92,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     month: new Date().toISOString().slice(0, 7),
     baseSalary: 0,
     bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
-    deductions: [{ name: 'SSO (Seguro Social)', amount: 0 }, { name: 'LPH (Vivienda)', amount: 0 }],
-    employerLiabilities: [{ name: 'Aporte Patronal SSO', amount: 0 }, { name: 'Aporte Patronal LPH', amount: 0 }, { name: 'INCES', amount: 0 }]
+    deductions: [
+      { name: 'SSO (4%)', amount: 0 }, 
+      { name: 'RPE (0.5%)', amount: 0 }, 
+      { name: 'FAOV / LPH (1%)', amount: 0 }, 
+      { name: 'INCES (0.5%)', amount: 0 }
+    ],
+    employerLiabilities: [
+      { name: 'SSO Patronal (9%)', amount: 0 }, 
+      { name: 'RPE Patronal (2%)', amount: 0 }, 
+      { name: 'FAOV Patronal (2%)', amount: 0 }, 
+      { name: 'INCES Patronal (2%)', amount: 0 },
+      { name: 'Fondo de Pensiones (9%)', amount: 0 }
+    ]
   });
 
   // --- Employee Form State ---
@@ -83,10 +117,39 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     isActive: true,
     bankAccount: '',
     defaultBonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
-    defaultDeductions: [{ name: 'SSO (Seguro Social)', amount: 0 }, { name: 'LPH (Vivienda)', amount: 0 }],
-    defaultEmployerLiabilities: [{ name: 'Aporte Patronal SSO', amount: 0 }, { name: 'Aporte Patronal LPH', amount: 0 }, { name: 'INCES', amount: 0 }]
+    defaultDeductions: [
+      { name: 'SSO (4%)', amount: 0 }, 
+      { name: 'RPE (0.5%)', amount: 0 }, 
+      { name: 'FAOV / LPH (1%)', amount: 0 }, 
+      { name: 'INCES (0.5%)', amount: 0 }
+    ],
+    defaultEmployerLiabilities: [
+      { name: 'SSO Patronal (9%)', amount: 0 }, 
+      { name: 'RPE Patronal (2%)', amount: 0 }, 
+      { name: 'FAOV Patronal (2%)', amount: 0 }, 
+      { name: 'INCES Patronal (2%)', amount: 0 },
+      { name: 'Fondo de Pensiones (9%)', amount: 0 }
+    ]
   });
   const [employeeIdInput, setEmployeeIdInput] = React.useState('');
+
+  const applyLawCalculationsToPayroll = () => {
+    const { deductions, liabilities } = calculateParafiscales(payrollFormData.baseSalary, payrollFormData.bonuses);
+    setPayrollFormData(prev => ({
+      ...prev,
+      deductions,
+      employerLiabilities: liabilities
+    }));
+  };
+
+  const applyLawCalculationsToEmployee = () => {
+    const { deductions, liabilities } = calculateParafiscales(employeeFormData.baseSalary, employeeFormData.defaultBonuses);
+    setEmployeeFormData(prev => ({
+      ...prev,
+      defaultDeductions: deductions,
+      defaultEmployerLiabilities: liabilities
+    }));
+  };
 
   const calculateTotals = (data: any) => {
     const totalBonuses = (data.bonuses || data.defaultBonuses || []).reduce((acc: number, b: any) => acc + b.amount, 0);
@@ -702,6 +765,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 </div>
 
                 {/* Dynamic Sections (Bonuses, Deductions, Liabilities) */}
+                <div className="flex justify-end mb-4">
+                  <button
+                    type="button"
+                    onClick={applyLawCalculationsToPayroll}
+                    className="bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                  >
+                    <Calculator size={16} />
+                    Calcular Aportes de Ley Automáticamente
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Bonuses */}
                   <div className="space-y-4">
@@ -930,9 +1003,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                 {/* Default Payroll Config */}
                 <div className="space-y-6 pt-6 border-t border-slate-800">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Calculator size={20} className="text-indigo-400" /> Configuración de Nómina Predeterminada
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Calculator size={20} className="text-indigo-400" /> Configuración de Nómina Predeterminada
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={applyLawCalculationsToEmployee}
+                      className="bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                    >
+                      <Calculator size={16} />
+                      Calcular Aportes de Ley
+                    </button>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Default Bonuses */}
