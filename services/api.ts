@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbzrCHlUpgSyNIKkitj1q82JiM1xzoR5Srl4V_qci8jXjAvv3Nvp7RnkPINuqLn0ObxLDw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzS_c3j2Kh2rrJ1tVl2jd0Fd7DzHc019M5jLRginAEwlWT-uWfz3bkS3AFHjZm31h870w/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -223,6 +223,51 @@ export const api = {
        return { status: 'success', message: 'Empleado simulado eliminado' };
     }
     const response = await fetch(`${API_URL}?action=deleteEmployee`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    return await response.json();
+  },
+
+  // --- HISTÓRICO DE NÓMINA ---
+  
+  // Obtener Nóminas
+  getPayrollEntries: async (): Promise<any[]> => {
+    if (isMockMode()) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return [];
+    }
+    try {
+      const response = await fetch(`${API_URL}?action=getPayrollEntries`);
+      const json = await response.json();
+      if (json.status === 'error') return [];
+      return json.data || [];
+    } catch (e) {
+      console.error("Error fetching payroll entries", e);
+      return [];
+    }
+  },
+
+  // Crear Nómina
+  createPayrollEntry: async (entry: any) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Nómina simulada creada' };
+    }
+    const response = await fetch(`${API_URL}?action=addPayrollEntry`, {
+      method: 'POST',
+      body: JSON.stringify(entry)
+    });
+    return await response.json();
+  },
+
+  // Borrar Nómina
+  deletePayrollEntry: async (id: string) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Nómina simulada eliminada' };
+    }
+    const response = await fetch(`${API_URL}?action=deletePayrollEntry`, {
       method: 'POST',
       body: JSON.stringify({ id })
     });

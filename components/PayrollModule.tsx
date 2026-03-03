@@ -36,11 +36,11 @@ import { useExchangeRate } from '../contexts/ExchangeRateContext';
 interface PayrollModuleProps {
   entries: PayrollEntry[];
   employees: Employee[];
-  onAddEntry: (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => void;
-  onDeleteEntry: (id: string) => void;
-  onAddEmployee: (employee: Employee) => void;
-  onUpdateEmployee: (employee: Employee) => void;
-  onDeleteEmployee: (id: string) => void;
+  onAddEntry: (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => Promise<void>;
+  onDeleteEntry: (id: string) => Promise<void>;
+  onAddEmployee: (employee: Employee) => Promise<void>;
+  onUpdateEmployee: (employee: Employee) => Promise<void>;
+  onDeleteEmployee: (id: string) => Promise<void>;
 }
 
 type TabType = 'payroll' | 'employees';
@@ -98,10 +98,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     return { workerNet, employerCost };
   };
 
-  const handlePayrollSubmit = (e: React.FormEvent) => {
+  const handlePayrollSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { workerNet, employerCost } = calculateTotals(payrollFormData);
-    onAddEntry({
+    await onAddEntry({
       ...payrollFormData,
       totalWorkerNet: workerNet,
       totalEmployerCost: employerCost,
@@ -110,24 +110,24 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     setIsAddingEntry(false);
   };
 
-  const handleEmployeeSubmit = (e: React.FormEvent) => {
+  const handleEmployeeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingEmployee) {
-      onUpdateEmployee({ ...employeeFormData, id: editingEmployee.id });
+      await onUpdateEmployee({ ...employeeFormData, id: editingEmployee.id });
     } else {
-      onAddEmployee({ ...employeeFormData, id: employeeIdInput });
+      await onAddEmployee({ ...employeeFormData, id: employeeIdInput });
     }
     setIsAddingEmployee(false);
     setEditingEmployee(null);
   };
 
-  const handleAutoGeneratePayroll = () => {
+  const handleAutoGeneratePayroll = async () => {
     const activeEmployees = employees.filter(e => e.isActive);
     const currentMonth = new Date().toISOString().slice(0, 7);
     
-    activeEmployees.forEach(emp => {
+    for (const emp of activeEmployees) {
       const { workerNet, employerCost } = calculateTotals(emp);
-      onAddEntry({
+      await onAddEntry({
         employeeName: emp.name,
         employeeId: emp.id,
         month: currentMonth,
@@ -139,7 +139,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         totalEmployerCost: employerCost,
         status: 'PROCESADO'
       });
-    });
+    }
   };
 
   const filteredEntries = entries.filter(e => 

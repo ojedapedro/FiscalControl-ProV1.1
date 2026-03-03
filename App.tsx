@@ -101,19 +101,42 @@ function App({ isDemoMode = false }: AppProps) {
     setIsAuthenticated(true);
   };
 
-  const handleAddPayrollEntry = (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
+  const handleAddPayrollEntry = async (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
+    setIsLoading(true);
     const newEntry: PayrollEntry = {
       ...entry,
       id: `PAY-${Date.now()}`,
       submittedDate: new Date().toISOString()
     };
-    setPayrollEntries([newEntry, ...payrollEntries]);
-    setNotification('✅ Nómina cargada exitosamente');
+    
+    try {
+      if (!isDemoMode) {
+        await api.createPayrollEntry(newEntry);
+      }
+      setPayrollEntries([newEntry, ...payrollEntries]);
+      setNotification('✅ Nómina cargada exitosamente');
+    } catch (error) {
+      setNotification('❌ Error guardando nómina');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
-  const handleDeletePayrollEntry = (id: string) => {
-    setPayrollEntries(payrollEntries.filter(e => e.id !== id));
-    setNotification('🗑️ Registro de nómina eliminado');
+  const handleDeletePayrollEntry = async (id: string) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.deletePayrollEntry(id);
+      }
+      setPayrollEntries(payrollEntries.filter(e => e.id !== id));
+      setNotification('🗑️ Registro de nómina eliminado');
+    } catch (error) {
+      setNotification('❌ Error eliminando registro de nómina');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   const handleAddEmployee = async (employee: Employee) => {
@@ -218,6 +241,10 @@ function App({ isDemoMode = false }: AppProps) {
         // Cargar empleados
         const employeesData = await api.getEmployees();
         setEmployees(employeesData);
+
+        // Cargar histórico de nómina
+        const payrollData = await api.getPayrollEntries();
+        setPayrollEntries(payrollData.sort((a: any, b: any) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
 
         const settings = await api.getSettings();
         if (settings && settings.exchangeRate) {
@@ -482,7 +509,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'network':
         return <StoreStatus payments={payments} />;
       case 'calendar':
-        return <CalendarView payments={payments} />;
+        return <CalendarView payments={payments} payrollEntries={payrollEntries} />;
       case 'payroll':
         return (
           <PayrollModule 
