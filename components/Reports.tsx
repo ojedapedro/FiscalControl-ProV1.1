@@ -376,12 +376,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
         doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 80, kpiY);
         doc.text(`Pendientes: ${totalPendingCount}`, 140, kpiY);
 
-        doc.text("Detalle de Transacciones Auditadas", 14, 80);
+        doc.text("Detalle de Transacciones", 14, 80);
         
         const tableData = filteredPayments
-            .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
             .map(p => [
-                new Date(p.submittedDate).toLocaleDateString(),
+                new Date(p.submittedDate || p.dueDate).toLocaleDateString(),
                 p.storeName,
                 p.specificType,
                 `$${p.amount.toLocaleString()}`,
@@ -837,13 +836,23 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                     <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
                     Bitácora de Auditoría
                 </h3>
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 uppercase tracking-widest">
-                    {approvedPayments.length + rejectedPayments.length} Eventos
-                </span>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handleDownloadPDF}
+                        disabled={isGeneratingPdf}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                        {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                        Exportar PDF
+                    </button>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 uppercase tracking-widest">
+                        {filteredPayments.length} Eventos
+                    </span>
+                </div>
             </div>
             
             <div className="overflow-y-auto max-h-[400px] pr-2 custom-scrollbar space-y-4">
-                {filteredPayments.filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED).length === 0 ? (
+                {filteredPayments.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-[2rem]">
                         <AlertCircle size={40} className="mb-4 opacity-20" />
                         <p className="font-medium">Sin registros en este rango</p>
@@ -851,8 +860,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                 ) : (
                     <AnimatePresence mode="popLayout">
                         {filteredPayments
-                          .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.REJECTED)
-                          .sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
+                          .sort((a,b) => new Date(b.submittedDate || b.dueDate).getTime() - new Date(a.submittedDate || a.dueDate).getTime())
                           .map((p, idx) => (
                             <motion.div 
                                 key={p.id}
@@ -869,12 +877,16 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                                     <div className={`p-2.5 rounded-xl ${
                                         p.status === PaymentStatus.APPROVED 
                                         ? 'bg-emerald-500/10 text-emerald-500' 
-                                        : 'bg-red-500/10 text-red-500'
+                                        : p.status === PaymentStatus.REJECTED
+                                        ? 'bg-red-500/10 text-red-500'
+                                        : 'bg-yellow-500/10 text-yellow-500'
                                     }`}>
                                         {p.status === PaymentStatus.APPROVED ? (
                                             <CheckCircle2 size={20} />
-                                        ) : (
+                                        ) : p.status === PaymentStatus.REJECTED ? (
                                             <XCircle size={20} />
+                                        ) : (
+                                            <Clock size={20} />
                                         )}
                                     </div>
                                     <div>
@@ -893,7 +905,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                                         <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 font-medium">
                                             <span className="truncate max-w-[150px]">{p.specificType}</span>
                                             <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                            <span>{new Date(p.submittedDate).toLocaleDateString()}</span>
+                                            <span>{new Date(p.submittedDate || p.dueDate).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
