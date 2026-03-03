@@ -679,12 +679,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-800/30 transition-colors group">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer group/name"
+                          onClick={() => setViewingEmployee(emp)}
+                        >
+                          <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold group-hover/name:bg-indigo-500 group-hover/name:text-white transition-colors">
                             {emp.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-bold text-white">{emp.name}</div>
+                            <div className="font-bold text-white group-hover/name:text-indigo-400 transition-colors">{emp.name}</div>
                             <div className="text-xs text-slate-500 font-mono">{emp.id}</div>
                           </div>
                         </div>
@@ -706,6 +709,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                           <button 
+                            onClick={() => setViewingEmployee(emp)}
+                            className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
+                            title="Ver Expediente"
+                          >
+                            <FileText size={18} />
+                          </button>
+                          <button 
                             onClick={() => {
                               setEditingEmployee(emp);
                               setEmployeeIdInput(emp.id);
@@ -713,12 +723,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               setIsAddingEmployee(true);
                             }}
                             className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg"
+                            title="Editar Expediente"
                           >
                             <Edit3 size={18} />
                           </button>
                           <button 
                             onClick={() => onDeleteEmployee(emp.id)}
                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
+                            title="Eliminar Expediente"
                           >
                             <Trash2 size={18} />
                           </button>
