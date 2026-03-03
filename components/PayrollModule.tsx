@@ -159,6 +159,25 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     return acc + liabilitiesSum;
   }, 0);
 
+  const payrollByMonth = entries.reduce((acc, entry) => {
+    if (!acc[entry.month]) {
+      acc[entry.month] = {
+        month: entry.month,
+        totalWorkerNet: 0,
+        totalEmployerCost: 0,
+        totalStateLiabilities: 0,
+        entriesCount: 0
+      };
+    }
+    acc[entry.month].totalWorkerNet += entry.totalWorkerNet;
+    acc[entry.month].totalEmployerCost += entry.totalEmployerCost;
+    acc[entry.month].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+    acc[entry.month].entriesCount += 1;
+    return acc;
+  }, {} as Record<string, { month: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number }>);
+
+  const sortedMonths = Object.values(payrollByMonth).sort((a, b) => b.month.localeCompare(a.month));
+
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -279,6 +298,61 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             </div>
           </div>
 
+          {/* Resumen Mensual */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-800">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="text-blue-500" size={20} />
+                Resumen por Mes
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/50">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Empleados Procesados</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Neto Trabajadores</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Pasivos Laborales</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Costo Total Empresa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {sortedMonths.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                        No hay nóminas procesadas.
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedMonths.map((m) => (
+                      <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-white font-bold">{m.month}</td>
+                        <td className="px-6 py-4 text-center text-slate-300">
+                          <span className="bg-blue-500/10 text-blue-400 py-1 px-3 rounded-full text-xs font-bold">
+                            {m.entriesCount}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-emerald-400">${m.totalWorkerNet.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.totalWorkerNet * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-orange-400">${m.totalStateLiabilities.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.totalStateLiabilities * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-blue-400">${m.totalEmployerCost.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(m.totalEmployerCost * exchangeRate).toLocaleString()}</div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Payroll Table */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
             <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -286,7 +360,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input 
                   type="text"
-                  placeholder="Buscar en histórico..."
+                  placeholder="Buscar en histórico detallado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
