@@ -476,7 +476,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
       </div>
 
       {/* RIGHT PANEL: Detail View */}
-      <div className={`flex-1 bg-slate-50 dark:bg-slate-950 relative flex flex-col h-full ${!selectedId ? 'hidden lg:flex' : 'flex'}`}>
+      <div className={`flex-1 bg-gray-100 dark:bg-gray-800 relative flex flex-col h-full ${!selectedId ? 'hidden lg:flex' : 'flex'}`}>
         {selectedPayment ? (
             <>
                 {/* Overlay de Aprobación Animado */}

@@ -125,6 +125,7 @@ export interface PayrollEntry {
   id: string;
   employeeName: string;
   employeeId: string;
+  storeId: string; // Tienda asociada
   month: string;
   baseSalary: number;
   bonuses: { name: string; amount: number }[];
@@ -141,6 +142,7 @@ export interface Employee {
   name: string;
   position: string;
   department: string;
+  storeId: string; // Tienda asignada
   hireDate: string;
   baseSalary: number;
   isActive: boolean;

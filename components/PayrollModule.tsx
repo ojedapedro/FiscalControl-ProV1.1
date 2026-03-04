@@ -25,10 +25,12 @@ import {
   FileSignature,
   CheckCircle2,
   Clock,
-  Landmark
+  Landmark,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PayrollEntry, Employee } from '../types';
+import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface PayrollModuleProps {
@@ -87,6 +89,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [payrollFormData, setPayrollFormData] = React.useState({
     employeeName: '',
     employeeId: '',
+    storeId: '',
     month: new Date().toISOString().slice(0, 7),
     baseSalary: 0,
     bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
@@ -110,6 +113,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     name: '',
     position: '',
     department: '',
+    storeId: '',
     hireDate: new Date().toISOString().split('T')[0],
     baseSalary: 0,
     isActive: true,
@@ -377,6 +381,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       await onAddEntry({
         employeeName: emp.name,
         employeeId: emp.id,
+        storeId: emp.storeId,
         month: currentMonth,
         baseSalary: emp.baseSalary,
         bonuses: emp.defaultBonuses,
@@ -405,6 +410,23 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const liabilitiesSum = e.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
     return acc + liabilitiesSum;
   }, 0);
+
+  const payrollByStore = entries.reduce((acc, entry) => {
+    if (!acc[entry.storeId]) {
+      acc[entry.storeId] = {
+        storeId: entry.storeId,
+        totalWorkerNet: 0,
+        totalEmployerCost: 0,
+        totalStateLiabilities: 0,
+        entriesCount: 0
+      };
+    }
+    acc[entry.storeId].totalWorkerNet += entry.totalWorkerNet;
+    acc[entry.storeId].totalEmployerCost += entry.totalEmployerCost;
+    acc[entry.storeId].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+    acc[entry.storeId].entriesCount += 1;
+    return acc;
+  }, {} as Record<string, { storeId: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number }>);
 
   const payrollByMonth = entries.reduce((acc, entry) => {
     if (!acc[entry.month]) {
@@ -477,6 +499,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   name: '',
                   position: '',
                   department: '',
+                  storeId: '',
                   hireDate: new Date().toISOString().split('T')[0],
                   baseSalary: 0,
                   isActive: true,
@@ -553,6 +576,61 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
               <div className="text-3xl font-bold text-white font-mono">${totalStateLiabilities.toLocaleString()}</div>
               <div className="text-sm text-slate-500 mt-1">Bs. {(totalStateLiabilities * exchangeRate).toLocaleString()}</div>
+            </div>
+          </div>
+
+          {/* Resumen por Tienda */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-800">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Building2 className="text-blue-500" size={20} />
+                Resumen por Tienda
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/50">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Empleados</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Neto Trabajadores</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Pasivos Laborales</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Costo Total Empresa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {Object.values(payrollByStore).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                        No hay nóminas procesadas por tienda.
+                      </td>
+                    </tr>
+                  ) : (
+                    Object.values(payrollByStore).map((s) => (
+                      <tr key={s.storeId} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-white font-bold">{STORES.find(st => st.id === s.storeId)?.name || 'N/A'}</td>
+                        <td className="px-6 py-4 text-center text-slate-300">
+                          <span className="bg-blue-500/10 text-blue-400 py-1 px-3 rounded-full text-xs font-bold">
+                            {s.entriesCount}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-emerald-400">${s.totalWorkerNet.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(s.totalWorkerNet * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-orange-400">${s.totalStateLiabilities.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(s.totalStateLiabilities * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-blue-400">${s.totalEmployerCost.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(s.totalEmployerCost * exchangeRate).toLocaleString()}</div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -693,6 +771,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <thead>
                   <tr className="bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trabajador</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Sueldo Base</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Neto Trabajador</th>
@@ -730,6 +809,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               <div className="text-xs text-slate-500 font-mono">{entry.employeeId}</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-300 font-medium">
+                          {STORES.find(s => s.id === entry.storeId)?.name || 'N/A'}
                         </td>
                         <td className="px-6 py-4 text-slate-300 font-medium">{entry.month}</td>
                         <td className="px-6 py-4 text-right font-mono text-slate-300">${entry.baseSalary.toLocaleString()}</td>
@@ -787,6 +869,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <tr className="bg-slate-800/50">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Empleado</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Depto</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Sueldo Base</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Ingreso</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
@@ -823,6 +906,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <td className="px-6 py-4">
                         <div className="text-slate-300 font-medium">{emp.position}</div>
                         <div className="text-xs text-slate-500">{emp.department}</div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-300 font-medium">
+                        {STORES.find(s => s.id === emp.storeId)?.name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-slate-300">${emp.baseSalary.toLocaleString()}</td>
                       <td className="px-6 py-4 text-slate-400 text-sm">{emp.hireDate}</td>
@@ -966,6 +1052,20 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         placeholder="Ej. V-12345678"
                       />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
+                    <select 
+                      required
+                      value={payrollFormData.storeId}
+                      onChange={(e) => setPayrollFormData({ ...payrollFormData, storeId: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                      <option value="">Seleccionar tienda...</option>
+                      {STORES.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mes de Nómina</label>
@@ -1184,6 +1284,20 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono disabled:opacity-50"
                       placeholder="Ej. V-12345678"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
+                    <select 
+                      required
+                      value={employeeFormData.storeId}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="">Seleccionar tienda...</option>
+                      {STORES.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cargo</label>
