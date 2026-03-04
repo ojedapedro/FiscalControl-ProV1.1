@@ -411,9 +411,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     return acc + liabilitiesSum;
   }, 0);
 
-  const payrollByStore = entries.reduce((acc, entry) => {
-    if (!acc[entry.storeId]) {
-      acc[entry.storeId] = {
+  const payrollByStoreMonth = entries.reduce((acc, entry) => {
+    const key = `${entry.month}-${entry.storeId}`;
+    if (!acc[key]) {
+      acc[key] = {
+        month: entry.month,
         storeId: entry.storeId,
         totalWorkerNet: 0,
         totalEmployerCost: 0,
@@ -421,12 +423,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         entriesCount: 0
       };
     }
-    acc[entry.storeId].totalWorkerNet += entry.totalWorkerNet;
-    acc[entry.storeId].totalEmployerCost += entry.totalEmployerCost;
-    acc[entry.storeId].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
-    acc[entry.storeId].entriesCount += 1;
+    acc[key].totalWorkerNet += entry.totalWorkerNet;
+    acc[key].totalEmployerCost += entry.totalEmployerCost;
+    acc[key].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+    acc[key].entriesCount += 1;
     return acc;
-  }, {} as Record<string, { storeId: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number }>);
+  }, {} as Record<string, { month: string, storeId: string, totalWorkerNet: number, totalEmployerCost: number, totalStateLiabilities: number, entriesCount: number }>);
+
+  const sortedStoreMonth = Object.values(payrollByStoreMonth).sort((a, b) => b.month.localeCompare(a.month));
 
   const payrollByMonth = entries.reduce((acc, entry) => {
     if (!acc[entry.month]) {
@@ -579,18 +583,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             </div>
           </div>
 
-          {/* Resumen por Tienda */}
+          {/* Resumen por Tienda y Mes */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
             <div className="p-6 border-b border-slate-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Building2 className="text-blue-500" size={20} />
-                Resumen por Tienda
+                Resumen por Tienda y Mes
               </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-800/50">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Empleados</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Neto Trabajadores</th>
@@ -599,15 +604,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {Object.values(payrollByStore).length === 0 ? (
+                  {sortedStoreMonth.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                        No hay nóminas procesadas por tienda.
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                        No hay nóminas procesadas por tienda y mes.
                       </td>
                     </tr>
                   ) : (
-                    Object.values(payrollByStore).map((s) => (
-                      <tr key={s.storeId} className="hover:bg-slate-800/30 transition-colors">
+                    sortedStoreMonth.map((s) => (
+                      <tr key={`${s.month}-${s.storeId}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-white font-bold">{s.month}</td>
                         <td className="px-6 py-4 text-white font-bold">{STORES.find(st => st.id === s.storeId)?.name || 'N/A'}</td>
                         <td className="px-6 py-4 text-center text-slate-300">
                           <span className="bg-blue-500/10 text-blue-400 py-1 px-3 rounded-full text-xs font-bold">
