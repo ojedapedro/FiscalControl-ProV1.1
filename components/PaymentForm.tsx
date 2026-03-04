@@ -19,7 +19,8 @@ import {
   X,
   AlertTriangle,
   Clock,
-  FileWarning
+  FileWarning,
+  Users
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus } from '../types';
 import { STORES } from '../constants';
@@ -121,10 +122,22 @@ const NATIONAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; 
     label: '2.4 OTROS IMPUESTOS NACIONALES',
     deadlineDay: 30,
     items: [
-      { code: '2.4.1', name: 'CONTRIBUCION PARAFISCAL (INCES)', isVariable: true },
-      { code: '2.4.2', name: 'CONTRIBUCION PARAFISCAL (IVSS)', isVariable: true },
-      { code: '2.4.3', name: 'CONTRIBUCION PARAFISCAL (FAOV)', isVariable: true },
-      { code: '2.4.4', name: 'OTRO IMPUESTO NACIONAL', isVariable: true },
+      { code: '2.4.1', name: 'OTRO IMPUESTO NACIONAL', isVariable: true },
+    ]
+  }
+};
+
+const HUMAN_RESOURCES_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
+  'PASIVOS_LABORALES': {
+    label: 'PASIVOS LABORALES Y CONTRIBUCIONES',
+    deadlineDay: 30,
+    items: [
+      { code: 'HR.1', name: 'CONTRIBUCION PARAFISCAL (INCES)', isVariable: true },
+      { code: 'HR.2', name: 'CONTRIBUCION PARAFISCAL (IVSS)', isVariable: true },
+      { code: 'HR.3', name: 'CONTRIBUCION PARAFISCAL (FAOV)', isVariable: true },
+      { code: 'HR.4', name: 'PAGO DE NÓMINA', isVariable: true },
+      { code: 'HR.5', name: 'PRESTACIONES SOCIALES', isVariable: true },
+      { code: 'HR.6', name: 'OTROS PASIVOS LABORALES', isVariable: true },
     ]
   }
 };
@@ -412,6 +425,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       case Category.SENIAT_DECLARATIONS: return SENIAT_DECLARATIONS_TAX_CONFIG;
       case Category.SENIAT_BOOKS: return SENIAT_BOOKS_TAX_CONFIG;
       case Category.SYSTEMS: return SYSTEMS_TAX_CONFIG;
+      case Category.PAYROLL: return HUMAN_RESOURCES_CONFIG;
       default: return null;
     }
   };
@@ -819,6 +833,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText, color: 'teal', desc: 'Declaraciones y Contabilidad SENIAT.' },
                             { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText, color: 'cyan', desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
                             { id: Category.SYSTEMS, label: 'Sistemas', icon: FileText, color: 'rose', desc: 'Sistemas, Marketing y Oficinas.' },
+                            { id: Category.PAYROLL, label: 'Recursos Humanos', icon: Users, color: 'amber', desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
                             { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow', desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                         ].map((cat) => {
                             const Icon = cat.icon;
@@ -857,6 +872,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
                                     { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
                                     { id: Category.SYSTEMS, desc: 'Sistemas, Marketing y Oficinas.' },
+                                    { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
                                     { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
                                 ].find(c => c.id === category)?.desc}
                             </p>
@@ -997,11 +1013,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <div className="relative group">
                                 <input
                                     type="text"
-                                    placeholder={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
+                                    placeholder={!!getTaxConfig(category) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
                                     value={specificType}
-                                    readOnly={(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) || isSubmitting}
+                                    readOnly={!!getTaxConfig(category) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(category === Category.MUNICIPAL_TAX || category === Category.NATIONAL_TAX) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${!!getTaxConfig(category) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
                                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                             </div>
