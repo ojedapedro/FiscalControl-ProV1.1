@@ -35,7 +35,14 @@ function App({ isDemoMode = false }: AppProps) {
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [payrollEntries, setPayrollEntries] = React.useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [exchangeRate, setExchangeRate] = React.useState<number>(1);
+  const [exchangeRate, setExchangeRate] = React.useState<number>(() => {
+    const saved = localStorage.getItem('fiscal_exchange_rate');
+    return saved ? Number(saved) : 1;
+  });
+  const [exchangeRateInput, setExchangeRateInput] = React.useState<number>(() => {
+    const saved = localStorage.getItem('fiscal_exchange_rate');
+    return saved ? Number(saved) : 1;
+  });
   const [isLoading, setIsLoading] = React.useState(false);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayment, setEditingPayment] = React.useState<Payment | null>(null);
@@ -249,6 +256,8 @@ function App({ isDemoMode = false }: AppProps) {
         const settings = await api.getSettings();
         if (settings && settings.exchangeRate) {
           setExchangeRate(settings.exchangeRate);
+          setExchangeRateInput(settings.exchangeRate);
+          localStorage.setItem('fiscal_exchange_rate', settings.exchangeRate.toString());
         }
       }
     } catch (error) {
@@ -570,8 +579,13 @@ function App({ isDemoMode = false }: AppProps) {
                                <input 
                                    type="number" 
                                    step="0.01"
-                                   value={exchangeRate}
-                                   onChange={(e) => setExchangeRate(Number(e.target.value))}
+                                   value={exchangeRateInput}
+                                   onChange={(e) => {
+                                       const val = Number(e.target.value);
+                                       setExchangeRateInput(val);
+                                       setExchangeRate(val);
+                                       localStorage.setItem('fiscal_exchange_rate', val.toString());
+                                   }}
                                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
                                />
                            </div>
@@ -588,8 +602,10 @@ function App({ isDemoMode = false }: AppProps) {
                                            emailEnabled: false,
                                            exchangeRate: 1
                                        };
-                                       await api.saveSettings({ ...currentSettings, exchangeRate });
-                                       setNotification('✅ Tasa de cambio actualizada');
+                                       await api.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
+                                       setExchangeRate(exchangeRateInput);
+                                       localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
+                                       setNotification('✅ Tasa de cambio guardada y actualizada');
                                    } catch (e) {
                                        setNotification('❌ Error actualizando tasa');
                                    } finally {
