@@ -403,7 +403,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
   React.useEffect(() => {
-    if (store) {
+    if (store === 'NATIONAL') {
+        setStoreAddress('Cobertura Nacional');
+        setStoreMunicipality('Cobertura Nacional');
+    } else if (store) {
       const selectedStore = STORES.find(s => s.id === store);
       if (selectedStore) {
         setStoreAddress(selectedStore.address || '');
@@ -811,6 +814,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
                         >
                             <option value="">Seleccionar ubicación...</option>
+                            {category === Category.PAYROLL && (
+                                <option value="NATIONAL">Nacional (Cobertura Nacional)</option>
+                            )}
                             {STORES.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
@@ -1232,7 +1238,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 <div className="sticky top-8">
                     <VenezuelaMap 
                         stores={dynamicStores} 
-                        selectedStoreIds={store ? [store] : []} 
+                        selectedStoreIds={store && store !== 'NATIONAL' ? [store] : []} 
                         onStoreClick={(id) => setStore(id)}
                     />
                 </div>
