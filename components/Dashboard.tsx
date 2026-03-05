@@ -197,21 +197,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
       ? "px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm transition-all"
       : "px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm transition-all";
 
+  console.log("Dashboard rendering...");
+
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos (Actualizado)</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto justify-end">
             <button 
               onClick={handleDownloadFiscalCategoryPDF}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm border border-white/20"
             >
               <Download size={16} />
-              <span className="hidden sm:inline">Generar Reporte PDF</span>
-              <span className="sm:hidden">PDF</span>
+              <span>Generar Reporte PDF</span>
             </button>
             <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
                 <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
