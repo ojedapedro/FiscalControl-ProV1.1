@@ -20,6 +20,8 @@ import {
   Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface DashboardProps {
   payments: Payment[];
@@ -35,12 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
   const { exchangeRate } = useExchangeRate();
 
   const handleDownloadFiscalCategoryPDF = () => {
-    const w = window as any;
-    if (!w.jspdf) {
-      alert("La librería de PDF no se ha cargado correctamente.");
-      return;
-    }
-    const { jsPDF } = w.jspdf;
     const doc = new jsPDF();
 
     // Grouping
@@ -104,24 +100,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
           p.status
         ]);
 
-        if (w.jspdf.plugin?.autotable || doc.autoTable) {
-          doc.autoTable({
-            startY: y,
-            head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-            styles: { fontSize: 8, cellPadding: 2 },
-            margin: { left: 20 },
-            columnStyles: {
-                0: { cellWidth: 30 },
-                1: { cellWidth: 'auto' },
-                2: { cellWidth: 30, halign: 'right' },
-                3: { cellWidth: 30 }
-            }
-          });
-          y = (doc as any).lastAutoTable.finalY + 10;
-        }
+        autoTable(doc, {
+          startY: y,
+          head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+          styles: { fontSize: 8, cellPadding: 2 },
+          margin: { left: 20 },
+          columnStyles: {
+              0: { cellWidth: 30 },
+              1: { cellWidth: 'auto' },
+              2: { cellWidth: 30, halign: 'right' },
+              3: { cellWidth: 30 }
+          }
+        });
+        
+        // Access finalY from the doc object as extended by autotable
+        y = (doc as any).lastAutoTable.finalY + 10;
       });
       y += 5; // Extra space between categories
     });
@@ -196,18 +192,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 w-full md:w-auto justify-end">
             <button 
               onClick={handleDownloadFiscalCategoryPDF}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
             >
               <Download size={16} />
-              Generar Reporte PDF
+              <span className="hidden sm:inline">Generar Reporte PDF</span>
+              <span className="sm:hidden">PDF</span>
             </button>
             <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
                 <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
