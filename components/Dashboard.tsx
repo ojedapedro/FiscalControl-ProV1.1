@@ -16,7 +16,8 @@ import {
   XCircle,
   Wallet,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
 
@@ -32,6 +33,64 @@ import { useExchangeRate } from '../contexts/ExchangeRateContext';
 export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
   const { exchangeRate } = useExchangeRate();
+
+  const handleDownloadFiscalCategoryPDF = () => {
+    const w = window as any;
+    if (!w.jspdf) {
+      alert("La librería de PDF no se ha cargado correctamente.");
+      return;
+    }
+    const { jsPDF } = w.jspdf;
+    const doc = new jsPDF();
+
+    // Grouping
+    const grouped = payments.reduce((acc, p) => {
+      if (!acc[p.category]) acc[p.category] = {};
+      if (!acc[p.category][p.specificType]) acc[p.category][p.specificType] = [];
+      acc[p.category][p.specificType].push(p);
+      return acc;
+    }, {} as Record<string, Record<string, Payment[]>>);
+
+    doc.setFontSize(18);
+    doc.text("Reporte de Pagos por Categoría Fiscal", 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generado: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    let y = 40;
+    Object.entries(grouped).forEach(([category, subcategories]) => {
+      doc.setFontSize(14);
+      doc.text(category, 14, y);
+      y += 10;
+
+      Object.entries(subcategories).forEach(([subCategory, payments]) => {
+        doc.setFontSize(12);
+        doc.text(`  ${subCategory}`, 14, y);
+        y += 8;
+
+        const tableData = payments.map(p => [
+          new Date(p.submittedDate || p.dueDate).toLocaleDateString(),
+          p.storeName,
+          `$${p.amount.toLocaleString()}`,
+          p.status
+        ]);
+
+        if (w.jspdf.plugin?.autotable || doc.autoTable) {
+          doc.autoTable({
+            startY: y,
+            head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 8 },
+            margin: { left: 20 }
+          });
+          y = (doc as any).lastAutoTable.finalY + 10;
+        }
+      });
+    });
+
+    doc.save(`Reporte_Pagos_Categorias_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   // Calcular totales reales basados en el estado de los pagos
   const totalDue = payments
@@ -106,6 +165,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
           <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
         <div className="flex gap-4">
+            <button 
+              onClick={handleDownloadFiscalCategoryPDF}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+            >
+              <Download size={16} />
+              Generar Reporte PDF
+            </button>
             <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
                 <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
                 <span className="text-xl">🔔</span>
