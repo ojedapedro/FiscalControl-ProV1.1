@@ -52,25 +52,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
     }, {} as Record<string, Record<string, Payment[]>>);
 
     doc.setFontSize(18);
-    doc.text("Reporte de Pagos por Categoría Fiscal", 14, 20);
+    doc.text("Balance de Gestión Fiscal", 14, 20);
     doc.setFontSize(10);
-    doc.text(`Generado: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+    doc.text(`Total de Pagos: ${payments.length}`, 14, 35);
+    
+    const grandTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    doc.setFontSize(12);
+    doc.text(`Monto Total General: $${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 42);
 
-    let y = 40;
+    let y = 50;
+    
     Object.entries(grouped).forEach(([category, subcategories]) => {
+      // Calculate category total
+      let categoryTotal = 0;
+      Object.values(subcategories).forEach(subList => {
+          categoryTotal += subList.reduce((sum, p) => sum + p.amount, 0);
+      });
+
+      // Check for page break
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
       doc.setFontSize(14);
-      doc.text(category, 14, y);
-      y += 10;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${category} - Total: $${categoryTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
 
-      Object.entries(subcategories).forEach(([subCategory, payments]) => {
+      Object.entries(subcategories).forEach(([subCategory, subPayments]) => {
+        const subTotal = subPayments.reduce((sum, p) => sum + p.amount, 0);
+        
+        // Check for page break
+        if (y > 270) {
+            doc.addPage();
+            y = 20;
+        }
+
         doc.setFontSize(12);
-        doc.text(`  ${subCategory}`, 14, y);
-        y += 8;
+        doc.setTextColor(50, 50, 50);
+        doc.text(`  ${subCategory} (Total: $${subTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })})`, 14, y);
+        y += 6;
 
-        const tableData = payments.map(p => [
+        const tableData = subPayments.map(p => [
           new Date(p.submittedDate || p.dueDate).toLocaleDateString(),
           p.storeName,
-          `$${p.amount.toLocaleString()}`,
+          `$${p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           p.status
         ]);
 
@@ -80,16 +110,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
             head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillColor: [30, 41, 59] },
-            styles: { fontSize: 8 },
-            margin: { left: 20 }
+            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+            styles: { fontSize: 8, cellPadding: 2 },
+            margin: { left: 20 },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 30, halign: 'right' },
+                3: { cellWidth: 30 }
+            }
           });
           y = (doc as any).lastAutoTable.finalY + 10;
         }
       });
+      y += 5; // Extra space between categories
     });
 
-    doc.save(`Reporte_Pagos_Categorias_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Balance_Gestion_Fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   // Calcular totales reales basados en el estado de los pagos
