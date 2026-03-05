@@ -27,14 +27,13 @@ import {
   ShieldCheck,
   RefreshCw
 } from 'lucide-react';
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface ApprovalsProps {
   payments: Payment[];
   onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number) => void;
   onReject: (id: string, reason: string) => void;
 }
-
-import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 type SortOption = 'urgency' | 'date_desc' | 'amount_desc' | 'amount_asc';
 

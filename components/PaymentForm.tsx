@@ -1,5 +1,6 @@
 
 import * as React from 'react';
+import { TaxInfoSearch } from './TaxInfoSearch';
 import { 
   Building2, 
   Landmark, 
@@ -361,8 +362,6 @@ interface PaymentFormProps {
   payments: Payment[];
 }
 
-import { TaxInfoSearch } from './TaxInfoSearch';
-
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || '');
@@ -400,6 +399,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState('');
   const [isFileScanning, setIsFileScanning] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
   React.useEffect(() => {
@@ -589,9 +589,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             return;
         }
         setIsFileScanning(true);
+        setUploadProgress(0);
         setFile(null); 
         setPreviewUrl(null);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Simulate progress
+        for (let i = 0; i <= 100; i += 10) {
+            setUploadProgress(i);
+            await new Promise(resolve => setTimeout(resolve, 80));
+        }
+
         if (selectedFile.type.startsWith('image/')) {
             setPreviewUrl(URL.createObjectURL(selectedFile));
         }
@@ -1142,9 +1149,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 
                                 {/* Overlay de Carga de Archivo */}
                                 {isFileScanning && (
-                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm">
-                                        <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-2" />
-                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Analizando archivo...</span>
+                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm p-4">
+                                        <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-3" />
+                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2">Analizando y subiendo archivo...</span>
+                                        <div className="w-full max-w-[200px] bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                            <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                                        </div>
+                                        <span className="text-xs text-slate-500 mt-1">{uploadProgress}% Completado</span>
                                     </div>
                                 )}
 

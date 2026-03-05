@@ -16,12 +16,11 @@ import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, E
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
+import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
 interface AppProps {
   isDemoMode?: boolean;
 }
-
-import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
 function App({ isDemoMode = false }: AppProps) {
   // --- AUTH STATE ---

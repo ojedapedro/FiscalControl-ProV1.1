@@ -20,6 +20,7 @@ import {
   Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface DashboardProps {
   payments: Payment[];
@@ -27,8 +28,6 @@ interface DashboardProps {
   onNewPayment: () => void;
   onEditPayment: (payment: Payment) => void;
 }
-
-import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');

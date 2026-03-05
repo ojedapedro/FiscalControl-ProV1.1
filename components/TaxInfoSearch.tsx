@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Search, Loader2, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
-import ReactMarkdown from 'react-markdown';
 
 interface TaxInfoSearchProps {
   category: string;
@@ -105,8 +104,8 @@ Proporciona un resumen claro y conciso de las obligaciones actuales.`;
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-sm text-slate-700 dark:text-slate-300 prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{result || ''}</ReactMarkdown>
+                  <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-w-none">
+                    {result || ''}
                   </div>
                   
                   {urls.length > 0 && (

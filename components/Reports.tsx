@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, 
   Bar, 
@@ -21,8 +21,7 @@ import {
 import { Payment, PaymentStatus, User, Role } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
-
-import VenezuelaMap from '@/components/VenezuelaMap';
+import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface ReportsProps {
