@@ -20,8 +20,6 @@ import {
   Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 interface DashboardProps {
   payments: Payment[];
@@ -37,6 +35,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
   const { exchangeRate } = useExchangeRate();
 
   const handleDownloadFiscalCategoryPDF = () => {
+    const w = window as any;
+    if (!w.jspdf) {
+      alert("La librería de PDF no se ha cargado correctamente.");
+      return;
+    }
+    const { jsPDF } = w.jspdf;
     const doc = new jsPDF();
 
     // Grouping
@@ -100,24 +104,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
           p.status
         ]);
 
-        autoTable(doc, {
-          startY: y,
-          head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-          styles: { fontSize: 8, cellPadding: 2 },
-          margin: { left: 20 },
-          columnStyles: {
-              0: { cellWidth: 30 },
-              1: { cellWidth: 'auto' },
-              2: { cellWidth: 30, halign: 'right' },
-              3: { cellWidth: 30 }
-          }
-        });
-        
-        // Access finalY from the doc object as extended by autotable
-        y = (doc as any).lastAutoTable.finalY + 10;
+        if (doc.autoTable) {
+            doc.autoTable({
+              startY: y,
+              head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
+              body: tableData,
+              theme: 'grid',
+              headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+              styles: { fontSize: 8, cellPadding: 2 },
+              margin: { left: 20 },
+              columnStyles: {
+                  0: { cellWidth: 30 },
+                  1: { cellWidth: 'auto' },
+                  2: { cellWidth: 30, halign: 'right' },
+                  3: { cellWidth: 30 }
+              }
+            });
+            y = (doc as any).lastAutoTable.finalY + 10;
+        } else {
+            console.warn("AutoTable plugin not found");
+            y += 10;
+        }
       });
       y += 5; // Extra space between categories
     });
