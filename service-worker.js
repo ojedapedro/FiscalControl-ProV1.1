@@ -1,8 +1,8 @@
 
 // service-worker.js
 
-const CACHE_STATIC_NAME = 'fiscal-static-v4';
-const CACHE_API_NAME = 'fiscal-api-v1';
+const CACHE_STATIC_NAME = 'fiscal-static-v5';
+const CACHE_API_NAME = 'fiscal-api-v2';
 
 // Recursos críticos para que la app arranque (App Shell)
 const STATIC_ASSETS = [
@@ -68,12 +68,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   // B) ESTRATEGIA APP SHELL (Navegación)
-  // Si es una navegación (abrir la app), servimos index.html siempre
+  // Network First para index.html para asegurar que siempre se obtenga la última versión
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((cached) => {
-        return cached || fetch(event.request);
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          return caches.open(CACHE_STATIC_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        })
+        .catch(() => {
+          return caches.match('/index.html');
+        })
     );
     return;
   }
