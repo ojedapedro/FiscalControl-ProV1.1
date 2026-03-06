@@ -671,12 +671,12 @@ function App({ isDemoMode = false }: AppProps) {
 
   React.useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports', 'payroll'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports', 'payroll', 'presidency'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
       [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'payroll'],
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll']
+      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
       setCurrentView(getInitialView(currentUser.role));
