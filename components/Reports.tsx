@@ -50,8 +50,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-const CustomFinancialTooltip = ({ active, payload, label }: any) => {
-  const { exchangeRate } = useExchangeRate();
+const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) => {
   if (active && payload && payload.length) {
     const approvedEntry = payload.find((p: any) => p.dataKey === 'approved');
     const pendingEntry = payload.find((p: any) => p.dataKey === 'pending');
@@ -153,7 +152,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   // Date Filter State (Default to current month)
   const [startDate, setStartDate] = React.useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    // Default to Jan 1st of current year to see more data by default
+    return new Date(date.getFullYear(), 0, 1).toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = React.useState(() => {
     return new Date().toISOString().split('T')[0];
@@ -206,7 +206,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   }, [payments]);
 
   const annualData = React.useMemo(() => {
-    const currentYear = new Date().getFullYear();
+    const currentYear = new Date(startDate).getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     
     return months.map((monthName, index) => {
@@ -386,7 +386,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                 p.status
             ]);
 
-        if (w.jspdf.plugin?.autotable || doc.autoTable) {
+        if (doc.autoTable) {
              doc.autoTable({
                 startY: 85,
                 head: [['Fecha', 'Tienda', 'Concepto', 'Monto', 'Estado']],
@@ -638,7 +638,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                             tickFormatter={(value) => `$${value/1000}k`}
                             dx={-10}
                         />
-                        <Tooltip content={<CustomFinancialTooltip />} cursor={{fill: 'rgba(255,255,255,0.03)'}} />
+                        <Tooltip content={<CustomFinancialTooltip exchangeRate={exchangeRate} />} cursor={{fill: 'rgba(255,255,255,0.03)'}} />
                         <Legend 
                             verticalAlign="top" 
                             align="right" 

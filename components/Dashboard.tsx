@@ -160,7 +160,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
   const budgetUtilization = (totalApproved / MONTHLY_BUDGET) * 100;
   const overBudgetPayments = payments.filter(p => p.isOverBudget);
   const recentPayments = [...payments]
-    .sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
+    .sort((a, b) => {
+      const dateA = new Date(a.submittedDate || a.dueDate).getTime();
+      const dateB = new Date(b.submittedDate || b.dueDate).getTime();
+      return dateB - dateA;
+    })
     .slice(0, 5);
 
   // Filtrado de la lista para visualización
