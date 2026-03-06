@@ -1,5 +1,6 @@
 
 import * as React from 'react';
+import { PresidencyDashboard } from './components/PresidencyDashboard';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard'; 
 import { PaymentForm } from './components/PaymentForm';
@@ -515,6 +516,8 @@ function App({ isDemoMode = false }: AppProps) {
         return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
       case 'reports':
         return <Reports payments={payments} currentUser={currentUser} />;
+      case 'presidency':
+        return <PresidencyDashboard payments={payments} payrollEntries={payrollEntries} />;
       case 'network':
         return <StoreStatus payments={payments} />;
       case 'calendar':
