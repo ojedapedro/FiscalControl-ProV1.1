@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { User, Role } from '../types';
 import { api } from '../services/api';
 import { 

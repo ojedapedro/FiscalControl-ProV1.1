@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard'; 

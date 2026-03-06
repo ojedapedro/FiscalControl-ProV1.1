@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Loader2, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
