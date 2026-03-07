@@ -28,7 +28,7 @@ import {
   Landmark,
   Building2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PayrollEntry, Employee } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
