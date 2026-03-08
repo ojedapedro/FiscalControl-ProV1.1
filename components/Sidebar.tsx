@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [APP_LOGO_URL]);
   
   const navItems = [
-    { id: 'payments', label: 'Pagos', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
+    { id: 'payments', label: 'Categoria Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
