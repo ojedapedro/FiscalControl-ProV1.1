@@ -340,7 +340,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 flex items-center justify-center gap-2 font-semibold text-lg transition-transform active:scale-[0.99]"
       >
         <Plus size={24} />
-        Cargar Nuevo Pago
+        Categoria Fiscal
       </button>
 
       {/* Quick Summary Section */}
