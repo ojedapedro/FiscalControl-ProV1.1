@@ -360,9 +360,10 @@ interface PaymentFormProps {
   onCancel: () => void;
   initialData?: Payment | null;
   payments: Payment[];
+  isEmbedded?: boolean;
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || '');
   const [storeAddress, setStoreAddress] = React.useState('');
@@ -785,12 +786,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-            <button onClick={onCancel} disabled={isSubmitting} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-50">
-                <ChevronDown className="rotate-90" size={24} />
-            </button>
+            {!isEmbedded && (
+                <button onClick={onCancel} disabled={isSubmitting} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-50">
+                    <ChevronDown className="rotate-90" size={24} />
+                </button>
+            )}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {initialData ? 'Corregir Pago' : 'Categoria Fiscal'}
+                    {initialData ? 'Corregir Pago' : 'Cargar Nuevo Pago'}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">
                     {initialData 
@@ -1264,14 +1267,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         )}
 
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse md:flex-row gap-4">
-            <button 
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting || isFileScanning}
-                className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-            >
-                Cancelar
-            </button>
+            {!isEmbedded && (
+                <button 
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                >
+                    Cancelar
+                </button>
+            )}
             <button 
                 type="submit"
                 disabled={isSubmitting || isFileScanning}

@@ -507,24 +507,16 @@ function App({ isDemoMode = false }: AppProps) {
     switch (currentView) {
       case 'payments':
         return (
-          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-500">
-            <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 shadow-xl shadow-blue-500/10 border border-blue-200 dark:border-blue-800">
-              <DollarSign size={48} />
-            </div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">Registro de Pagos Fiscales</h2>
-            <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed">
-              Módulo de carga y registro de obligaciones. El formulario se abre automáticamente al ingresar.
-            </p>
-            <button 
-              onClick={() => {
+          <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-950 custom-scrollbar">
+            <PaymentForm 
+              initialData={editingPayment}
+              payments={payments}
+              onSubmit={handleNewPayment} 
+              onCancel={() => {
                 setEditingPayment(null);
-                setIsFormOpen(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-bold shadow-2xl shadow-blue-500/30 transition-all active:scale-95 flex items-center gap-3"
-            >
-              <Plus size={24} />
-              Abrir Formulario de Registro
-            </button>
+              }} 
+              isEmbedded={true}
+            />
           </div>
         );
       case 'approvals':
@@ -761,7 +753,7 @@ function App({ isDemoMode = false }: AppProps) {
           )}
 
           {/* Modal Formulario */}
-          {isFormOpen && (
+          {isFormOpen && currentView !== 'payments' && (
              <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
                 <div className="bg-white dark:bg-slate-950 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                     <PaymentForm 
