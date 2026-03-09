@@ -104,12 +104,7 @@ function App({ isDemoMode = false }: AppProps) {
   }, [isAuthenticated, currentUser]);
 
   // Abrir formulario automáticamente al entrar en Categoría Fiscal
-  React.useEffect(() => {
-    if (currentView === 'payments' && isAuthenticated) {
-      setEditingPayment(null);
-      setIsFormOpen(true);
-    }
-  }, [currentView, isAuthenticated]);
+  // Eliminado: El formulario ahora está embebido permanentemente en la vista 'payments'
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -711,7 +706,7 @@ function App({ isDemoMode = false }: AppProps) {
           onInstallClick={handleInstallClick}
           onPaymentsClick={() => {
             setEditingPayment(null);
-            setIsFormOpen(true);
+            setIsFormOpen(false); // Asegurar que el modal esté cerrado ya que está embebido
           }}
         />
         
