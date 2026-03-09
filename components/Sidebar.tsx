@@ -30,6 +30,7 @@ interface SidebarProps {
   closeMobileMenu: () => void;
   installPrompt: any; // Evento PWA
   onInstallClick: () => void;
+  onPaymentsClick?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -40,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen,
   closeMobileMenu,
   installPrompt,
-  onInstallClick
+  onInstallClick,
+  onPaymentsClick
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [imgError, setImgError] = React.useState(false);
@@ -114,6 +116,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => {
                   setCurrentView(item.id);
+                  if (item.id === 'payments' && onPaymentsClick) {
+                    onPaymentsClick();
+                  }
                   closeMobileMenu();
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${

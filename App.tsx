@@ -2,7 +2,6 @@
 import React from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
 import { Sidebar } from './components/Sidebar';
-import { Dashboard } from './components/Dashboard'; 
 import { PaymentForm } from './components/PaymentForm';
 import { Approvals } from './components/Approvals';
 import { Reports } from './components/Reports';
@@ -14,7 +13,7 @@ import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
@@ -24,6 +23,7 @@ interface AppProps {
 }
 
 function App({ isDemoMode = false }: AppProps) {
+  console.log("App Version: 2.2 - Categoría Fiscal Update");
   // --- AUTH STATE ---
   const [currentUser, setCurrentUser] = React.useState<User | null>(
     isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
@@ -31,7 +31,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [isAuthenticated, setIsAuthenticated] = React.useState(isDemoMode);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = React.useState('dashboard');
+  const [currentView, setCurrentView] = React.useState('payments');
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [payrollEntries, setPayrollEntries] = React.useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
@@ -102,6 +102,14 @@ function App({ isDemoMode = false }: AppProps) {
       loadData();
     }
   }, [isAuthenticated, currentUser]);
+
+  // Abrir formulario automáticamente al entrar en Categoría Fiscal
+  React.useEffect(() => {
+    if (currentView === 'payments' && isAuthenticated) {
+      setEditingPayment(null);
+      setIsFormOpen(true);
+    }
+  }, [currentView, isAuthenticated]);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -499,18 +507,25 @@ function App({ isDemoMode = false }: AppProps) {
     switch (currentView) {
       case 'payments':
         return (
-          <Dashboard 
-            payments={payments} 
-            payrollEntries={payrollEntries}
-            onNewPayment={() => {
-              setEditingPayment(null);
-              setIsFormOpen(true);
-            }} 
-            onEditPayment={(payment) => {
-              setEditingPayment(payment);
-              setIsFormOpen(true);
-            }}
-          />
+          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-500">
+            <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 shadow-xl shadow-blue-500/10 border border-blue-200 dark:border-blue-800">
+              <DollarSign size={48} />
+            </div>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">Registro de Pagos Fiscales</h2>
+            <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed">
+              Módulo de carga y registro de obligaciones. El formulario se abre automáticamente al ingresar.
+            </p>
+            <button 
+              onClick={() => {
+                setEditingPayment(null);
+                setIsFormOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-bold shadow-2xl shadow-blue-500/30 transition-all active:scale-95 flex items-center gap-3"
+            >
+              <Plus size={24} />
+              Abrir Formulario de Registro
+            </button>
+          </div>
         );
       case 'approvals':
         return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
@@ -671,10 +686,10 @@ function App({ isDemoMode = false }: AppProps) {
 
   React.useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'approvals', 'reports', 'payroll', 'presidency'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'dashboard', 'payroll'],
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll'],
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
       [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency']
     };
@@ -702,6 +717,10 @@ function App({ isDemoMode = false }: AppProps) {
           closeMobileMenu={() => setIsMobileMenuOpen(false)}
           installPrompt={installPrompt}
           onInstallClick={handleInstallClick}
+          onPaymentsClick={() => {
+            setEditingPayment(null);
+            setIsFormOpen(true);
+          }}
         />
         
         {/* Contenedor Principal */}
