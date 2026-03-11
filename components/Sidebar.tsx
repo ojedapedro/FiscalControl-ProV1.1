@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, FC } from 'react';
 import { 
   FileText, 
   CheckSquare, 
@@ -33,7 +33,7 @@ interface SidebarProps {
   onPaymentsClick?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
+export const Sidebar: FC<SidebarProps> = ({ 
   currentView, 
   setCurrentView, 
   currentRole, 
@@ -45,9 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onPaymentsClick
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const [imgError, setImgError] = React.useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setImgError(false);
   }, [APP_LOGO_URL]);
   

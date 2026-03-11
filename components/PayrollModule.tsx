@@ -26,9 +26,15 @@ import {
   CheckCircle2,
   Clock,
   Landmark,
-  Building2
+  Building2,
+  Upload,
+  AlertCircle,
+  AlertTriangle,
+  Eye,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 import { PayrollEntry, Employee } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -37,6 +43,7 @@ interface PayrollModuleProps {
   entries: PayrollEntry[];
   employees: Employee[];
   onAddEntry: (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => Promise<void>;
+  onUpdateEntry?: (entry: PayrollEntry) => Promise<void>;
   onDeleteEntry: (id: string) => Promise<void>;
   onAddEmployee: (employee: Employee) => Promise<void>;
   onUpdateEmployee: (employee: Employee) => Promise<void>;
@@ -49,6 +56,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   entries, 
   employees, 
   onAddEntry, 
+  onUpdateEntry,
   onDeleteEntry,
   onAddEmployee,
   onUpdateEmployee,
@@ -59,7 +67,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [isAddingEmployee, setIsAddingEmployee] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = React.useState<Employee | null>(null);
+  const [viewingEntry, setViewingEntry] = React.useState<PayrollEntry | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [importProgress, setImportProgress] = React.useState<number | null>(null);
+  const [importErrors, setImportErrors] = React.useState<string[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { exchangeRate } = useExchangeRate();
 
   const calculateParafiscales = (baseSalary: number, bonuses: {amount: number}[]) => {
@@ -71,18 +83,42 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     return {
       deductions: [
         { name: 'SSO (4%)', amount: Number((salarioNormal * 0.04).toFixed(2)) },
-        { name: 'RPE / Paro Forzoso (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) },
+        { name: 'RPE (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) },
         { name: 'FAOV / LPH (1%)', amount: Number((salarioIntegral * 0.01).toFixed(2)) },
         { name: 'INCES (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) }
       ],
       liabilities: [
-        { name: 'Aporte Patronal SSO (9%)', amount: Number((salarioNormal * 0.09).toFixed(2)) },
-        { name: 'Aporte Patronal RPE (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
-        { name: 'Aporte Patronal FAOV (2%)', amount: Number((salarioIntegral * 0.02).toFixed(2)) },
-        { name: 'Aporte Patronal INCES (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
+        { name: 'SSO Patronal (9%)', amount: Number((salarioNormal * 0.09).toFixed(2)) },
+        { name: 'RPE Patronal (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
+        { name: 'FAOV Patronal (2%)', amount: Number((salarioIntegral * 0.02).toFixed(2)) },
+        { name: 'INCES Patronal (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
         { name: 'Fondo de Pensiones (9%)', amount: Number((totalPagos * 0.09).toFixed(2)) }
       ]
     };
+  };
+
+  const getParafiscalDiff = (name: string, amount: number, baseSalary: number, bonuses: {amount: number}[]) => {
+    const { deductions, liabilities } = calculateParafiscales(baseSalary, bonuses);
+    const all = [...deductions, ...liabilities];
+    const theoretical = all.find(item => item.name === name)?.amount || 0;
+    const diff = amount - theoretical;
+    return { theoretical, diff, hasDiff: Math.abs(diff) > 0.01 };
+  };
+
+  const hasParafiscalDiscrepancies = (entry: PayrollEntry) => {
+    const { deductions, liabilities } = calculateParafiscales(entry.baseSalary, entry.bonuses);
+    
+    const hasDeductionDiff = entry.deductions.some(d => {
+      const theoretical = deductions.find(item => item.name === d.name)?.amount || 0;
+      return Math.abs(d.amount - theoretical) > 0.01;
+    });
+
+    const hasLiabilityDiff = entry.employerLiabilities.some(l => {
+      const theoretical = liabilities.find(item => item.name === l.name)?.amount || 0;
+      return Math.abs(l.amount - theoretical) > 0.01;
+    });
+
+    return hasDeductionDiff || hasLiabilityDiff;
   };
 
   // --- Payroll Entry Form State ---
@@ -372,6 +408,34 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     setEditingEmployee(null);
   };
 
+  const handleAdjustParafiscal = async (entry: PayrollEntry, fieldName: string, type: 'deduction' | 'liability') => {
+    if (!onUpdateEntry) return;
+
+    const { deductions, liabilities } = calculateParafiscales(entry.baseSalary, entry.bonuses);
+    const theoreticalValue = (type === 'deduction' ? deductions : liabilities).find(i => i.name === fieldName)?.amount || 0;
+
+    const updatedEntry = {
+      ...entry,
+      deductions: type === 'deduction' 
+        ? entry.deductions.map(d => d.name === fieldName ? { ...d, amount: theoreticalValue } : d)
+        : entry.deductions,
+      employerLiabilities: type === 'liability'
+        ? entry.employerLiabilities.map(l => l.name === fieldName ? { ...l, amount: theoreticalValue } : l)
+        : entry.employerLiabilities
+    };
+
+    // Recalcular totales
+    const totalBonuses = updatedEntry.bonuses.reduce((sum, b) => sum + b.amount, 0);
+    const totalDeductions = updatedEntry.deductions.reduce((sum, d) => sum + d.amount, 0);
+    const totalLiabilities = updatedEntry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
+    
+    updatedEntry.totalWorkerNet = updatedEntry.baseSalary + totalBonuses - totalDeductions;
+    updatedEntry.totalEmployerCost = updatedEntry.baseSalary + totalBonuses + totalLiabilities;
+
+    await onUpdateEntry(updatedEntry);
+    setViewingEntry(updatedEntry);
+  };
+
   const handleAutoGeneratePayroll = async () => {
     const activeEmployees = employees.filter(e => e.isActive);
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -392,6 +456,101 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         status: 'PROCESADO'
       });
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportProgress(0);
+    setImportErrors([]);
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          setImportErrors(['El archivo está vacío']);
+          setImportProgress(null);
+          return;
+        }
+
+        const errors: string[] = [];
+        let processedCount = 0;
+
+        for (let i = 0; i < data.length; i++) {
+          const row: any = data[i];
+          
+          // Normalizar nombres de columnas (quitar espacios, minúsculas)
+          const normalizedRow: any = {};
+          Object.keys(row).forEach(key => {
+            const normalizedKey = key.toLowerCase().trim()
+              .replace(/ /g, '_')
+              .replace(/cedula|id_empleado|id/g, 'employeeid')
+              .replace(/mes|periodo/g, 'month')
+              .replace(/sueldo|salario|base/g, 'basesalary');
+            normalizedRow[normalizedKey] = row[key];
+          });
+
+          // Basic validation
+          if (!normalizedRow.employeeid || !normalizedRow.month || normalizedRow.basesalary === undefined) {
+            errors.push(`Fila ${i + 2}: Faltan campos obligatorios (ID Empleado, Mes, Sueldo Base)`);
+            continue;
+          }
+
+          const employee = employees.find(emp => emp.id.toString() === normalizedRow.employeeid.toString());
+          if (!employee) {
+            errors.push(`Fila ${i + 2}: Empleado con ID ${normalizedRow.employeeid} no encontrado`);
+            continue;
+          }
+
+          // Prepare entry
+          const baseSalary = Number(normalizedRow.basesalary);
+          const bonuses = employee.defaultBonuses;
+          
+          const { workerNet, employerCost } = calculateTotals({
+            baseSalary,
+            bonuses,
+            deductions: employee.defaultDeductions,
+            employerLiabilities: employee.defaultEmployerLiabilities
+          });
+
+          await onAddEntry({
+            employeeName: employee.name,
+            employeeId: employee.id,
+            storeId: employee.storeId,
+            month: normalizedRow.month.toString(),
+            baseSalary,
+            bonuses,
+            deductions: employee.defaultDeductions,
+            employerLiabilities: employee.defaultEmployerLiabilities,
+            totalWorkerNet: workerNet,
+            totalEmployerCost: employerCost,
+            status: 'PROCESADO'
+          });
+
+          processedCount++;
+          setImportProgress(Math.round(((i + 1) / data.length) * 100));
+        }
+
+        if (errors.length > 0) {
+          setImportErrors(errors);
+        } else {
+          alert(`✅ Se cargaron ${processedCount} registros exitosamente`);
+        }
+      } catch (err) {
+        setImportErrors(['Error procesando el archivo: ' + (err as Error).message]);
+      } finally {
+        setImportProgress(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const filteredEntries = entries.filter(e => 
@@ -478,6 +637,20 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         <div className="flex gap-3">
           {activeTab === 'payroll' ? (
             <>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".csv, .xlsx, .xls"
+                onChange={handleFileUpload}
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+              >
+                <Upload size={20} />
+                Importar CSV/Excel
+              </button>
               <button 
                 onClick={handleAutoGeneratePayroll}
                 disabled={employees.filter(e => e.isActive).length === 0}
@@ -522,6 +695,60 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           )}
         </div>
       </div>
+
+      {importProgress !== null && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl text-center">
+            <div className="mb-6">
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-800 stroke-current"
+                    strokeWidth="3"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-blue-500 stroke-current"
+                    strokeWidth="3"
+                    strokeDasharray={`${importProgress}, 100`}
+                    strokeLinecap="round"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center font-bold text-white">
+                  {importProgress}%
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Procesando Nómina</h3>
+              <p className="text-slate-400 text-sm">Por favor espere mientras validamos y cargamos los registros...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importErrors.length > 0 && (
+        <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-3xl mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-red-500 font-bold flex items-center gap-2">
+              <AlertCircle size={20} />
+              Errores en la Importación
+            </h3>
+            <button 
+              onClick={() => setImportErrors([])}
+              className="text-slate-400 hover:text-white"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+          <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar">
+            {importErrors.map((err, idx) => (
+              <p key={idx} className="text-sm text-red-400/80">• {err}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex p-1 bg-slate-900/80 border border-slate-800 rounded-2xl w-fit">
@@ -811,7 +1038,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               {entry.employeeName.charAt(0)}
                             </div>
                             <div>
-                              <div className="font-bold text-white group-hover/name:text-blue-400 transition-colors">{entry.employeeName}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-bold text-white group-hover/name:text-blue-400 transition-colors">{entry.employeeName}</div>
+                                {hasParafiscalDiscrepancies(entry) && (
+                                  <div className="group/warn relative">
+                                    <AlertTriangle size={14} className="text-orange-500 animate-pulse" />
+                                    <div className="absolute left-0 bottom-full mb-2 hidden group-hover/warn:block w-48 p-2 bg-slate-900 border border-slate-700 rounded shadow-xl text-[10px] text-slate-300 z-50">
+                                      Discrepancia detectada entre aportes manuales y cálculos de ley.
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                               <div className="text-xs text-slate-500 font-mono">{entry.employeeId}</div>
                             </div>
                           </div>
@@ -838,12 +1075,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => onDeleteEntry(entry.id)}
-                            className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => setViewingEntry(entry)}
+                              className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="Ver Detalles"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            <button 
+                              onClick={() => onDeleteEntry(entry.id)}
+                              className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1111,7 +1358,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     Calcular Aportes de Ley Automáticamente
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Bonuses */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1119,9 +1366,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <TrendingUp size={18} /> Bonos Adicionales
                       </h3>
                       <button 
-                        type="button"
-                        onClick={() => setPayrollFormData({ ...payrollFormData, bonuses: [...payrollFormData.bonuses, { name: '', amount: 0 }] })}
-                        className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                         type="button"
+                         onClick={() => setPayrollFormData({ ...payrollFormData, bonuses: [...payrollFormData.bonuses, { name: '', amount: 0 }] })}
+                         className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg hover:bg-emerald-500/20 transition-colors"
                       >
                         + Agregar
                       </button>
@@ -1171,32 +1418,130 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       </button>
                     </div>
                     <div className="space-y-3">
-                      {payrollFormData.deductions.map((deduction, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <input 
-                            type="text"
-                            placeholder="Nombre deducción"
-                            value={deduction.name}
-                            onChange={(e) => {
-                              const newDeductions = [...payrollFormData.deductions];
-                              newDeductions[idx].name = e.target.value;
-                              setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
-                            }}
-                            className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500"
-                          />
-                          <input 
-                            type="number"
-                            placeholder="0.00"
-                            value={deduction.amount || ''}
-                            onChange={(e) => {
-                              const newDeductions = [...payrollFormData.deductions];
-                              newDeductions[idx].amount = parseFloat(e.target.value) || 0;
-                              setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
-                            }}
-                            className="w-24 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500 font-mono"
-                          />
-                        </div>
-                      ))}
+                      {payrollFormData.deductions.map((deduction, idx) => {
+                        const { theoretical, hasDiff } = getParafiscalDiff(deduction.name, deduction.amount, payrollFormData.baseSalary, payrollFormData.bonuses);
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex gap-2">
+                              <input 
+                                type="text"
+                                placeholder="Nombre deducción"
+                                value={deduction.name}
+                                onChange={(e) => {
+                                  const newDeductions = [...payrollFormData.deductions];
+                                  newDeductions[idx].name = e.target.value;
+                                  setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
+                                }}
+                                className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500"
+                              />
+                              <div className="relative">
+                                <input 
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={deduction.amount || ''}
+                                  onChange={(e) => {
+                                    const newDeductions = [...payrollFormData.deductions];
+                                    newDeductions[idx].amount = parseFloat(e.target.value) || 0;
+                                    setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
+                                  }}
+                                  className={`w-24 px-4 py-3 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500 font-mono`}
+                                />
+                                {hasDiff && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newDeductions = [...payrollFormData.deductions];
+                                      newDeductions[idx].amount = theoretical;
+                                      setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
+                                    }}
+                                    className="absolute -top-2 -right-2 bg-orange-500 text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                    title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
+                                  >
+                                    <Wand2 size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {hasDiff && (
+                              <div className="flex justify-between px-1">
+                                <span className="text-[9px] text-orange-400 font-medium">Ley: ${theoretical}</span>
+                                <span className="text-[9px] text-slate-500">Dif: ${(deduction.amount - theoretical).toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Employer Liabilities */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-orange-400 flex items-center gap-2">
+                        <ShieldCheck size={18} /> Pasivos Patronales
+                      </h3>
+                      <button 
+                        type="button"
+                        onClick={() => setPayrollFormData({ ...payrollFormData, employerLiabilities: [...payrollFormData.employerLiabilities, { name: '', amount: 0 }] })}
+                        className="text-xs bg-orange-500/10 text-orange-500 px-2 py-1 rounded-lg hover:bg-orange-500/20 transition-colors"
+                      >
+                        + Agregar
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {payrollFormData.employerLiabilities.map((liability, idx) => {
+                        const { theoretical, hasDiff } = getParafiscalDiff(liability.name, liability.amount, payrollFormData.baseSalary, payrollFormData.bonuses);
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex gap-2">
+                              <input 
+                                type="text"
+                                placeholder="Nombre pasivo"
+                                value={liability.name}
+                                onChange={(e) => {
+                                  const newLiabilities = [...payrollFormData.employerLiabilities];
+                                  newLiabilities[idx].name = e.target.value;
+                                  setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
+                                }}
+                                className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                              />
+                              <div className="relative">
+                                <input 
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={liability.amount || ''}
+                                  onChange={(e) => {
+                                    const newLiabilities = [...payrollFormData.employerLiabilities];
+                                    newLiabilities[idx].amount = parseFloat(e.target.value) || 0;
+                                    setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
+                                  }}
+                                  className={`w-24 px-4 py-3 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-orange-500 font-mono`}
+                                />
+                                {hasDiff && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newLiabilities = [...payrollFormData.employerLiabilities];
+                                      newLiabilities[idx].amount = theoretical;
+                                      setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
+                                    }}
+                                    className="absolute -top-2 -right-2 bg-orange-500 text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                    title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
+                                  >
+                                    <Wand2 size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {hasDiff && (
+                              <div className="flex justify-between px-1">
+                                <span className="text-[9px] text-orange-400 font-medium">Ley: ${theoretical}</span>
+                                <span className="text-[9px] text-slate-500">Dif: ${(liability.amount - theoretical).toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1367,7 +1712,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </button>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Default Bonuses */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -1423,32 +1768,128 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </button>
                       </div>
                       <div className="space-y-2">
-                        {employeeFormData.defaultDeductions.map((deduction, idx) => (
-                          <div key={idx} className="flex gap-2">
-                            <input 
-                              type="text"
-                              placeholder="Nombre deducción"
-                              value={deduction.name}
-                              onChange={(e) => {
-                                const newDeductions = [...employeeFormData.defaultDeductions];
-                                newDeductions[idx].name = e.target.value;
-                                setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
-                              }}
-                              className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-                            />
-                            <input 
-                              type="number"
-                              placeholder="0.00"
-                              value={deduction.amount || ''}
-                              onChange={(e) => {
-                                const newDeductions = [...employeeFormData.defaultDeductions];
-                                newDeductions[idx].amount = parseFloat(e.target.value) || 0;
-                                setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
-                              }}
-                              className="w-20 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
-                            />
-                          </div>
-                        ))}
+                        {employeeFormData.defaultDeductions.map((deduction, idx) => {
+                          const { theoretical, hasDiff } = getParafiscalDiff(deduction.name, deduction.amount, employeeFormData.baseSalary, employeeFormData.defaultBonuses);
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text"
+                                  placeholder="Nombre deducción"
+                                  value={deduction.name}
+                                  onChange={(e) => {
+                                    const newDeductions = [...employeeFormData.defaultDeductions];
+                                    newDeductions[idx].name = e.target.value;
+                                    setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                <div className="relative">
+                                  <input 
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={deduction.amount || ''}
+                                    onChange={(e) => {
+                                      const newDeductions = [...employeeFormData.defaultDeductions];
+                                      newDeductions[idx].amount = parseFloat(e.target.value) || 0;
+                                      setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
+                                    }}
+                                    className={`w-20 px-3 py-2 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
+                                  />
+                                  {hasDiff && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newDeductions = [...employeeFormData.defaultDeductions];
+                                        newDeductions[idx].amount = theoretical;
+                                        setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
+                                      }}
+                                      className="absolute -top-2 -right-2 bg-orange-500 text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                      title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
+                                    >
+                                      <Wand2 size={8} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {hasDiff && (
+                                <div className="flex justify-between px-1">
+                                  <span className="text-[8px] text-orange-400 font-medium">Ley: ${theoretical}</span>
+                                  <span className="text-[8px] text-slate-500">Dif: ${(deduction.amount - theoretical).toFixed(2)}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Default Employer Liabilities */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pasivos Patronales</h4>
+                        <button 
+                          type="button"
+                          onClick={() => setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: [...employeeFormData.defaultEmployerLiabilities, { name: '', amount: 0 }] })}
+                          className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-500/20 transition-colors"
+                        >
+                          + Agregar
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {employeeFormData.defaultEmployerLiabilities.map((liability, idx) => {
+                          const { theoretical, hasDiff } = getParafiscalDiff(liability.name, liability.amount, employeeFormData.baseSalary, employeeFormData.defaultBonuses);
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text"
+                                  placeholder="Nombre pasivo"
+                                  value={liability.name}
+                                  onChange={(e) => {
+                                    const newLiabilities = [...employeeFormData.defaultEmployerLiabilities];
+                                    newLiabilities[idx].name = e.target.value;
+                                    setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                <div className="relative">
+                                  <input 
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={liability.amount || ''}
+                                    onChange={(e) => {
+                                      const newLiabilities = [...employeeFormData.defaultEmployerLiabilities];
+                                      newLiabilities[idx].amount = parseFloat(e.target.value) || 0;
+                                      setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
+                                    }}
+                                    className={`w-20 px-3 py-2 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
+                                  />
+                                  {hasDiff && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newLiabilities = [...employeeFormData.defaultEmployerLiabilities];
+                                        newLiabilities[idx].amount = theoretical;
+                                        setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
+                                      }}
+                                      className="absolute -top-2 -right-2 bg-orange-500 text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                      title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
+                                    >
+                                      <Wand2 size={8} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {hasDiff && (
+                                <div className="flex justify-between px-1">
+                                  <span className="text-[8px] text-orange-400 font-medium">Ley: ${theoretical}</span>
+                                  <span className="text-[8px] text-slate-500">Dif: ${(liability.amount - theoretical).toFixed(2)}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1590,6 +2031,159 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <div className="text-sm text-slate-500 italic">No hay deducciones configuradas</div>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Ver Detalle Nómina */}
+      <AnimatePresence>
+        {viewingEntry && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-slate-950 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-800 shadow-2xl custom-scrollbar"
+            >
+              <div className="p-8">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
+                      <FileText size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Detalle de Nómina</h2>
+                      <p className="text-slate-500 font-mono text-sm">{viewingEntry.id} • {viewingEntry.month}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setViewingEntry(null)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Empleado</p>
+                    <p className="text-lg font-bold text-white">{viewingEntry.employeeName}</p>
+                    <p className="text-sm text-slate-400">{viewingEntry.employeeId}</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tienda</p>
+                    <p className="text-lg font-bold text-white">{STORES.find(s => s.id === viewingEntry.storeId)?.name || 'N/A'}</p>
+                    <p className="text-sm text-slate-400">ID: {viewingEntry.storeId}</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Registro</p>
+                    <p className="text-lg font-bold text-white">{new Date(viewingEntry.submittedDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-400">{new Date(viewingEntry.submittedDate).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Deducciones */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <TrendingDown className="text-red-400" size={20} />
+                      Deducciones del Trabajador
+                    </h3>
+                    <div className="space-y-3">
+                      {viewingEntry.deductions.map((d, idx) => {
+                        const { theoretical, diff, hasDiff } = getParafiscalDiff(d.name, d.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
+                        return (
+                          <div key={idx} className={`p-4 rounded-xl border transition-all ${
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-900/30 border-slate-800'
+                          }`}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-slate-300">{d.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono text-white font-bold">${d.amount.toLocaleString()}</span>
+                                {hasDiff && onUpdateEntry && (
+                                  <button
+                                    onClick={() => handleAdjustParafiscal(viewingEntry, d.name, 'deduction')}
+                                    className="p-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
+                                    title="Ajustar a Ley"
+                                  >
+                                    <Wand2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {hasDiff && (
+                              <div className="flex justify-between text-[10px] font-bold">
+                                <span className="text-slate-500">LEY: ${theoretical.toLocaleString()}</span>
+                                <span className={diff > 0 ? 'text-red-400' : 'text-green-400'}>
+                                  DIF: {diff > 0 ? '+' : ''}${diff.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pasivos Patronales */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <ShieldCheck className="text-blue-400" size={20} />
+                      Pasivos Patronales
+                    </h3>
+                    <div className="space-y-3">
+                      {viewingEntry.employerLiabilities.map((l, idx) => {
+                        const { theoretical, diff, hasDiff } = getParafiscalDiff(l.name, l.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
+                        return (
+                          <div key={idx} className={`p-4 rounded-xl border transition-all ${
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-900/30 border-slate-800'
+                          }`}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-slate-300">{l.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono text-white font-bold">${l.amount.toLocaleString()}</span>
+                                {hasDiff && onUpdateEntry && (
+                                  <button
+                                    onClick={() => handleAdjustParafiscal(viewingEntry, l.name, 'liability')}
+                                    className="p-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
+                                    title="Ajustar a Ley"
+                                  >
+                                    <Wand2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {hasDiff && (
+                              <div className="flex justify-between text-[10px] font-bold">
+                                <span className="text-slate-500">LEY: ${theoretical.toLocaleString()}</span>
+                                <span className={diff > 0 ? 'text-red-400' : 'text-green-400'}>
+                                  DIF: {diff > 0 ? '+' : ''}${diff.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-6 bg-blue-500/5 rounded-2xl border border-blue-500/20">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sueldo Base</p>
+                    <p className="text-2xl font-mono font-bold text-blue-400">${viewingEntry.baseSalary.toLocaleString()}</p>
+                  </div>
+                  <div className="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/20">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Neto Trabajador</p>
+                    <p className="text-2xl font-mono font-bold text-emerald-400">${viewingEntry.totalWorkerNet.toLocaleString()}</p>
+                  </div>
+                  <div className="p-6 bg-orange-500/5 rounded-2xl border border-orange-500/20">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Costo Empresa</p>
+                    <p className="text-2xl font-mono font-bold text-orange-400">${viewingEntry.totalEmployerCost.toLocaleString()}</p>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, FC, FormEvent } from 'react';
 import { User } from '../types';
 import { authService } from '../services/auth';
 import { 
@@ -21,7 +21,7 @@ interface LoginProps {
   isDemoMode?: boolean;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) => {
+export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) => {
   const [isRecovering, setIsRecovering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,7 +38,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false
     setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
@@ -25,36 +25,36 @@ interface AppProps {
 function App({ isDemoMode = false }: AppProps) {
   console.log("App Version: 2.2 - Categoría Fiscal Update");
   // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = React.useState<User | null>(
+  const [currentUser, setCurrentUser] = useState<User | null>(
     isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
   );
-  const [isAuthenticated, setIsAuthenticated] = React.useState(isDemoMode);
+  const [isAuthenticated, setIsAuthenticated] = useState(isDemoMode);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = React.useState('payments');
-  const [payments, setPayments] = React.useState<Payment[]>([]);
-  const [payrollEntries, setPayrollEntries] = React.useState<PayrollEntry[]>([]);
-  const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [exchangeRate, setExchangeRate] = React.useState<number>(() => {
+  const [currentView, setCurrentView] = useState('payments');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
     return saved ? Number(saved) : 1;
   });
-  const [exchangeRateInput, setExchangeRateInput] = React.useState<number>(() => {
+  const [exchangeRateInput, setExchangeRateInput] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
     return saved ? Number(saved) : 1;
   });
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingPayment, setEditingPayment] = React.useState<Payment | null>(null);
-  const [notification, setNotification] = React.useState<string | null>(null);
-  const [pushPermission, setPushPermission] = React.useState<NotificationPermission>('default');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   // --- MOBILE & PWA STATE ---
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [installPrompt, setInstallPrompt] = React.useState<any>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   // PWA Install Prompt Listener
-  React.useEffect(() => {
+  useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       // Prevenir que Chrome en Android muestre el prompt automáticamente
       e.preventDefault();
@@ -96,7 +96,7 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated && currentUser) {
       setCurrentView(getInitialView(currentUser.role));
       loadData();
@@ -127,6 +127,22 @@ function App({ isDemoMode = false }: AppProps) {
       setNotification('✅ Nómina cargada exitosamente');
     } catch (error) {
       setNotification('❌ Error guardando nómina');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleUpdatePayrollEntry = async (entry: PayrollEntry) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.updatePayrollEntry(entry);
+      }
+      setPayrollEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
+      setNotification('✅ Nómina actualizada');
+    } catch (error) {
+      setNotification('❌ Error actualizando nómina');
     } finally {
       setIsLoading(false);
       setTimeout(() => setNotification(null), 3000);
@@ -530,6 +546,7 @@ function App({ isDemoMode = false }: AppProps) {
             entries={payrollEntries} 
             employees={employees}
             onAddEntry={handleAddPayrollEntry} 
+            onUpdateEntry={handleUpdatePayrollEntry}
             onDeleteEntry={handleDeletePayrollEntry} 
             onAddEmployee={handleAddEmployee}
             onUpdateEmployee={handleUpdateEmployee}
@@ -671,7 +688,7 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!currentUser) return;
     const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency'];
     const allowedViews: Record<Role, string[]> = {

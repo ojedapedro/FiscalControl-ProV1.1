@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbzS_c3j2Kh2rrJ1tVl2jd0Fd7DzHc019M5jLRginAEwlWT-uWfz3bkS3AFHjZm31h870w/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyxVkNV8XIqvDgTOY5kj5FQsHCR6BWkHHnxaQ78rMW5kPm_EWoOc3iusVxiG3Dyfp9e/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -255,6 +255,19 @@ export const api = {
        return { status: 'success', message: 'Nómina simulada creada' };
     }
     const response = await fetch(`${API_URL}?action=addPayrollEntry`, {
+      method: 'POST',
+      body: JSON.stringify(entry)
+    });
+    return await response.json();
+  },
+
+  // Actualizar Nómina
+  updatePayrollEntry: async (entry: any) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Nómina simulada actualizada' };
+    }
+    const response = await fetch(`${API_URL}?action=updatePayrollEntry`, {
       method: 'POST',
       body: JSON.stringify(entry)
     });

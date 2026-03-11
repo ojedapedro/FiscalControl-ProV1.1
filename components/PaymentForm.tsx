@@ -394,6 +394,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [justificationConfirmed, setJustificationConfirmed] = React.useState(!!initialData?.justification);
   const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
+  // Campos del Soporte
+  const [docDate, setDocDate] = React.useState(initialData?.documentDate || '');
+  const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount?.toString() || '');
+  const [docName, setDocName] = React.useState(initialData?.documentName || '');
+
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isManualOverride, setIsManualOverride] = React.useState(false);
@@ -422,6 +427,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setJustificationFile(null);
     setJustificationConfirmed(false);
     setManualOverBudget(false);
+    setDocDate('');
+    setDocAmount('');
+    setDocName('');
     setNotes('');
     setErrors({});
     setIsManualOverride(false);
@@ -522,16 +530,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Budget Monitoring Logic
   React.useEffect(() => {
-    const numericAmount = parseFloat(amount);
+    // Usar el monto del documento si está presente, de lo contrario el monto principal
+    const effectiveAmount = docAmount ? parseFloat(docAmount) : parseFloat(amount);
+    
     if (isCurrentTaxItemVariable) {
         // For variable items, only manual flag determines over budget
         setIsOverBudget(manualOverBudget);
         if (!manualOverBudget) {
             setJustificationConfirmed(false);
         }
-    } else if (expectedBudget !== null && amount && !isNaN(numericAmount)) {
+    } else if (expectedBudget !== null && !isNaN(effectiveAmount)) {
         // For fixed items, compare amount to budget
-        if (numericAmount > expectedBudget) {
+        if (effectiveAmount > expectedBudget) {
             setIsOverBudget(true);
         } else {
             setIsOverBudget(false);
@@ -540,7 +550,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     } else {
         setIsOverBudget(false);
     }
-  }, [amount, expectedBudget, manualOverBudget, isCurrentTaxItemVariable]);
+  }, [amount, docAmount, expectedBudget, manualOverBudget, isCurrentTaxItemVariable]);
 
 
   // Reset tax selection when category changes to prevent inconsistent state
@@ -728,7 +738,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             originalBudget: expectedBudget,
             isOverBudget,
             justification: justificationNote,
-            justificationFile: justificationFile
+            justificationFile: justificationFile,
+            // Soporte Data
+            documentDate: docDate,
+            documentAmount: docAmount ? parseFloat(docAmount) : undefined,
+            documentName: docName
         });
         resetForm();
     } catch (error) {
@@ -1271,7 +1285,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* File Upload */}
-                        <div>
+                        <div className="space-y-4">
                              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
                              <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
                                  isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -1355,8 +1369,43 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     onChange={handleFileChange} 
                                     disabled={isSubmitting || isFileScanning}
                                 />
-                            </label>
-                            {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+                             </label>
+                             {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+
+                             {/* Campos adicionales del soporte */}
+                             <div className="grid grid-cols-1 gap-4 pt-2">
+                                 <div>
+                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre del Documento</label>
+                                     <input
+                                         type="text"
+                                         value={docName}
+                                         onChange={(e) => setDocName(e.target.value)}
+                                         placeholder="Ej: Factura #123"
+                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                     />
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                     <div>
+                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Doc.</label>
+                                         <input
+                                             type="date"
+                                             value={docDate}
+                                             onChange={(e) => setDocDate(e.target.value)}
+                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                                         />
+                                     </div>
+                                     <div>
+                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monto Doc.</label>
+                                         <input
+                                             type="number"
+                                             value={docAmount}
+                                             onChange={(e) => setDocAmount(e.target.value)}
+                                             placeholder="0.00"
+                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                         />
+                                     </div>
+                                 </div>
+                             </div>
                         </div>
 
                         {/* Notes */}

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const container = document.getElementById('root');
 
@@ -14,9 +15,11 @@ if (container) {
 
   root.render(
     <StrictMode>
-      <ThemeProvider>
-        <App isDemoMode={isDemoMode} />
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <App isDemoMode={isDemoMode} />
+        </ThemeProvider>
+      </ErrorBoundary>
     </StrictMode>
   );
 } else {

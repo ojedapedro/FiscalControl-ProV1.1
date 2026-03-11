@@ -84,6 +84,11 @@ export interface Payment {
   isOverBudget?: boolean;
   justification?: string;
   justificationFileUrl?: string;
+
+  // Campos del Soporte
+  documentDate?: string;
+  documentAmount?: number;
+  documentName?: string;
 }
 
 export interface ChartData {
