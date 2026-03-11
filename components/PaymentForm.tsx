@@ -404,6 +404,27 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [isFileScanning, setIsFileScanning] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
 
+  const resetForm = () => {
+    setStore('');
+    setCategory('');
+    setTaxGroup('');
+    setTaxItem('');
+    setAmount('');
+    setExpectedBudget(null);
+    setDueDate('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setSpecificType('');
+    setFile(null);
+    setPreviewUrl(null);
+    setIsOverBudget(false);
+    setJustificationNote('');
+    setJustificationFile(null);
+    setJustificationConfirmed(false);
+    setManualOverBudget(false);
+    setNotes('');
+    setErrors({});
+  };
+
   // Auto-fill logic based on municipal selection (Items & Amounts)
   React.useEffect(() => {
     if (store === 'NATIONAL') {
@@ -707,6 +728,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             justification: justificationNote,
             justificationFile: justificationFile
         });
+        resetForm();
     } catch (error) {
         console.error("Error submitting payment:", error);
     } finally {
