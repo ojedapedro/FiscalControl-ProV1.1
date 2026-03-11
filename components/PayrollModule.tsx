@@ -39,6 +39,8 @@ import { PayrollEntry, Employee } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
+import { User } from '../types';
+
 interface PayrollModuleProps {
   entries: PayrollEntry[];
   employees: Employee[];
@@ -48,6 +50,7 @@ interface PayrollModuleProps {
   onAddEmployee: (employee: Employee) => Promise<void>;
   onUpdateEmployee: (employee: Employee) => Promise<void>;
   onDeleteEmployee: (id: string) => Promise<void>;
+  currentUser?: User | null;
 }
 
 type TabType = 'payroll' | 'employees';
@@ -60,7 +63,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   onDeleteEntry,
   onAddEmployee,
   onUpdateEmployee,
-  onDeleteEmployee
+  onDeleteEmployee,
+  currentUser
 }) => {
   const [activeTab, setActiveTab] = React.useState<TabType>('payroll');
   const [isAddingEntry, setIsAddingEntry] = React.useState(false);
@@ -1315,7 +1319,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     >
                       <option value="">Seleccionar tienda...</option>
-                      {STORES.map(s => (
+                      {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -1645,7 +1649,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     >
                       <option value="">Seleccionar tienda...</option>
-                      {STORES.map(s => (
+                      {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>

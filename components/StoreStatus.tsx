@@ -12,7 +12,8 @@ import {
   Filter,
   ArrowRightLeft,
   X,
-  Plus
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -29,16 +30,22 @@ import VenezuelaMap from './VenezuelaMap';
 
 interface StoreStatusProps {
   payments: Payment[];
+  userStoreId?: string;
 }
 
-export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
+export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
 
   // Calcular el estado dinámico de las tiendas basado en los pagos reales
   const dynamicStores = useMemo(() => {
-    return STORES.map(store => {
+    let storesToProcess = STORES;
+    if (userStoreId) {
+      storesToProcess = STORES.filter(s => s.id === userStoreId);
+    }
+
+    return storesToProcess.map(store => {
         // Obtener pagos asociados a esta tienda
         const storePayments = payments.filter(p => p.storeId === store.id);
         
@@ -87,6 +94,11 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
     setSelectedStoreIds(prev => 
         prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedStoreIds([]);
   };
 
   const selectedStores = useMemo(() => 
@@ -140,6 +152,15 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments }) => {
                     />
                     <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
                  </div>
+                 {(searchTerm !== '' || selectedStoreIds.length > 0) && (
+                    <button 
+                        onClick={clearFilters}
+                        className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-all duration-200 animate-in fade-in zoom-in"
+                    >
+                        <RotateCcw size={16} />
+                        <span className="hidden sm:inline">Limpiar Filtros</span>
+                    </button>
+                 )}
                  <button className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                     <Filter size={20} />
                  </button>

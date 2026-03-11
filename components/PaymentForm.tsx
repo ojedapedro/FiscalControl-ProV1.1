@@ -24,7 +24,7 @@ import {
   Users,
   HelpCircle
 } from 'lucide-react';
-import { Category, Payment, PaymentStatus } from '../types';
+import { Category, Payment, PaymentStatus, User } from '../types';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -362,9 +362,10 @@ interface PaymentFormProps {
   initialData?: Payment | null;
   payments: Payment[];
   isEmbedded?: boolean;
+  currentUser?: User | null;
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || '');
   const [storeAddress, setStoreAddress] = React.useState('');
@@ -564,7 +565,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Calcular el estado dinámico de las tiendas para el mapa
   const dynamicStores = React.useMemo(() => {
-    return STORES.map(store => {
+    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
         
@@ -582,7 +584,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             status: calculatedStatus
         };
     });
-  }, [payments]);
+  }, [payments, currentUser]);
 
   // Clean up preview URL
   React.useEffect(() => {
@@ -939,7 +941,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             {category === Category.PAYROLL && (
                                 <option value="NATIONAL">Nacional (Cobertura Nacional)</option>
                             )}
-                            {STORES.map(s => (
+                            {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>

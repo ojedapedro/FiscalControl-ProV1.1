@@ -45,6 +45,7 @@ export interface User {
   role: Role;
   avatar?: string;
   password?: string; // Solo para simulación local
+  storeId?: string; // Para Administradores y Auditores asignados a una tienda
 }
 
 export interface Store {

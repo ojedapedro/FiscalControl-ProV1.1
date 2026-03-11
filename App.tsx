@@ -515,49 +515,57 @@ function App({ isDemoMode = false }: AppProps) {
         );
     }
 
+    // Filter data based on user's assigned store
+    const userStoreId = currentUser?.storeId;
+    const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
+    const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
+    const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
+
     switch (currentView) {
       case 'payments':
         return (
           <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-950 custom-scrollbar">
             <PaymentForm 
               initialData={editingPayment}
-              payments={payments}
+              payments={filteredPayments}
               onSubmit={handleNewPayment} 
               onCancel={() => {
                 setEditingPayment(null);
               }} 
               isEmbedded={true}
+              currentUser={currentUser}
             />
           </div>
         );
       case 'approvals':
-        return <Approvals payments={payments} onApprove={handleApprove} onReject={handleReject} />;
+        return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} />;
       case 'reports':
-        return <Reports payments={payments} currentUser={currentUser} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} />;
       case 'presidency':
-        return <PresidencyDashboard payments={payments} payrollEntries={payrollEntries} />;
+        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} />;
       case 'network':
-        return <StoreStatus payments={payments} />;
+        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} />;
       case 'calendar':
-        return <CalendarView payments={payments} payrollEntries={payrollEntries} />;
+        return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} />;
       case 'payroll':
         return (
           <PayrollModule 
-            entries={payrollEntries} 
-            employees={employees}
+            entries={filteredPayrollEntries} 
+            employees={filteredEmployees}
             onAddEntry={handleAddPayrollEntry} 
             onUpdateEntry={handleUpdatePayrollEntry}
             onDeleteEntry={handleDeletePayrollEntry} 
             onAddEmployee={handleAddEmployee}
             onUpdateEmployee={handleUpdateEmployee}
             onDeleteEmployee={handleDeleteEmployee}
+            currentUser={currentUser}
           />
         );
       case 'notifications':
         return (
           <NotificationsView 
             onBack={() => setCurrentView('payments')} 
-            payments={payments}
+            payments={filteredPayments}
             onManage={handleManageNotification}
             onRefresh={loadData}
           />
@@ -582,7 +590,7 @@ function App({ isDemoMode = false }: AppProps) {
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
               <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
-                   <UserManagement />
+                   <UserManagement currentUser={currentUser} />
                 </div>
               </div>
             )}

@@ -165,9 +165,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   const { exchangeRate } = useExchangeRate();
 
   const municipalities = React.useMemo(() => {
-    const allMunicipalities = STORES.map(s => s.municipality || 'N/A');
+    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    const allMunicipalities = storesToProcess.map(s => s.municipality || 'N/A');
     return ['all', ...Array.from(new Set(allMunicipalities))];
-  }, []);
+  }, [currentUser]);
 
   // --- PROCESAMIENTO DE DATOS ---
 
@@ -185,7 +186,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
 
   // Calcular el estado dinámico de las tiendas para el mapa en el reporte
   const dynamicStores = React.useMemo(() => {
-    return STORES.map(store => {
+    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
         
@@ -203,7 +205,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
             status: calculatedStatus
         };
     });
-  }, [payments]);
+  }, [payments, currentUser]);
 
   const annualData = React.useMemo(() => {
     const currentYear = new Date(startDate).getFullYear();
@@ -449,7 +451,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                     className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:bg-slate-800"
                 >
                     <option value="all">Todas las Tiendas</option>
-                    {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 <select 
                     value={selectedMunicipality} 

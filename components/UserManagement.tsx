@@ -2,6 +2,7 @@
 import React from 'react';
 import { User, Role } from '../types';
 import { api } from '../services/api';
+import { STORES } from '../constants';
 import { 
   UserPlus, 
   Shield, 
@@ -11,10 +12,15 @@ import {
   CheckCircle2, 
   AlertCircle,
   Search,
-  Users
+  Users,
+  Store
 } from 'lucide-react';
 
-export const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  currentUser?: User | null;
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) => {
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -25,7 +31,8 @@ export const UserManagement: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    role: Role.ADMIN
+    role: Role.ADMIN,
+    storeId: ''
   });
   
   const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -62,7 +69,7 @@ export const UserManagement: React.FC = () => {
         setMessage({ type: 'success', text: 'Usuario creado correctamente.' });
         setUsers(prev => [...prev, userToCreate]);
         setShowForm(false);
-        setNewUser({ name: '', email: '', password: '', role: Role.ADMIN });
+        setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: '' });
       } else {
         setMessage({ type: 'error', text: res.message || 'Error creando usuario' });
       }
@@ -182,6 +189,27 @@ export const UserManagement: React.FC = () => {
               </div>
             </div>
 
+            {(newUser.role === Role.ADMIN || newUser.role === Role.AUDITOR) && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tienda Asignada</label>
+                <div className="relative">
+                  <select 
+                    required
+                    value={newUser.storeId || ''}
+                    onChange={e => setNewUser({...newUser, storeId: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                  >
+                    <option value="" disabled>Seleccione una tienda...</option>
+                    {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(store => (
+                      <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
+                    ))}
+                  </select>
+                  <Store className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Este usuario solo tendrá acceso a los datos de la tienda seleccionada.</p>
+              </div>
+            )}
+
             <div className="md:col-span-2 pt-2">
               <button 
                 type="submit" 
@@ -204,6 +232,7 @@ export const UserManagement: React.FC = () => {
               <tr>
                 <th className="px-6 py-4">Usuario</th>
                 <th className="px-6 py-4">Rol</th>
+                <th className="px-6 py-4">Tienda</th>
                 <th className="px-6 py-4">ID</th>
                 <th className="px-6 py-4 text-right">Estado</th>
               </tr>
@@ -225,7 +254,7 @@ export const UserManagement: React.FC = () => {
                    </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                (currentUser?.storeId ? users.filter(u => u.storeId === currentUser.storeId) : users).map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -241,6 +270,11 @@ export const UserManagement: React.FC = () => {
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getRoleBadge(user.role)}`}>
                         {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {user.storeId ? STORES.find(s => s.id === user.storeId)?.name || 'Desconocida' : 'Todas (Global)'}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-400 text-xs">
