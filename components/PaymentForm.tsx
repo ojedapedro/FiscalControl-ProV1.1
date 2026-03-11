@@ -574,6 +574,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     });
   }, [category]);
 
+  const specificItemStatusList = React.useMemo(() => {
+    const configMap = getTaxConfig(category);
+    if (!configMap || !taxGroup) return [];
+    const groupConfig = configMap[taxGroup];
+    if (!groupConfig) return [];
+
+    return groupConfig.items.map(item => {
+      // Verificar si ya existe un pago para este concepto en esta tienda
+      const existingPayment = payments.find(p => 
+        p.storeId === store && 
+        p.category === category && 
+        p.specificType.startsWith(item.code) &&
+        (p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
+      );
+
+      if (existingPayment) {
+        return { 
+          ...item, 
+          color: 'bg-green-500', 
+          text: 'text-green-600', 
+          bgSoft: 'bg-green-100', 
+          status: 'Al día', 
+          icon: CheckCircle2 
+        };
+      }
+
+      const status = getTaxStatus(groupConfig.deadlineDay);
+      return { ...item, ...status };
+    });
+  }, [category, taxGroup, payments, store]);
+
   const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
     if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
@@ -922,6 +953,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         </div>
                         
                         <div className="grid grid-cols-1">
+                            {/* Selector de Rubro */}
                             <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
@@ -954,34 +986,64 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 </div>
                             </div>
 
-                            <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900">
+                            {/* Selector de Concepto Específico */}
+                            <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
                                 <div className="space-y-4">
-                                    <div className="space-y-1">
+                                    <div className="space-y-3">
                                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
-                                        <div className="relative">
-                                            <select
-                                                value={taxItem}
-                                                onChange={(e) => setTaxItem(e.target.value)}
-                                                disabled={!taxGroup || isSubmitting}
-                                                className={`w-full bg-slate-50 dark:bg-slate-800 border ${errors.taxItem ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-800 dark:text-slate-200 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none disabled:opacity-50 transition-colors`}
-                                            >
-                                                <option value="">
-                                                    {taxGroup ? 'Seleccione Concepto...' : '← Seleccione un rubro primero'}
-                                                </option>
-                                                {taxGroup && getTaxConfig(category)?.[taxGroup]?.items?.map((item) => (
-                                                    <option key={item.code} value={item.code}>
-                                                        {item.code} - {item.name} {item.amount ? `($${item.amount})` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <ChevronDown size={16} />
+                                        
+                                        {!taxGroup ? (
+                                            <div className="p-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center">
+                                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full mb-3">
+                                                    <ChevronDown className="text-slate-400 rotate-90" size={24} />
+                                                </div>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                                    Seleccione un rubro a la izquierda para ver los conceptos específicos
+                                                </p>
                                             </div>
-                                        </div>
-                                        {errors.taxItem && <p className="text-red-500 text-xs ml-1">{errors.taxItem}</p>}
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1 animate-in fade-in slide-in-from-bottom-2">
+                                                {specificItemStatusList.map((item) => (
+                                                    <button
+                                                        key={item.code}
+                                                        type="button"
+                                                        disabled={isSubmitting}
+                                                        onClick={() => setTaxItem(item.code)}
+                                                        className={`w-full flex flex-col p-3 rounded-xl border transition-all text-left group relative ${
+                                                            taxItem === item.code 
+                                                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-md' 
+                                                            : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.bgSoft} ${item.text} flex items-center gap-1`}>
+                                                                <item.icon size={10} />
+                                                                {item.status}
+                                                            </span>
+                                                            <span className="text-[10px] font-mono text-slate-400">{item.code}</span>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className={`text-xs font-bold leading-tight mb-1 ${taxItem === item.code ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                                {item.name}
+                                                            </span>
+                                                            {item.amount !== undefined && (
+                                                                <span className="text-[10px] font-bold text-blue-500">
+                                                                    ${item.amount.toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        {errors.taxItem && <p className="text-red-500 text-xs ml-1 font-bold">{errors.taxItem}</p>}
                                         
                                         {taxItem && (
-                                            <TaxInfoSearch category={category} taxItem={taxItem} />
+                                            <div className="mt-4 animate-in zoom-in-95 duration-200">
+                                                <TaxInfoSearch category={category} taxItem={taxItem} />
+                                            </div>
                                         )}
                                     </div>
 
