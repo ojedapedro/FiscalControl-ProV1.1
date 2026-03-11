@@ -105,6 +105,19 @@ function handleRequest(e) {
           result = { status: 'success', message: 'Usuario creado' };
         }
         break;
+
+      case 'updateUser':
+        if (data.name && !data.username) {
+          data.username = data.name;
+        }
+        updateRow(ss, 'Users', data.id, data);
+        result = { status: 'success', message: 'Usuario actualizado' };
+        break;
+
+      case 'deleteUser':
+        deleteRow(ss, 'Users', data.id);
+        result = { status: 'success', message: 'Usuario eliminado' };
+        break;
       // -----------------------
 
       case 'saveSettings':
