@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbzAEKJM6KaV7wTTM1pyFajCIvTpg9BJoSGUmBIvaJ7OS6CQElnixc9q8aXxVS7KWkVc2Q/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQZmbqIN6fqMq82V_-sLBFNfb2CHI3FxOiT5kcQvzRMZpgb0hJNgiXv_-e7RjXJRWSLA/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
