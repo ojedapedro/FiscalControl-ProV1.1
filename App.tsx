@@ -503,6 +503,12 @@ function App({ isDemoMode = false }: AppProps) {
     setTimeout(() => setNotification(null), 2000);
   };
 
+  // Filter data based on user's assigned store
+  const userStoreId = currentUser?.storeId;
+  const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
+  const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
+  const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
+
   const renderContent = () => {
     if (!isAuthenticated) return null;
 
@@ -514,12 +520,6 @@ function App({ isDemoMode = false }: AppProps) {
             </div>
         );
     }
-
-    // Filter data based on user's assigned store
-    const userStoreId = currentUser?.storeId;
-    const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
-    const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
-    const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
 
     switch (currentView) {
       case 'payments':
@@ -778,12 +778,13 @@ function App({ isDemoMode = false }: AppProps) {
                 <div className="bg-white dark:bg-slate-950 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                     <PaymentForm 
                       initialData={editingPayment}
-                      payments={payments}
+                      payments={filteredPayments}
                       onSubmit={handleNewPayment} 
                       onCancel={() => {
                         setIsFormOpen(false);
                         setEditingPayment(null);
                       }} 
+                      currentUser={currentUser}
                     />
                 </div>
              </div>

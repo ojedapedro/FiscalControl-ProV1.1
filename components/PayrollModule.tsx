@@ -129,7 +129,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [payrollFormData, setPayrollFormData] = React.useState({
     employeeName: '',
     employeeId: '',
-    storeId: '',
+    storeId: currentUser?.storeId || '',
     month: new Date().toISOString().slice(0, 7),
     baseSalary: 0,
     bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
@@ -153,7 +153,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     name: '',
     position: '',
     department: '',
-    storeId: '',
+    storeId: currentUser?.storeId || '',
     hireDate: new Date().toISOString().split('T')[0],
     baseSalary: 0,
     isActive: true,
@@ -664,7 +664,30 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Generar Nómina Automática
               </button>
               <button 
-                onClick={() => setIsAddingEntry(true)}
+                onClick={() => {
+                  setPayrollFormData({
+                    employeeName: '',
+                    employeeId: '',
+                    storeId: currentUser?.storeId || '',
+                    month: new Date().toISOString().slice(0, 7),
+                    baseSalary: 0,
+                    bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
+                    deductions: [
+                      { name: 'SSO (4%)', amount: 0 }, 
+                      { name: 'RPE (0.5%)', amount: 0 }, 
+                      { name: 'FAOV / LPH (1%)', amount: 0 }, 
+                      { name: 'INCES (0.5%)', amount: 0 }
+                    ],
+                    employerLiabilities: [
+                      { name: 'SSO Patronal (9%)', amount: 0 }, 
+                      { name: 'RPE Patronal (2%)', amount: 0 }, 
+                      { name: 'FAOV Patronal (2%)', amount: 0 }, 
+                      { name: 'INCES Patronal (2%)', amount: 0 },
+                      { name: 'Fondo de Pensiones (9%)', amount: 0 }
+                    ]
+                  });
+                  setIsAddingEntry(true);
+                }}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
               >
                 <Plus size={20} />
@@ -680,7 +703,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   name: '',
                   position: '',
                   department: '',
-                  storeId: '',
+                  storeId: currentUser?.storeId || '',
                   hireDate: new Date().toISOString().split('T')[0],
                   baseSalary: 0,
                   isActive: true,

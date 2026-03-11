@@ -35,7 +35,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     email: '',
     password: '',
     role: Role.ADMIN,
-    storeId: ''
+    storeId: currentUser?.storeId || ''
   });
   
   const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -115,7 +115,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         
         setShowForm(false);
         setEditingUserId(null);
-        setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: '' });
+        setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
       } else {
         setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
@@ -160,7 +160,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             setShowForm(!showForm);
             if (showForm) {
               setEditingUserId(null);
-              setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: '' });
+              setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
             }
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"

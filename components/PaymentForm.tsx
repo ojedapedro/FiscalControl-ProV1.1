@@ -367,7 +367,7 @@ interface PaymentFormProps {
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser }) => {
   const { exchangeRate } = useExchangeRate();
-  const [store, setStore] = React.useState(initialData?.storeId || '');
+  const [store, setStore] = React.useState(initialData?.storeId || currentUser?.storeId || '');
   const [storeAddress, setStoreAddress] = React.useState('');
   const [storeMunicipality, setStoreMunicipality] = React.useState('');
   const [category, setCategory] = React.useState<Category | ''>(initialData?.category || '');
@@ -938,7 +938,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
                         >
                             <option value="">Seleccionar ubicación...</option>
-                            {category === Category.PAYROLL && (
+                            {category === Category.PAYROLL && !currentUser?.storeId && (
                                 <option value="NATIONAL">Nacional (Cobertura Nacional)</option>
                             )}
                             {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
