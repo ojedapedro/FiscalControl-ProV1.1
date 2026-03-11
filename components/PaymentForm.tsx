@@ -396,6 +396,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [isManualOverride, setIsManualOverride] = React.useState(false);
   
   // Estados de carga
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -423,6 +424,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setManualOverBudget(false);
     setNotes('');
     setErrors({});
+    setIsManualOverride(false);
   };
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
@@ -773,7 +775,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                   
                   <div className="p-6 flex flex-col gap-3">
                       <button
-                          onClick={() => setShowConfirmSubmitModal(false)}
+                          onClick={() => {
+                              setIsManualOverride(true);
+                              setShowConfirmSubmitModal(false);
+                          }}
                           className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                       >
                           Sí, deseo cambiar datos
@@ -1155,9 +1160,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     type="text"
                                     placeholder={!!getTaxConfig(category) ? "Se autocompleta con la selección..." : "ej. IVA Octubre, ISLR, Factura Luz #12345"}
                                     value={specificType}
-                                    readOnly={!!getTaxConfig(category) || isSubmitting}
+                                    readOnly={(!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${!!getTaxConfig(category) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
                                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                             </div>
@@ -1175,8 +1180,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         step="0.01"
                                         placeholder="0.00"
                                         value={amount}
-                                        readOnly
-                                        className={`bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed border ${
+                                        readOnly={!isManualOverride}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        className={`${!isManualOverride ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800'} border ${
                                             isOverBudget 
                                                 ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/30' 
                                                 : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
@@ -1229,8 +1235,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <input
                                         type="date"
                                         value={dueDate}
-                                        readOnly
-                                        className={`bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark]`}
+                                        readOnly={!isManualOverride}
+                                        onChange={(e) => setDueDate(e.target.value)}
+                                        className={`${!isManualOverride ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800'} border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark]`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                                 </div>
