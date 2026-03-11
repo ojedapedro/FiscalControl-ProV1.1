@@ -93,6 +93,32 @@ export const api = {
     return await response.json();
   },
 
+  // Actualizar Usuario
+  updateUser: async (user: User) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Usuario simulado actualizado' };
+    }
+    const response = await fetch(`${API_URL}?action=updateUser`, {
+      method: 'POST',
+      body: JSON.stringify(user)
+    });
+    return await response.json();
+  },
+
+  // Borrar Usuario
+  deleteUser: async (id: string) => {
+    if (isMockMode()) {
+       await new Promise(resolve => setTimeout(resolve, 800));
+       return { status: 'success', message: 'Usuario simulado eliminado' };
+    }
+    const response = await fetch(`${API_URL}?action=deleteUser`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    return await response.json();
+  },
+
   // Obtener Pagos (Read)
   getPayments: async (): Promise<Payment[]> => {
     // Si no hay URL configurada, devolvemos datos de prueba para que la app no crashee

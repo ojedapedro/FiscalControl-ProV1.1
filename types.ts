@@ -119,6 +119,10 @@ export interface SystemSettings {
   daysBeforeCritical: number;
   emailEnabled: boolean;
   exchangeRate: number;
+  pushEnabled?: boolean;
+  notifyPending?: boolean;
+  notifyOverdue?: boolean;
+  refreshInterval?: number;
 }
 
 export interface PayrollLiability {

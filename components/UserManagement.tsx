@@ -13,7 +13,9 @@ import {
   AlertCircle,
   Search,
   Users,
-  Store
+  Store,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 interface UserManagementProps {
@@ -25,6 +27,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const [isLoading, setIsLoading] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [showForm, setShowForm] = React.useState(false);
+  const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
   
   // Form State
   const [newUser, setNewUser] = React.useState({
@@ -53,25 +56,68 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     }
   };
 
+  const handleEditClick = (user: User) => {
+    setEditingUserId(user.id);
+    setNewUser({
+      name: user.name,
+      email: user.email,
+      password: user.password || '',
+      role: user.role,
+      storeId: user.storeId || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar este usuario?')) return;
+    
+    try {
+      const res = await api.deleteUser(id);
+      if (res.status === 'success') {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        setMessage({ type: 'success', text: 'Usuario eliminado correctamente.' });
+      } else {
+        setMessage({ type: 'error', text: res.message || 'Error eliminando usuario' });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Error de conexión' });
+    } finally {
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
     setMessage(null);
 
-    const userToCreate: User = {
-      id: `U-${Date.now().toString().slice(-4)}`,
+    const userToSave: User = {
+      id: editingUserId || `U-${Date.now().toString().slice(-4)}`,
       ...newUser
     };
 
     try {
-      const res = await api.createUser(userToCreate);
+      let res;
+      if (editingUserId) {
+        res = await api.updateUser(userToSave);
+      } else {
+        res = await api.createUser(userToSave);
+      }
+
       if (res.status === 'success') {
-        setMessage({ type: 'success', text: 'Usuario creado correctamente.' });
-        setUsers(prev => [...prev, userToCreate]);
+        setMessage({ type: 'success', text: editingUserId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.' });
+        
+        if (editingUserId) {
+          setUsers(prev => prev.map(u => u.id === editingUserId ? userToSave : u));
+        } else {
+          setUsers(prev => [...prev, userToSave]);
+        }
+        
         setShowForm(false);
+        setEditingUserId(null);
         setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: '' });
       } else {
-        setMessage({ type: 'error', text: res.message || 'Error creando usuario' });
+        setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Error de conexión' });
@@ -110,7 +156,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
           <p className="text-sm text-slate-500 dark:text-slate-400">Administre el acceso al sistema.</p>
         </div>
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            if (showForm) {
+              setEditingUserId(null);
+              setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: '' });
+            }
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
         >
           <UserPlus size={18} />
@@ -125,10 +177,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         </div>
       )}
 
-      {/* Formulario de Creación */}
+      {/* Formulario de Creación / Edición */}
       {showForm && (
         <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-4">Registrar Nuevo Usuario</h3>
+          <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+            {editingUserId ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
+          </h3>
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
@@ -217,7 +271,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.99] flex justify-center items-center gap-2"
               >
                 {isCreating ? <Loader2 className="animate-spin" /> : <UserPlus size={20} />}
-                Crear Usuario
+                {editingUserId ? 'Guardar Cambios' : 'Crear Usuario'}
               </button>
             </div>
           </form>
@@ -234,13 +288,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 <th className="px-6 py-4">Rol</th>
                 <th className="px-6 py-4">Tienda</th>
                 <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4 text-right">Estado</th>
+                <th className="px-6 py-4">Estado</th>
+                <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                     <div className="flex justify-center items-center gap-2">
                       <Loader2 className="animate-spin" />
                       Cargando usuarios...
@@ -249,7 +304,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                   <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                   <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                       No se encontraron usuarios remotos (Solo Mocks locales).
                    </td>
                 </tr>
@@ -280,10 +335,28 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     <td className="px-6 py-4 font-mono text-slate-400 text-xs">
                       {user.id}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-green-500 font-bold text-xs flex items-center justify-end gap-1">
+                    <td className="px-6 py-4">
+                      <span className="text-green-500 font-bold text-xs flex items-center gap-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Activo
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handleEditClick(user)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Editar Usuario"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Eliminar Usuario"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
