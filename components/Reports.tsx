@@ -149,15 +149,57 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
 
-  // Date Filter State (Default to current month)
+  // Date Filter State (Default to current month or most recent payment)
   const [startDate, setStartDate] = React.useState(() => {
+    if (payments && payments.length > 0) {
+      // Find the most recent payment date
+      const dates = payments.map(p => {
+        const d = p.submittedDate ? p.submittedDate : p.dueDate;
+        return d ? new Date(d.split('T')[0] + 'T12:00:00').getTime() : 0;
+      }).filter(t => t > 0);
+      
+      if (dates.length > 0) {
+        const maxDate = new Date(Math.max(...dates));
+        return new Date(maxDate.getFullYear(), 0, 1).toISOString().split('T')[0];
+      }
+    }
     const date = new Date();
-    // Default to Jan 1st of current year to see more data by default
     return new Date(date.getFullYear(), 0, 1).toISOString().split('T')[0];
   });
+
   const [endDate, setEndDate] = React.useState(() => {
-    return new Date().toISOString().split('T')[0];
+    if (payments && payments.length > 0) {
+      const dates = payments.map(p => {
+        const d = p.submittedDate ? p.submittedDate : p.dueDate;
+        return d ? new Date(d.split('T')[0] + 'T12:00:00').getTime() : 0;
+      }).filter(t => t > 0);
+      
+      if (dates.length > 0) {
+        const maxDate = new Date(Math.max(...dates));
+        // Set to end of that year to see the full projection
+        return new Date(maxDate.getFullYear(), 11, 31).toISOString().split('T')[0];
+      }
+    }
+    return new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0];
   });
+
+  const [hasInitializedDates, setHasInitializedDates] = React.useState(false);
+
+  React.useEffect(() => {
+    if (payments && payments.length > 0 && !hasInitializedDates) {
+      const dates = payments.map(p => {
+        const d = p.submittedDate ? p.submittedDate : p.dueDate;
+        return d ? new Date(d.split('T')[0] + 'T12:00:00').getTime() : 0;
+      }).filter(t => t > 0);
+      
+      if (dates.length > 0) {
+        const maxDate = new Date(Math.max(...dates));
+        setStartDate(new Date(maxDate.getFullYear(), 0, 1).toISOString().split('T')[0]);
+        setEndDate(new Date(maxDate.getFullYear(), 11, 31).toISOString().split('T')[0]);
+        setHasInitializedDates(true);
+      }
+    }
+  }, [payments, hasInitializedDates]);
 
   // Store and Municipality Filter States
   const [selectedStore, setSelectedStore] = React.useState('all');
@@ -174,7 +216,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
 
   const filteredPayments = React.useMemo(() => {
     return payments.filter(p => {
-      const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : p.dueDate;
+      const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : (p.dueDate ? p.dueDate.split('T')[0] : '');
       const isDateInRange = recordDate >= startDate && recordDate <= endDate;
       const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
       const storeDetails = STORES.find(s => s.id === p.storeId);
@@ -213,7 +255,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
     
     return months.map((monthName, index) => {
         const monthlyPayments = payments.filter(p => {
-            const d = new Date(p.dueDate + 'T12:00:00'); 
+            const recordDateStr = p.submittedDate ? p.submittedDate : p.dueDate;
+            if (!recordDateStr) return false;
+            
+            const datePart = recordDateStr.split('T')[0];
+            const d = new Date(datePart + 'T12:00:00'); 
             const isSameMonthYear = d.getMonth() === index && d.getFullYear() === currentYear;
             const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
             const storeDetails = STORES.find(s => s.id === p.storeId);
