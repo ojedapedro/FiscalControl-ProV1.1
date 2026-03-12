@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { Payment, PaymentStatus } from '../types';
-import { Role } from '../types';
+import { Payment, PaymentStatus, Role, User } from '../types';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -23,7 +22,7 @@ import {
   Target,
   DollarSign,
   Building2,
-  User,
+  User as UserIcon,
   History,
   ShieldCheck,
   RefreshCw
@@ -789,7 +788,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                             {log.action}
                                                         </span>
                                                         <div className="flex items-center gap-2 mt-1">
-                                                            <User size={12} className="text-slate-400" />
+                                                            <UserIcon size={12} className="text-slate-400" />
                                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.actorName}</span>
                                                             <span className="text-xs text-slate-400">({log.role})</span>
                                                         </div>

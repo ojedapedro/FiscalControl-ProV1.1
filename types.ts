@@ -32,7 +32,7 @@ export enum Category {
 // Interfaz para el registro de auditoría
 export interface AuditLog {
   date: string;
-  action: 'CREACION' | 'APROBACION' | 'RECHAZO' | 'ACTUALIZACION' | 'CORRECCION';
+  action: 'CREACION' | 'APROBACION' | 'RECHAZO' | 'ACTUALIZACION' | 'CORRECCION' | 'APROBACION_MASIVA';
   actorName: string;
   role: Role;
   note?: string;

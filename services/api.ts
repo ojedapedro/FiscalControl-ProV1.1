@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbzRhlzLiwempgoUU5t_Ybb8H-Z4xM0L1tUkElUynTZmIbRPEqrQTzUIxZGfEYf0hruuzQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyxVkNV8XIqvDgTOY5kj5FQsHCR6BWkHHnxaQ78rMW5kPm_EWoOc3iusVxiG3Dyfp9e/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -209,7 +209,17 @@ export const api = {
       const response = await fetch(`${API_URL}?action=getEmployees`);
       const json = await response.json();
       if (json.status === 'error') return [];
-      return json.data || [];
+      
+      return (json.data || []).map((e: any) => ({
+        ...e,
+        age: Number(e.age || 0),
+        baseSalary: Number(e.baseSalary || 0),
+        isActive: e.isActive === true || e.isActive === 'true' || e.isActive === 'TRUE',
+        defaultBonuses: Array.isArray(e.defaultBonuses) ? e.defaultBonuses : (typeof e.defaultBonuses === 'string' ? JSON.parse(e.defaultBonuses) : []),
+        defaultDeductions: Array.isArray(e.defaultDeductions) ? e.defaultDeductions : (typeof e.defaultDeductions === 'string' ? JSON.parse(e.defaultDeductions) : []),
+        defaultEmployerLiabilities: Array.isArray(e.defaultEmployerLiabilities) ? e.defaultEmployerLiabilities : (typeof e.defaultEmployerLiabilities === 'string' ? JSON.parse(e.defaultEmployerLiabilities) : []),
+        ppeAssignments: Array.isArray(e.ppeAssignments) ? e.ppeAssignments : (typeof e.ppeAssignments === 'string' ? JSON.parse(e.ppeAssignments) : [])
+      }));
     } catch (e) {
       console.error("Error fetching employees", e);
       return [];
@@ -267,7 +277,16 @@ export const api = {
       const response = await fetch(`${API_URL}?action=getPayrollEntries`);
       const json = await response.json();
       if (json.status === 'error') return [];
-      return json.data || [];
+      
+      return (json.data || []).map((entry: any) => ({
+        ...entry,
+        baseSalary: Number(entry.baseSalary || 0),
+        totalWorkerNet: Number(entry.totalWorkerNet || 0),
+        totalEmployerCost: Number(entry.totalEmployerCost || 0),
+        bonuses: Array.isArray(entry.bonuses) ? entry.bonuses : (typeof entry.bonuses === 'string' ? JSON.parse(entry.bonuses) : []),
+        deductions: Array.isArray(entry.deductions) ? entry.deductions : (typeof entry.deductions === 'string' ? JSON.parse(entry.deductions) : []),
+        employerLiabilities: Array.isArray(entry.employerLiabilities) ? entry.employerLiabilities : (typeof entry.employerLiabilities === 'string' ? JSON.parse(entry.employerLiabilities) : [])
+      }));
     } catch (e) {
       console.error("Error fetching payroll entries", e);
       return [];
