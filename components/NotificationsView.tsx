@@ -41,6 +41,21 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
   
   // Paginación State
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [sortBy, setSortBy] = useState<'severity' | 'date'>('severity');
+
+  // Custom Expirations State (Persisted)
+  const [customExpirations, setCustomExpirations] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('custom_expirations');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('custom_expirations', JSON.stringify(customExpirations));
+  }, [customExpirations]);
 
   // Settings State
   const [config, setConfig] = useState<SystemSettings>({
@@ -50,26 +65,30 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       daysBeforeWarning: 3,
       daysBeforeCritical: 1,
       emailEnabled: true,
-      exchangeRate: 1
+      exchangeRate: 1,
+      pushEnabled: true,
+      notifyPending: true,
+      notifyOverdue: true,
+      refreshInterval: 60
   });
 
   // Auto-refresh Timer
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
 
-    if (onRefresh && !showSettings) {
+    if (onRefresh && !showSettings && config.refreshInterval && config.refreshInterval > 0) {
         interval = setInterval(async () => {
             setIsRefreshing(true);
             await onRefresh();
             setLastUpdated(new Date());
             setIsRefreshing(false);
-        }, REFRESH_INTERVAL);
+        }, config.refreshInterval * 1000);
     }
 
     return () => {
         if (interval) clearInterval(interval);
     };
-  }, [onRefresh, showSettings]);
+  }, [onRefresh, showSettings, config.refreshInterval]);
 
   // Manual Refresh Handler
   const handleManualRefresh = async () => {
@@ -89,7 +108,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
     return payments
       .filter(p => p.status !== PaymentStatus.APPROVED && p.status !== PaymentStatus.REJECTED) // Solo pendientes/vencidos/cargados
       .map(p => {
-        const dueDate = new Date(p.dueDate + 'T00:00:00'); // Asegurar formato ISO
+        const effectiveDueDate = customExpirations[p.id] || p.dueDate;
+        const dueDate = new Date(effectiveDueDate + 'T00:00:00'); // Asegurar formato ISO
         const diffTime = dueDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -124,20 +144,88 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
             amount: p.amount,
             severity,
             timeLabel,
-            dueDate: p.dueDate
+            dueDate: effectiveDueDate
         };
       })
       .sort((a, b) => {
+          if (sortBy === 'date') {
+              return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          }
           // Ordenar: Críticas primero, luego próximas
           const severityOrder = { 'critical': 0, 'scheduled': 1 };
-          return severityOrder[a.severity] - severityOrder[b.severity];
+          if (severityOrder[a.severity] !== severityOrder[b.severity]) {
+              return severityOrder[a.severity] - severityOrder[b.severity];
+          }
+          // Si tienen misma severidad, por fecha
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
-  }, [payments, config.daysBeforeWarning]);
+  }, [payments, config.daysBeforeWarning, customExpirations, sortBy]);
 
   // Reset pagination when filter changes
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [filter, payments]);
+
+  // Request Notification Permission
+  useEffect(() => {
+    if (config.pushEnabled && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+  }, [config.pushEnabled]);
+
+  // Trigger Push Notifications
+  const [notifiedAlerts, setNotifiedAlerts] = useState<Set<string>>(new Set());
+  const isInitialMount = React.useRef(true);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      const initialSet = new Set(alerts.map(a => a.id));
+      setNotifiedAlerts(initialSet);
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (!config.pushEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
+
+    const newNotifiedAlerts = new Set(notifiedAlerts);
+    let newAlertsCount = 0;
+    let lastAlert: AlertItem | null = null;
+
+    alerts.forEach(alert => {
+      if (!notifiedAlerts.has(alert.id)) {
+        let shouldNotify = false;
+        
+        if (alert.severity === 'critical' && config.notifyOverdue) {
+          shouldNotify = true;
+        } else if (alert.severity === 'scheduled' && config.notifyPending) {
+          shouldNotify = true;
+        }
+
+        if (shouldNotify) {
+          newNotifiedAlerts.add(alert.id);
+          newAlertsCount++;
+          lastAlert = alert;
+        }
+      }
+    });
+
+    if (newAlertsCount > 0) {
+      if (newAlertsCount === 1 && lastAlert) {
+        new Notification('FiscalControl Pro', {
+          body: `${(lastAlert as AlertItem).storeName}: ${(lastAlert as AlertItem).title} - ${(lastAlert as AlertItem).timeLabel}`
+        });
+      } else {
+        new Notification('FiscalControl Pro', {
+          body: `Tienes ${newAlertsCount} nuevas alertas de pagos.`
+        });
+      }
+      setNotifiedAlerts(newNotifiedAlerts);
+    }
+  }, [alerts, config.pushEnabled, config.notifyOverdue, config.notifyPending, notifiedAlerts]);
 
   // Cargar configuración al abrir la vista de settings
   useEffect(() => {
@@ -146,7 +234,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
         try {
             const saved = await api.getSettings();
             if (saved) {
-                setConfig(saved);
+                setConfig(prev => ({ ...prev, ...saved }));
             }
         } catch (e) {
             console.error("Error loading settings", e);
@@ -171,8 +259,20 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
   const handleTestNotification = async () => {
     setIsTesting(true);
     try {
-      const res = await api.triggerNotificationCheck();
-      alert(`Resultado prueba: ${res.message}`);
+      if (config.pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('FiscalControl Pro', {
+          body: 'Esta es una notificación de prueba.',
+        });
+      }
+      
+      if (config.whatsappEnabled) {
+        const res = await api.triggerNotificationCheck();
+        alert(`Resultado prueba WhatsApp: ${res.message}`);
+      } else if (config.pushEnabled) {
+        alert('Notificación Push de prueba enviada.');
+      } else {
+        alert('No hay canales de notificación habilitados para probar.');
+      }
     } catch (e) {
       alert('Error ejecutando prueba');
     } finally {
@@ -277,7 +377,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                            <Clock size={20} className="text-blue-500" />
                            Frecuencia de Alertas
                        </h3>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                            <div>
                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Días antes (Aviso Preventivo)</label>
                                <input 
@@ -296,7 +396,74 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white"
                                />
                            </div>
+                           <div>
+                               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Intervalo de Actualización (seg)</label>
+                               <input 
+                                  type="number" 
+                                  value={config.refreshInterval}
+                                  onChange={(e) => setConfig({...config, refreshInterval: Number(e.target.value)})}
+                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white"
+                               />
+                           </div>
                        </div>
+                  </div>
+
+                  {/* Push Notifications Settings */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                          <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
+                              <Bell size={24} />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-slate-900 dark:text-white">Notificaciones Push</h3>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Configura las notificaciones en el navegador</p>
+                          </div>
+                          <div className="ml-auto">
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={config.pushEnabled}
+                                    onChange={(e) => setConfig({...config, pushEnabled: e.target.checked})} 
+                                  />
+                                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-500"></div>
+                              </label>
+                          </div>
+                      </div>
+
+                      <div className={`space-y-4 transition-all ${config.pushEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                              <div>
+                                  <h4 className="font-medium text-slate-900 dark:text-white text-sm">Pagos Pendientes</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Recibir notificaciones para pagos próximos a vencer</p>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={config.notifyPending}
+                                    onChange={(e) => setConfig({...config, notifyPending: e.target.checked})} 
+                                  />
+                                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-blue-500"></div>
+                              </label>
+                          </div>
+                          
+                          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                              <div>
+                                  <h4 className="font-medium text-slate-900 dark:text-white text-sm">Pagos Vencidos</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Recibir notificaciones para pagos que ya han vencido</p>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={config.notifyOverdue}
+                                    onChange={(e) => setConfig({...config, notifyOverdue: e.target.checked})} 
+                                  />
+                                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-red-500"></div>
+                              </label>
+                          </div>
+                      </div>
                   </div>
 
                   {/* Exchange Rate Settings */}
@@ -327,7 +494,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                   <div className="flex flex-col-reverse sm:flex-row gap-4 pt-4">
                        <button 
                         onClick={handleTestNotification}
-                        disabled={isTesting || !config.whatsappEnabled}
+                        disabled={isTesting || (!config.whatsappEnabled && !config.pushEnabled)}
                         className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                        >
                            {isTesting ? <Loader2 className="animate-spin" size={20} /> : <PlayCircle size={20} />}
@@ -387,25 +554,42 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
         </button>
       </header>
 
-      {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {[
-            { id: 'all', label: 'Todas las Alertas' },
-            { id: 'critical', label: 'Críticas (Vencidas)' },
-            { id: 'scheduled', label: 'Programadas' }
-        ].map(item => (
-            <button
-                key={item.id}
-                onClick={() => setFilter(item.id as any)}
-                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                    filter === item.id 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
-                    : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
+      {/* Filters & Sorting */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          {[
+              { id: 'all', label: 'Todas las Alertas' },
+              { id: 'critical', label: 'Críticas (Vencidas)' },
+              { id: 'scheduled', label: 'Programadas' }
+          ].map(item => (
+              <button
+                  key={item.id}
+                  onClick={() => setFilter(item.id as any)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                      filter === item.id 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+                      : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+              >
+                  {item.label}
+              </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm self-start md:self-auto">
+            <button 
+                onClick={() => setSortBy('severity')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'severity' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
             >
-                {item.label}
+                Prioridad
             </button>
-        ))}
+            <button 
+                onClick={() => setSortBy('date')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'date' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+                Fecha
+            </button>
+        </div>
       </div>
 
       {/* Alerts List */}
@@ -439,11 +623,23 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                     <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
-                                <p className={`text-sm font-medium ${
-                                    alert.severity === 'critical' ? 'text-red-600' : 'text-blue-600'
-                                }`}>
-                                    {alert.timeLabel} • Vence: {alert.dueDate}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <p className={`text-sm font-medium ${
+                                        alert.severity === 'critical' ? 'text-red-600' : 'text-blue-600'
+                                    }`}>
+                                        {alert.timeLabel}
+                                    </p>
+                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+                                        <Calendar size={12} className="text-slate-400" />
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Vencimiento:</span>
+                                        <input 
+                                            type="date"
+                                            value={alert.dueDate}
+                                            onChange={(e) => setCustomExpirations(prev => ({ ...prev, [alert.id]: e.target.value }))}
+                                            className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
