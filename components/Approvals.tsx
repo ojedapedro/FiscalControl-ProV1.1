@@ -359,7 +359,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                     Auditoría
                 </h1>
                 <div className="flex items-center gap-2">
-                    {currentUser?.role === Role.PRESIDENT && (
+                    {(currentUser?.role === Role.PRESIDENT || currentUser?.role === Role.SUPER_ADMIN) && (
                         <button 
                             onClick={onApproveAll}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"

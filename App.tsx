@@ -453,6 +453,13 @@ function App({ isDemoMode = false }: AppProps) {
           p.status === PaymentStatus.OVERDUE
       );
       
+      if (pendingPayments.length === 0) {
+          setIsLoading(false);
+          setNotification('No hay pagos pendientes para aprobar.');
+          setTimeout(() => setNotification(null), 3000);
+          return;
+      }
+
       const log: AuditLog = {
           date: new Date().toISOString(),
           action: 'APROBACION_MASIVA',
@@ -583,7 +590,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'reports':
         return <Reports payments={filteredPayments} currentUser={currentUser} />;
       case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} />;
+        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'network':
         return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} />;
       case 'calendar':

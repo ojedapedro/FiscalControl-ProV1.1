@@ -4,15 +4,17 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Payment, PaymentStatus, PayrollEntry, Category } from '../types';
-import { DollarSign, TrendingUp, AlertTriangle, FileText } from 'lucide-react';
+import { Payment, PaymentStatus, PayrollEntry, Category, User, Role } from '../types';
+import { DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2 } from 'lucide-react';
 
 interface PresidencyDashboardProps {
   payments: Payment[];
   payrollEntries: PayrollEntry[];
+  currentUser?: User;
+  onApproveAll?: () => void;
 }
 
-export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries }) => {
+export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, currentUser, onApproveAll }) => {
   
   const totalApproved = payments
     .filter(p => p.status === PaymentStatus.APPROVED)
@@ -33,9 +35,22 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+  const pendingPaymentsCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE).length;
+
   return (
     <div className="p-6 lg:p-10 text-white space-y-8 pb-24">
-      <h1 className="text-3xl font-bold">Panel de Presidencia</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Panel de Presidencia</h1>
+        {(currentUser?.role === Role.PRESIDENT || currentUser?.role === Role.SUPER_ADMIN) && pendingPaymentsCount > 0 && onApproveAll && (
+          <button 
+            onClick={onApproveAll}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-emerald-900/20"
+          >
+            <CheckCircle2 size={20} />
+            Aprobar Todo ({pendingPaymentsCount})
+          </button>
+        )}
+      </div>
       
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
