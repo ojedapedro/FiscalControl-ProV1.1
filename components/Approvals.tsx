@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Payment, PaymentStatus, Role, User } from '../types';
 import { 
   CheckCircle2, 
@@ -25,7 +27,8 @@ import {
   User as UserIcon,
   History,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
@@ -66,6 +69,50 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   const [updateBudget, setUpdateBudget] = React.useState(false);
   const [confirmationBudget, setConfirmationBudget] = React.useState<number | ''>('');
   const [approvedPaymentId, setApprovedPaymentId] = React.useState<string | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const handleDownloadAuditPDF = async (payment: Payment) => {
+    if (!payment.history) return;
+    setIsExporting(true);
+    
+    try {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text(`Historial de Auditoría - Pago #${payment.id.slice(-6)}`, 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Tienda: ${payment.storeName}`, 14, 30);
+        doc.text(`Concepto: ${payment.specificType}`, 14, 35);
+        doc.text(`Monto: $${payment.amount.toLocaleString()}`, 14, 40);
+        doc.text(`Fecha de Generación: ${new Date().toLocaleString()}`, 14, 45);
+
+        const tableData = payment.history.map(log => [
+            new Date(log.date).toLocaleString(),
+            log.action,
+            log.actorName,
+            log.role,
+            log.note || '-'
+        ]);
+
+        autoTable(doc, {
+            startY: 55,
+            head: [['Fecha/Hora', 'Acción', 'Usuario', 'Rol', 'Observación']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 8 },
+        });
+
+        doc.save(`Auditoria_Pago_${payment.id.slice(-6)}.pdf`);
+    } catch (error) {
+        console.error("Error generating audit PDF:", error);
+        alert("Error al generar el PDF de auditoría.");
+    } finally {
+        setIsExporting(false);
+    }
+  };
 
   // Filtrado y Ordenamiento
   const processedPayments = React.useMemo(() => {
@@ -763,9 +810,19 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             {/* --- HISTORIAL DE AUDITORÍA (TIMELINE) --- */}
                             {selectedPayment.history && selectedPayment.history.length > 0 && (
                                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                        <History size={14} /> Línea de Tiempo del Proceso
-                                    </label>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                            <History size={14} /> Línea de Tiempo del Proceso
+                                        </label>
+                                        <button 
+                                            onClick={() => handleDownloadAuditPDF(selectedPayment)}
+                                            disabled={isExporting}
+                                            className="flex items-center gap-2 text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                                        >
+                                            <Download size={12} />
+                                            {isExporting ? 'Exportando...' : 'Exportar Log'}
+                                        </button>
+                                    </div>
                                     
                                     <div className="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
                                         {selectedPayment.history.map((log, index) => (

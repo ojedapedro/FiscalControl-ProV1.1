@@ -76,28 +76,81 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave })
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
     
-    // Header
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ACTA DE ENTREGA DE EQUIPOS DE PROTECCIÓN PERSONAL (EPP)', pageWidth / 2, 20, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const today = new Date().toLocaleDateString('es-VE');
-    doc.text(`Fecha: ${today}`, pageWidth - 20, 30, { align: 'right' });
+    // Helper to draw a border
+    const drawBorder = () => {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+    };
 
-    // Employee Data
-    doc.setFontSize(12);
+    drawBorder();
+
+    // Header Section
+    doc.setFillColor(245, 245, 245);
+    doc.rect(10, 10, pageWidth - 20, 30, 'F');
+    
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('DATOS DEL TRABAJADOR', 14, 40);
+    doc.setTextColor(40, 40, 40);
+    doc.text('ACTA DE ENTREGA DE EQUIPOS DE PROTECCIÓN PERSONAL (EPP)', pageWidth / 2, 25, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO', pageWidth / 2, 32, { align: 'center' });
+
+    // Date and Document Info
+    const today = new Date().toLocaleDateString('es-VE', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Fecha de Emisión: ${today}`, pageWidth - 15, 48, { align: 'right' });
+    doc.text(`Código: EPP-${employee.id.replace(/\D/g, '') || '001'}-${new Date().getFullYear()}`, 15, 48);
+
+    // Employee Information Card
+    doc.setDrawColor(230, 230, 230);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(14, 55, pageWidth - 28, 35, 3, 3, 'FD');
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORMACIÓN DEL TRABAJADOR', 20, 63);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Nombre y Apellido: ${employee.name} ${employee.lastName || ''}`, 14, 48);
-    doc.text(`Cédula/ID: ${employee.id}`, 14, 54);
-    doc.text(`Cargo: ${employee.position}`, 120, 48);
-    doc.text(`Departamento: ${employee.department}`, 120, 54);
+    doc.text(`Nombre Completo:`, 20, 72);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${employee.name} ${employee.lastName || ''}`, 55, 72);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cédula de Identidad:`, 20, 78);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${employee.id}`, 55, 78);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cargo / Puesto:`, 110, 72);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${employee.position}`, 145, 72);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Departamento:`, 110, 78);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${employee.department}`, 145, 78);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Tienda / Sede:`, 20, 84);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${employee.storeId}`, 55, 84);
+
+    // Table Header
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALLE DE EQUIPOS ENTREGADOS', 14, 102);
 
     // Table Data
     const tableBody = Object.values(formData)
@@ -117,31 +170,87 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave })
     }
 
     autoTable(doc, {
-      startY: 65,
-      head: [['Equipo', 'Talla/Medida', 'Frecuencia Est.', 'Cantidad', 'Precio Unit.', 'Total']],
+      startY: 105,
+      head: [['Descripción del Equipo', 'Talla', 'Frecuencia de Reposición', 'Cant.', 'P. Unit.', 'Subtotal']],
       body: tableBody,
-      theme: 'grid',
-      headStyles: { fillColor: [79, 70, 229] }, // Indigo 600
-      foot: [['', '', '', '', 'COSTO TOTAL:', `$${calculateTotal().toFixed(2)}`]],
-      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' }
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [51, 65, 85], // Slate 700
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { halign: 'center' },
+        2: { cellWidth: 40 },
+        3: { halign: 'center' },
+        4: { halign: 'right' },
+        5: { halign: 'right', fontStyle: 'bold' }
+      },
+      foot: [['', '', '', '', 'VALOR TOTAL:', `$${calculateTotal().toFixed(2)}`]],
+      footStyles: { 
+        fillColor: [248, 250, 252], 
+        textColor: [15, 23, 42], 
+        fontStyle: 'bold',
+        halign: 'right',
+        fontSize: 10
+      },
+      margin: { left: 14, right: 14 }
     });
 
-    // Signatures
-    const finalY = (doc as any).lastAutoTable.finalY + 40;
-    
-    doc.line(30, finalY, 80, finalY);
-    doc.text('Entregado por (Empresa)', 55, finalY + 5, { align: 'center' });
-    
-    doc.line(130, finalY, 180, finalY);
-    doc.text('Recibido por (Trabajador)', 155, finalY + 5, { align: 'center' });
-    doc.text(`C.I: ${employee.id}`, 155, finalY + 10, { align: 'center' });
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Legal text
-    doc.setFontSize(8);
-    doc.text('El trabajador declara haber recibido los Equipos de Protección Personal (EPP) arriba descritos en perfecto estado,', 14, finalY + 25);
-    doc.text('comprometiéndose a usarlos correctamente durante su jornada laboral y a notificar su deterioro para su reposición.', 14, finalY + 30);
+    // Legal Declarations Section
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DECLARACIÓN Y COMPROMISO:', 14, finalY);
+    
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    const legalText = [
+      '1. El trabajador declara haber recibido los Equipos de Protección Personal (EPP) arriba descritos en perfecto estado y funcionamiento.',
+      '2. Se compromete a utilizar los equipos de forma obligatoria y permanente durante la ejecución de sus labores.',
+      '3. El trabajador asume la responsabilidad de cuidar, mantener y limpiar los equipos suministrados.',
+      '4. En caso de pérdida, extravío o deterioro por mal uso, el trabajador deberá notificar de inmediato a su supervisor.',
+      '5. La empresa garantiza la reposición de los equipos por desgaste normal de acuerdo a la frecuencia establecida o necesidad técnica.'
+    ];
+    
+    let currentLegalY = finalY + 6;
+    legalText.forEach(line => {
+      doc.text(line, 14, currentLegalY);
+      currentLegalY += 5;
+    });
 
-    doc.save(`Acta_EPP_${employee.id}_${today.replace(/\//g, '-')}.pdf`);
+    // Signatures Section
+    const signatureY = currentLegalY + 25;
+    
+    // Empresa
+    doc.setDrawColor(150, 150, 150);
+    doc.line(25, signatureY, 85, signatureY);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('POR LA EMPRESA', 55, signatureY + 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Firma y Sello Autorizado', 55, signatureY + 10, { align: 'center' });
+    
+    // Trabajador
+    doc.line(125, signatureY, 185, signatureY);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EL TRABAJADOR', 155, signatureY + 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${employee.name} ${employee.lastName}`, 155, signatureY + 10, { align: 'center' });
+    doc.text(`C.I: ${employee.id}`, 155, signatureY + 15, { align: 'center' });
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Copia: Expediente del Trabajador / Original: Departamento de Seguridad Industrial', pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+    doc.save(`Acta_Entrega_EPP_${employee.id}_${new Date().getTime()}.pdf`);
   };
 
   const items: PPEItemKey[] = ['pantalon', 'camisa', 'braga', 'delantal', 'botas', 'casco', 'guantes', 'lentes'];

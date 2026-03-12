@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart, 
@@ -18,7 +20,7 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus, User, Role } from '../types';
+import { Payment, PaymentStatus, User, Role, AuditLog } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
@@ -307,6 +309,109 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
         return acc + Math.max(0, extra);
     }, 0);
 
+  // Flatten all audit logs from filtered payments for the Bitácora
+  const allAuditLogs = React.useMemo(() => {
+    const logs: (AuditLog & { paymentId: string; storeName: string; specificType: string; amount: number })[] = [];
+    filteredPayments.forEach(p => {
+        if (p.history && p.history.length > 0) {
+            p.history.forEach(h => {
+                logs.push({
+                    ...h,
+                    paymentId: p.id,
+                    storeName: p.storeName,
+                    specificType: p.specificType,
+                    amount: p.amount
+                });
+            });
+        } else {
+            // Fallback: create a log entry if no history exists (legacy data)
+            logs.push({
+                date: p.submittedDate || p.dueDate,
+                action: 'CREACION',
+                actorName: 'Sistema',
+                role: Role.ADMIN,
+                note: 'Registro inicial',
+                paymentId: p.id,
+                storeName: p.storeName,
+                specificType: p.specificType,
+                amount: p.amount
+            });
+        }
+    });
+    return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredPayments]);
+
+  const handleDownloadAuditPDF = async () => {
+    setIsGeneratingPdf(true);
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const logoData = await getDataUrl(APP_LOGO_URL);
+        const doc = new jsPDF();
+        
+        if (logoData) {
+            try {
+                doc.addImage(logoData, 'PNG', 14, 10, 15, 15);
+            } catch (e) {
+                console.warn("Error adding image to PDF:", e);
+            }
+        }
+
+        doc.setFontSize(20);
+        doc.text("Bitácora de Auditoría Detallada", logoData ? 35 : 14, 20); 
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Eventos Totales: ${allAuditLogs.length}`, 14, 35);
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 40, 196, 40);
+        
+        const tableData = allAuditLogs.map(log => [
+            new Date(log.date).toLocaleString(),
+            log.action,
+            log.actorName,
+            log.role,
+            `${log.storeName} - ${log.specificType} ($${log.amount.toLocaleString()})`,
+            log.note || '-'
+        ]);
+
+        autoTable(doc, {
+            startY: 45,
+            head: [['Fecha/Hora', 'Acción', 'Usuario', 'Rol', 'Referencia', 'Nota']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 7 },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 40 },
+                5: { cellWidth: 'auto' }
+            }
+        });
+
+        const pageCount = doc.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`FiscalCtl Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+        }
+
+        doc.save(`Bitacora_Auditoria_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (error) {
+        console.error("Error generando PDF de auditoría:", error);
+        alert("Ocurrió un error al generar el PDF. Revise la consola.");
+    } finally {
+        setIsGeneratingPdf(false);
+    }
+  };
+
   const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
   const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
 
@@ -386,16 +491,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
     await new Promise(r => setTimeout(r, 100));
 
     try {
-        const w = window as any;
-        if (!w.jspdf) {
-            alert("La librería de PDF no se ha cargado correctamente.");
-            setIsGeneratingPdf(false);
-            return;
-        }
-
         const logoData = await getDataUrl(APP_LOGO_URL);
-
-        const { jsPDF } = w.jspdf;
         const doc = new jsPDF();
         
         if (logoData) {
@@ -410,15 +506,15 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
         doc.text("Reporte Fiscal Ejecutivo", logoData ? 35 : 14, 20); 
         
         doc.setFontSize(10);
-        doc.setTextColor(100);
+        doc.setTextColor(100, 100, 100);
         doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
         doc.text(`Período: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`, 14, 35);
 
-        doc.setDrawColor(200);
+        doc.setDrawColor(200, 200, 200);
         doc.line(14, 40, 196, 40);
         
         doc.setFontSize(12);
-        doc.setTextColor(0);
+        doc.setTextColor(0, 0, 0);
         doc.text("Resumen del Período", 14, 50);
 
         const kpiY = 60;
@@ -439,24 +535,20 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                 p.status
             ]);
 
-        if (doc.autoTable) {
-             doc.autoTable({
-                startY: 85,
-                head: [['Fecha', 'Tienda', 'Concepto', 'Monto', 'Estado']],
-                body: tableData,
-                theme: 'grid',
-                headStyles: { fillColor: [30, 41, 59] },
-                styles: { fontSize: 8 },
-             });
-        } else {
-             doc.text("Plugin de tablas no disponible.", 14, 90);
-        }
+        autoTable(doc, {
+            startY: 85,
+            head: [['Fecha', 'Tienda', 'Concepto', 'Monto', 'Estado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+            styles: { fontSize: 8 },
+        });
 
-        const pageCount = doc.internal.getNumberOfPages();
+        const pageCount = doc.getNumberOfPages();
         for(let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
-            doc.setTextColor(150);
+            doc.setTextColor(150, 150, 150);
             doc.text(`FiscalCtl - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
         }
 
@@ -890,7 +982,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                 </h3>
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={handleDownloadPDF}
+                        onClick={handleDownloadAuditPDF}
                         disabled={isGeneratingPdf}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                     >
@@ -898,75 +990,72 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                         Exportar PDF
                     </button>
                     <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 uppercase tracking-widest">
-                        {filteredPayments.length} Eventos
+                        {allAuditLogs.length} Eventos
                     </span>
                 </div>
             </div>
             
             <div className="overflow-y-auto max-h-[400px] pr-2 custom-scrollbar space-y-4">
-                {filteredPayments.length === 0 ? (
+                {allAuditLogs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-[2rem]">
                         <AlertCircle size={40} className="mb-4 opacity-20" />
                         <p className="font-medium">Sin registros en este rango</p>
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">
-                        {filteredPayments
-                          .sort((a,b) => new Date(b.submittedDate || b.dueDate).getTime() - new Date(a.submittedDate || a.dueDate).getTime())
-                          .map((p, idx) => (
+                        {allAuditLogs.map((log, idx) => (
                             <motion.div 
-                                key={p.id}
+                                key={`${log.paymentId}-${log.date}-${idx}`}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 1 + (idx * 0.05) }}
-                                className={`group flex justify-between items-center p-4 rounded-2xl border transition-all duration-300 ${
-                                    p.isOverBudget 
-                                    ? 'bg-orange-500/5 border-orange-500/20 hover:border-orange-500/40' 
-                                    : 'bg-slate-800/30 border-slate-800/50 hover:border-slate-700 hover:bg-slate-800/50'
-                                }`}
+                                className={`group flex justify-between items-center p-4 rounded-2xl border transition-all duration-300 bg-slate-800/30 border-slate-800/50 hover:border-slate-700 hover:bg-slate-800/50`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`p-2.5 rounded-xl ${
-                                        p.status === PaymentStatus.APPROVED 
+                                        log.action === 'APROBACION' || log.action === 'APROBACION_MASIVA'
                                         ? 'bg-emerald-500/10 text-emerald-500' 
-                                        : p.status === PaymentStatus.REJECTED
+                                        : log.action === 'RECHAZO'
                                         ? 'bg-red-500/10 text-red-500'
+                                        : log.action === 'CREACION'
+                                        ? 'bg-blue-500/10 text-blue-500'
                                         : 'bg-yellow-500/10 text-yellow-500'
                                     }`}>
-                                        {p.status === PaymentStatus.APPROVED ? (
+                                        {log.action === 'APROBACION' || log.action === 'APROBACION_MASIVA' ? (
                                             <CheckCircle2 size={20} />
-                                        ) : p.status === PaymentStatus.REJECTED ? (
+                                        ) : log.action === 'RECHAZO' ? (
                                             <XCircle size={20} />
+                                        ) : log.action === 'CREACION' ? (
+                                            <FileText size={20} />
                                         ) : (
                                             <Clock size={20} />
                                         )}
                                     </div>
                                     <div>
                                         <div className="text-sm font-bold text-slate-200 flex items-center gap-2 group-hover:text-white transition-colors">
-                                            {p.storeName}
-                                            {p.isOverBudget && (
-                                              <motion.span 
-                                                animate={{ scale: [1, 1.2, 1] }}
-                                                transition={{ repeat: Infinity, duration: 2 }}
-                                                title="Excedente detectado"
-                                              >
-                                                <AlertTriangle size={14} className="text-orange-500" />
-                                              </motion.span>
-                                            )}
+                                            {log.action} por {log.actorName}
+                                            <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-400 font-mono">{log.role}</span>
                                         </div>
-                                        <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 font-medium">
-                                            <span className="truncate max-w-[150px]">{p.specificType}</span>
-                                            <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                            <span>{new Date(p.submittedDate || p.dueDate).toLocaleDateString()}</span>
+                                        <div className="text-[11px] text-slate-500 flex flex-col gap-0.5 mt-0.5 font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate max-w-[150px] text-slate-400">{log.storeName} - {log.specificType}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                <span>{new Date(log.date).toLocaleString()}</span>
+                                            </div>
+                                            {log.note && (
+                                                <div className="text-[10px] italic text-slate-500 mt-1 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800">
+                                                    "{log.note}"
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className={`text-base font-bold font-mono ${p.isOverBudget ? 'text-orange-400' : 'text-slate-100'}`}>
-                                        ${p.amount.toLocaleString()}
+                                    <div className="text-sm font-bold font-mono text-slate-100">
+                                        ${log.amount.toLocaleString()}
                                     </div>
                                     <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1">
-                                        {p.status}
+                                        Ref: {log.paymentId.slice(-6)}
                                     </div>
                                 </div>
                             </motion.div>
