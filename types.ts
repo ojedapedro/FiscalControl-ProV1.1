@@ -147,6 +147,21 @@ export interface PayrollEntry {
   submittedDate: string;
 }
 
+export interface PPEItemData {
+  name: string;
+  talla: string;
+  cantidad: number;
+  precio: number;
+  frecuencia: string;
+}
+
+export interface PPEAssignment {
+  id: string;
+  date: string;
+  items: PPEItemData[];
+  totalCost: number;
+}
+
 export interface Employee {
   id: string; // Cédula/ID
   code: string; // CODIGO
@@ -178,4 +193,5 @@ export interface Employee {
   defaultBonuses: { name: string; amount: number }[];
   defaultDeductions: { name: string; amount: number }[];
   defaultEmployerLiabilities: { name: string; amount: number }[];
+  ppeAssignments?: PPEAssignment[];
 }

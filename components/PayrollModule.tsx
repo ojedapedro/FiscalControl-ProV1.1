@@ -2187,6 +2187,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               setIsPPEModalOpen(false);
               setPpeEmployee(null);
             }} 
+            onSave={onUpdateEmployee}
           />
         )}
       </AnimatePresence>
@@ -2417,6 +2418,45 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* Historial de EPP */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <ShieldCheck size={16} className="text-amber-500" /> Historial de Seguridad Industrial (EPP)
+                  </h3>
+                  
+                  {viewingEmployee.ppeAssignments && viewingEmployee.ppeAssignments.length > 0 ? (
+                    <div className="space-y-4">
+                      {viewingEmployee.ppeAssignments.map((assignment) => (
+                        <div key={assignment.id} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                          <div className="flex justify-between items-center mb-3">
+                            <div className="text-sm font-bold text-white">
+                              Asignación del {new Date(assignment.date).toLocaleDateString('es-VE')}
+                            </div>
+                            <div className="text-sm font-mono font-bold text-amber-400">
+                              Total: ${assignment.totalCost.toFixed(2)}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {assignment.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                <div>
+                                  <div className="text-xs font-bold text-slate-300">{item.name}</div>
+                                  <div className="text-[10px] text-slate-500">Talla: {item.talla || 'N/A'} | Frecuencia: {item.frecuencia}</div>
+                                </div>
+                                <div className="text-xs font-mono text-slate-400">
+                                  {item.cantidad} x ${item.precio.toFixed(2)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500 italic">No hay registros de entrega de EPP para este trabajador.</div>
+                  )}
                 </div>
               </div>
             </motion.div>
