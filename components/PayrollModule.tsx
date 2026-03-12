@@ -1238,7 +1238,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex justify-end gap-1 opacity-100 transition-all">
                           <button 
                             onClick={() => {
                               setPrestacionesEmployee(emp);
@@ -2231,6 +2231,46 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
+                </button>
+              </div>
+
+              <div className="bg-slate-800/50 p-4 border-b border-slate-800 flex flex-wrap gap-3">
+                <button 
+                  onClick={() => {
+                    setPpeEmployee(viewingEmployee);
+                    setIsPPEModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-slate-900 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                >
+                  <ShieldCheck size={16} />
+                  Seguridad Industrial (EPP)
+                </button>
+                <button 
+                  onClick={() => {
+                    setPrestacionesEmployee(viewingEmployee);
+                    setPrestacionesEndDate(new Date().toISOString().split('T')[0]);
+                    setIsPrestacionesModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                >
+                  <Landmark size={16} />
+                  Calcular Prestaciones
+                </button>
+                <button 
+                  onClick={() => {
+                    setAriEmployee(viewingEmployee);
+                    setAriData({
+                      estimatedIncomeBs: (viewingEmployee.baseSalary * exchangeRate) * 12,
+                      estimatedExpensesBs: 0,
+                      dependents: 0,
+                      taxUnitValueBs: 9.00
+                    });
+                    setIsAriModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                >
+                  <FileSignature size={16} />
+                  Calcular AR-I
                 </button>
               </div>
 
