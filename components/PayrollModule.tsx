@@ -31,11 +31,12 @@ import {
   AlertCircle,
   AlertTriangle,
   Eye,
-  X
+  X,
+  History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import { PayrollEntry, Employee } from '../types';
+import { PayrollEntry, Employee, PPEAssignment } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { PPEModal } from './PPEModal';
@@ -54,7 +55,7 @@ interface PayrollModuleProps {
   currentUser?: User | null;
 }
 
-type TabType = 'payroll' | 'employees';
+type TabType = 'payroll' | 'employees' | 'ppe-history';
 
 export const PayrollModule: React.FC<PayrollModuleProps> = ({ 
   entries, 
@@ -76,6 +77,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [isPPEModalOpen, setIsPPEModalOpen] = React.useState(false);
   const [ppeEmployee, setPpeEmployee] = React.useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [ppeSearchTerm, setPpeSearchTerm] = React.useState('');
+  const [ppeStoreFilter, setPpeStoreFilter] = React.useState('');
+  const [ppeDateFilter, setPpeDateFilter] = React.useState('');
   const [importProgress, setImportProgress] = React.useState<number | null>(null);
   const [importErrors, setImportErrors] = React.useState<string[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -655,6 +659,36 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const sortedMonths = Object.values(payrollByMonth).sort((a, b) => b.month.localeCompare(a.month));
 
+  const allPpeAssignments = React.useMemo(() => {
+    const assignments: { 
+      employeeName: string; 
+      employeeId: string; 
+      storeId: string; 
+      assignment: PPEAssignment 
+    }[] = [];
+
+    employees.forEach(emp => {
+      if (emp.ppeAssignments) {
+        emp.ppeAssignments.forEach(ass => {
+          assignments.push({
+            employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
+            employeeId: emp.id,
+            storeId: emp.storeId,
+            assignment: ass
+          });
+        });
+      }
+    });
+
+    return assignments.filter(item => {
+      const matchesSearch = item.employeeName.toLowerCase().includes(ppeSearchTerm.toLowerCase()) || 
+                            item.employeeId.toLowerCase().includes(ppeSearchTerm.toLowerCase());
+      const matchesStore = ppeStoreFilter ? item.storeId === ppeStoreFilter : true;
+      const matchesDate = ppeDateFilter ? item.assignment.date.startsWith(ppeDateFilter) : true;
+      return matchesSearch && matchesStore && matchesDate;
+    }).sort((a, b) => new Date(b.assignment.date).getTime() - new Date(a.assignment.date).getTime());
+  }, [employees, ppeSearchTerm, ppeStoreFilter, ppeDateFilter]);
+
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -866,6 +900,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         >
           <Contact size={18} />
           Expedientes de Empleados
+        </button>
+        <button 
+          onClick={() => setActiveTab('ppe-history')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'ppe-history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <History size={18} />
+          Historial EPP
         </button>
       </div>
 
@@ -1197,7 +1240,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             </div>
           </div>
         </>
-      ) : (
+      ) : activeTab === 'employees' ? (
         /* Employees View */
         <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
           <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1342,6 +1385,115 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      ) : (
+        /* PPE History View */
+        <div className="space-y-6">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 backdrop-blur-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Buscar trabajador..."
+                  value={ppeSearchTerm}
+                  onChange={(e) => setPpeSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <select 
+                  value={ppeStoreFilter}
+                  onChange={(e) => setPpeStoreFilter(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                >
+                  <option value="">Todas las tiendas</option>
+                  {STORES.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="date"
+                  value={ppeDateFilter}
+                  onChange={(e) => setPpeDateFilter(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/50">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trabajador</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Equipos Entregados</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Costo Total</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {allPpeAssignments.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                        <div className="flex flex-col items-center gap-3">
+                          <ShieldCheck size={48} className="opacity-20" />
+                          <p>No se encontraron registros de entrega de EPP.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    allPpeAssignments.map((item) => (
+                      <tr key={item.assignment.id} className="hover:bg-slate-800/30 transition-colors group">
+                        <td className="px-6 py-4 text-slate-300 font-medium">
+                          {new Date(item.assignment.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-white">{item.employeeName}</div>
+                          <div className="text-xs text-slate-500 font-mono">{item.employeeId}</div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-300 font-medium">
+                          {STORES.find(s => s.id === item.storeId)?.name || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {item.assignment.items.map((ppe, idx) => (
+                              <span key={idx} className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                                {ppe.cantidad}x {ppe.name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-mono font-bold text-white">${item.assignment.totalCost.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">Bs. {(item.assignment.totalCost * exchangeRate).toLocaleString()}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => {
+                              const emp = employees.find(e => e.id === item.employeeId);
+                              if (emp) setViewingEmployee(emp);
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all"
+                            title="Ver Expediente"
+                          >
+                            <FileText size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
