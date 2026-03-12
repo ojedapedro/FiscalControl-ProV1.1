@@ -445,6 +445,47 @@ function App({ isDemoMode = false }: AppProps) {
       }
   };
 
+  const handleApproveAll = async () => {
+      setIsLoading(true);
+      const pendingPayments = filteredPayments.filter(p => 
+          p.status === PaymentStatus.PENDING || 
+          p.status === PaymentStatus.UPLOADED || 
+          p.status === PaymentStatus.OVERDUE
+      );
+      
+      const log: AuditLog = {
+          date: new Date().toISOString(),
+          action: 'APROBACION_MASIVA',
+          actorName: currentUser?.name || 'Auditor',
+          role: currentUser?.role || Role.AUDITOR,
+          note: `Aprobación masiva de ${pendingPayments.length} pagos`
+      };
+
+      const updatedPayments = pendingPayments.map(p => ({
+          ...p,
+          status: PaymentStatus.APPROVED,
+          history: p.history ? [...p.history, log] : [log]
+      }));
+
+      try {
+          if (!isDemoMode) {
+              for (const p of updatedPayments) {
+                  await api.updatePayment(p);
+              }
+          }
+          setPayments(prev => prev.map(p => {
+              const updated = updatedPayments.find(up => up.id === p.id);
+              return updated ? updated : p;
+          }));
+          setNotification(`✅ ${pendingPayments.length} pagos aprobados.`);
+      } catch (error) {
+          setNotification('❌ Error en aprobación masiva.');
+      } finally {
+          setIsLoading(false);
+          setTimeout(() => setNotification(null), 3000);
+      }
+  };
+
   const handleReject = async (id: string, reason: string) => {
       setIsLoading(true);
       const log: AuditLog = {
@@ -538,7 +579,7 @@ function App({ isDemoMode = false }: AppProps) {
           </div>
         );
       case 'approvals':
-        return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} />;
+        return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'reports':
         return <Reports payments={filteredPayments} currentUser={currentUser} />;
       case 'presidency':

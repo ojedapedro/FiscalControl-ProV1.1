@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Payment, PaymentStatus } from '../types';
+import { Role } from '../types';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -33,11 +34,13 @@ interface ApprovalsProps {
   payments: Payment[];
   onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number) => void;
   onReject: (id: string, reason: string) => void;
+  currentUser?: User;
+  onApproveAll: () => void;
 }
 
 type SortOption = 'urgency' | 'date_desc' | 'amount_desc' | 'amount_asc';
 
-export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onReject }) => {
+export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onReject, currentUser, onApproveAll }) => {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [rejectionNote, setRejectionNote] = React.useState('');
   const [isRejecting, setIsRejecting] = React.useState(false);
@@ -356,6 +359,15 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                     Auditoría
                 </h1>
                 <div className="flex items-center gap-2">
+                    {currentUser?.role === Role.PRESIDENT && (
+                        <button 
+                            onClick={onApproveAll}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                        >
+                            <CheckCircle2 size={14} />
+                            Aprobar Todo
+                        </button>
+                    )}
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Pendientes</span>
                     <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800">
                         {processedPayments.length}
