@@ -38,6 +38,7 @@ import * as XLSX from 'xlsx';
 import { PayrollEntry, Employee } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
+import { PPEModal } from './PPEModal';
 
 import { User } from '../types';
 
@@ -72,6 +73,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = React.useState<Employee | null>(null);
   const [viewingEntry, setViewingEntry] = React.useState<PayrollEntry | null>(null);
+  const [isPPEModalOpen, setIsPPEModalOpen] = React.useState(false);
+  const [ppeEmployee, setPpeEmployee] = React.useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [importProgress, setImportProgress] = React.useState<number | null>(null);
   const [importErrors, setImportErrors] = React.useState<string[]>([]);
@@ -1264,6 +1267,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             <FileSignature size={18} />
                           </button>
                           <button 
+                            onClick={() => {
+                              setPpeEmployee(emp);
+                              setIsPPEModalOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg"
+                            title="Seguridad Industrial (EPP)"
+                          >
+                            <ShieldCheck size={18} />
+                          </button>
+                          <button 
                             onClick={() => setViewingEmployee(emp)}
                             className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
                             title="Ver Expediente"
@@ -2165,7 +2178,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         )}
       </AnimatePresence>
 
-      {/* View Employee Modal */}
+      {/* Modals */}
+      <AnimatePresence>
+        {isPPEModalOpen && ppeEmployee && (
+          <PPEModal 
+            employee={ppeEmployee} 
+            onClose={() => {
+              setIsPPEModalOpen(false);
+              setPpeEmployee(null);
+            }} 
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {viewingEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
