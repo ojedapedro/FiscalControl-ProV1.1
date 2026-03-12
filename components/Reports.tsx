@@ -208,13 +208,18 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
   }, [payments, currentUser]);
 
   const annualData = React.useMemo(() => {
-    const currentYear = new Date(startDate).getFullYear();
+    const currentYear = new Date(startDate + 'T12:00:00').getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     
     return months.map((monthName, index) => {
         const monthlyPayments = payments.filter(p => {
-            const d = new Date(p.dueDate); 
-            return d.getMonth() === index && d.getFullYear() === currentYear;
+            const d = new Date(p.dueDate + 'T12:00:00'); 
+            const isSameMonthYear = d.getMonth() === index && d.getFullYear() === currentYear;
+            const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
+            const storeDetails = STORES.find(s => s.id === p.storeId);
+            const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
+            
+            return isSameMonthYear && storeMatch && municipalityMatch;
         });
 
         const approvedAmount = monthlyPayments
@@ -233,7 +238,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
             total: approvedAmount + pendingAmount
         };
     });
-  }, [payments]);
+  }, [payments, startDate, selectedStore, selectedMunicipality]);
 
   const totalAnnualBudget = MONTHLY_BUDGET_TARGET * 12;
   const totalYTDExecuted = annualData.reduce((acc, curr) => acc + curr.approved, 0);
