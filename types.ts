@@ -149,11 +149,29 @@ export interface PayrollEntry {
 
 export interface Employee {
   id: string; // Cédula/ID
-  name: string;
-  position: string;
-  department: string;
+  code: string; // CODIGO
+  nationality: string; // NACIONALIDAD
+  name: string; // NOMBRES
+  lastName: string; // APELLIDOS
+  age: number; // EDAD
+  educationLevel: string; // GRADO DE INSTRUCCIÓN
+  position: string; // CARGO
+  department: string; // DEPARTAMENTO
+  positionDescription: string; // DESCRIPCION DEL CARGO
+  hireDate: string; // FECHA DE INGRESO
+  socialBenefitsDate?: string; // FECHA DE PRESTACIONES SOCIALES AL DIA
+  projectedExitDate?: string; // FECHA DE EGRESO PROYECTADA
+  email: string; // CORREO ELECTRONICO
+  projectAddress?: string; // DIRECCION DEL PROYECTO
+  directPhone: string; // TELEFONO DIRECTO
+  emergencyPhone: string; // TELEFONO DE EMERGENCIA
+  homeAddress: string; // DIRECCION HABITACION
+  gender: string; // SEXO
+  wearsGlasses: string; // USA LENTES
+  hasCondition: string; // PERSONA CON CONDICION
+  height: string; // ESTATURA
+  
   storeId: string; // Tienda asignada
-  hireDate: string;
   baseSalary: number;
   isActive: boolean;
   bankAccount?: string;

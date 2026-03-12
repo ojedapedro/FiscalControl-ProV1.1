@@ -150,11 +150,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   // --- Employee Form State ---
   const [employeeFormData, setEmployeeFormData] = React.useState<Omit<Employee, 'id'>>({
+    code: '',
+    nationality: 'VENEZOLANO',
     name: '',
+    lastName: '',
+    age: 0,
+    educationLevel: '',
     position: '',
     department: '',
-    storeId: currentUser?.storeId || '',
+    positionDescription: '',
     hireDate: new Date().toISOString().split('T')[0],
+    socialBenefitsDate: '',
+    projectedExitDate: '',
+    email: '',
+    projectAddress: '',
+    directPhone: '',
+    emergencyPhone: '',
+    homeAddress: '',
+    gender: 'M',
+    wearsGlasses: 'NO',
+    hasCondition: 'NO',
+    height: '',
+    storeId: currentUser?.storeId || '',
     baseSalary: 0,
     isActive: true,
     bankAccount: '',
@@ -447,7 +464,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     for (const emp of activeEmployees) {
       const { workerNet, employerCost } = calculateTotals(emp);
       await onAddEntry({
-        employeeName: emp.name,
+        employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
         employeeId: emp.id,
         storeId: emp.storeId,
         month: currentMonth,
@@ -525,7 +542,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           });
 
           await onAddEntry({
-            employeeName: employee.name,
+            employeeName: `${employee.name} ${employee.lastName || ''}`.trim(),
             employeeId: employee.id,
             storeId: employee.storeId,
             month: normalizedRow.month.toString(),
@@ -563,7 +580,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   );
 
   const filteredEmployees = employees.filter(e => 
-    e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    `${e.name} ${e.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     e.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -700,11 +717,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 setEditingEmployee(null);
                 setEmployeeIdInput('');
                 setEmployeeFormData({
+                  code: '',
+                  nationality: 'VENEZOLANO',
                   name: '',
+                  lastName: '',
+                  age: 0,
+                  educationLevel: '',
                   position: '',
                   department: '',
-                  storeId: currentUser?.storeId || '',
+                  positionDescription: '',
                   hireDate: new Date().toISOString().split('T')[0],
+                  socialBenefitsDate: '',
+                  projectedExitDate: '',
+                  email: '',
+                  projectAddress: '',
+                  directPhone: '',
+                  emergencyPhone: '',
+                  homeAddress: '',
+                  gender: 'M',
+                  wearsGlasses: 'NO',
+                  hasCondition: 'NO',
+                  height: '',
+                  storeId: currentUser?.storeId || '',
                   baseSalary: 0,
                   isActive: true,
                   bankAccount: '',
@@ -1178,7 +1212,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             {emp.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-bold text-white group-hover/name:text-indigo-400 transition-colors">{emp.name}</div>
+                            <div className="font-bold text-white group-hover/name:text-indigo-400 transition-colors">{emp.name} {emp.lastName}</div>
                             <div className="text-xs text-slate-500 font-mono">{emp.id}</div>
                           </div>
                         </div>
@@ -1641,14 +1675,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 {/* Employee Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Completo</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Código</label>
                     <input 
                       required
                       type="text"
-                      value={employeeFormData.name}
-                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, name: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="Ej. Juan Pérez"
+                      value={employeeFormData.code}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, code: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="Ej. 0001"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1664,18 +1698,59 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
-                    <select 
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nacionalidad</label>
+                    <input 
                       required
-                      value={employeeFormData.storeId}
-                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
+                      type="text"
+                      value={employeeFormData.nationality}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, nationality: e.target.value })}
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    >
-                      <option value="">Seleccionar tienda...</option>
-                      {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                      placeholder="Ej. VENEZOLANO"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nombres</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.name}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, name: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. Juan Alberto"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Apellidos</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.lastName}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, lastName: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. Pérez"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Edad</label>
+                    <input 
+                      required
+                      type="number"
+                      value={employeeFormData.age || ''}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, age: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="Ej. 30"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Grado de Instrucción</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.educationLevel}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, educationLevel: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. TSU"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cargo</label>
@@ -1700,15 +1775,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sueldo Base Mensual ($)</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Descripción del Cargo</label>
                     <input 
-                      required
-                      type="number"
-                      step="0.01"
-                      value={employeeFormData.baseSalary || ''}
-                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, baseSalary: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
-                      placeholder="0.00"
+                      type="text"
+                      value={employeeFormData.positionDescription}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, positionDescription: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. CEO"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1719,6 +1792,150 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       value={employeeFormData.hireDate}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, hireDate: e.target.value })}
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Fecha de Prestaciones Sociales al Día</label>
+                    <input 
+                      type="date"
+                      value={employeeFormData.socialBenefitsDate || ''}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, socialBenefitsDate: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Fecha de Egreso Proyectada</label>
+                    <input 
+                      type="date"
+                      value={employeeFormData.projectedExitDate || ''}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectedExitDate: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Correo Electrónico</label>
+                    <input 
+                      type="email"
+                      value={employeeFormData.email}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, email: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. correo@ejemplo.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Dirección del Proyecto</label>
+                    <input 
+                      type="text"
+                      value={employeeFormData.projectAddress || ''}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectAddress: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. PEQUIVEN MORON"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Teléfono Directo</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.directPhone}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, directPhone: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="Ej. 0424-1234567"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Teléfono de Emergencia</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.emergencyPhone}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, emergencyPhone: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="Ej. 0424-1234567"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Dirección Habitación</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.homeAddress}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, homeAddress: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Ej. MORRO II SAN DIEGO"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sexo</label>
+                    <select 
+                      required
+                      value={employeeFormData.gender}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, gender: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="M">Masculino (M)</option>
+                      <option value="F">Femenino (F)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Usa Lentes</label>
+                    <select 
+                      required
+                      value={employeeFormData.wearsGlasses}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, wearsGlasses: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="SI">SÍ</option>
+                      <option value="NO">NO</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Persona con Condición</label>
+                    <select 
+                      required
+                      value={employeeFormData.hasCondition}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, hasCondition: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="SI">SÍ</option>
+                      <option value="NO">NO</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Estatura</label>
+                    <input 
+                      required
+                      type="text"
+                      value={employeeFormData.height}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, height: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="Ej. 1,70"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
+                    <select 
+                      required
+                      value={employeeFormData.storeId}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="">Seleccionar tienda...</option>
+                      {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sueldo Base Mensual ($)</label>
+                    <input 
+                      required
+                      type="number"
+                      step="0.01"
+                      value={employeeFormData.baseSalary || ''}
+                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, baseSalary: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
@@ -1972,7 +2189,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     {viewingEmployee.name.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{viewingEmployee.name}</h2>
+                    <h2 className="text-2xl font-bold text-white">{viewingEmployee.name} {viewingEmployee.lastName}</h2>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-slate-400 font-mono text-sm">{viewingEmployee.id}</span>
                       <span className="text-slate-600">•</span>
@@ -1994,7 +2211,35 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
                 {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Código</div>
+                    <div className="text-white font-medium font-mono">{viewingEmployee.code || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cédula / ID</div>
+                    <div className="text-white font-medium font-mono">{viewingEmployee.id}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nacionalidad</div>
+                    <div className="text-white font-medium">{viewingEmployee.nationality || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nombres</div>
+                    <div className="text-white font-medium">{viewingEmployee.name}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Apellidos</div>
+                    <div className="text-white font-medium">{viewingEmployee.lastName || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Edad</div>
+                    <div className="text-white font-medium">{viewingEmployee.age || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Grado de Instrucción</div>
+                    <div className="text-white font-medium">{viewingEmployee.educationLevel || 'N/A'}</div>
+                  </div>
                   <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cargo</div>
                     <div className="text-white font-medium">{viewingEmployee.position}</div>
@@ -2004,8 +2249,56 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="text-white font-medium">{viewingEmployee.department}</div>
                   </div>
                   <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción del Cargo</div>
+                    <div className="text-white font-medium">{viewingEmployee.positionDescription || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Ingreso</div>
                     <div className="text-white font-medium">{viewingEmployee.hireDate}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Prestaciones Sociales</div>
+                    <div className="text-white font-medium">{viewingEmployee.socialBenefitsDate || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Egreso Proyectada</div>
+                    <div className="text-white font-medium">{viewingEmployee.projectedExitDate || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</div>
+                    <div className="text-white font-medium">{viewingEmployee.email || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Dirección del Proyecto</div>
+                    <div className="text-white font-medium">{viewingEmployee.projectAddress || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono Directo</div>
+                    <div className="text-white font-medium font-mono">{viewingEmployee.directPhone || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono de Emergencia</div>
+                    <div className="text-white font-medium font-mono">{viewingEmployee.emergencyPhone || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 md:col-span-2">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Dirección Habitación</div>
+                    <div className="text-white font-medium">{viewingEmployee.homeAddress || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sexo</div>
+                    <div className="text-white font-medium">{viewingEmployee.gender === 'M' ? 'Masculino' : viewingEmployee.gender === 'F' ? 'Femenino' : 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Usa Lentes</div>
+                    <div className="text-white font-medium">{viewingEmployee.wearsGlasses || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Persona con Condición</div>
+                    <div className="text-white font-medium">{viewingEmployee.hasCondition || 'N/A'}</div>
+                  </div>
+                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Estatura</div>
+                    <div className="text-white font-medium font-mono">{viewingEmployee.height || 'N/A'}</div>
                   </div>
                   <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sueldo Base</div>

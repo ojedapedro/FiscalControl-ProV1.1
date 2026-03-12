@@ -363,7 +363,7 @@ function setupDatabase(ss) {
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
     'Users': ['id', 'username', 'role', 'email', 'password'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled'],
-    'Employees': ['id', 'name', 'position', 'department', 'hireDate', 'baseSalary', 'isActive', 'bankAccount', 'defaultBonuses', 'defaultDeductions', 'defaultEmployerLiabilities'],
+    'Employees': ['id', 'code', 'nationality', 'name', 'lastName', 'age', 'educationLevel', 'position', 'department', 'positionDescription', 'hireDate', 'socialBenefitsDate', 'projectedExitDate', 'email', 'projectAddress', 'directPhone', 'emergencyPhone', 'homeAddress', 'gender', 'wearsGlasses', 'hasCondition', 'height', 'storeId', 'baseSalary', 'isActive', 'bankAccount', 'defaultBonuses', 'defaultDeductions', 'defaultEmployerLiabilities'],
     'PayrollEntries': ['id', 'employeeName', 'employeeId', 'month', 'baseSalary', 'bonuses', 'deductions', 'employerLiabilities', 'totalWorkerNet', 'totalEmployerCost', 'status', 'submittedDate']
   };
 
