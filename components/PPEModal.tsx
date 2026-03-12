@@ -1,26 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, FileDown, ShieldCheck, Calculator } from 'lucide-react';
-import { Employee } from '../types';
+import { X, FileDown, ShieldCheck, Calculator, Save } from 'lucide-react';
+import { Employee, PPEItemData, PPEAssignment } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 interface PPEModalProps {
   employee: Employee;
   onClose: () => void;
+  onSave: (employee: Employee) => Promise<void>;
 }
 
 type PPEItemKey = 'pantalon' | 'camisa' | 'braga' | 'delantal' | 'botas' | 'casco' | 'guantes' | 'lentes';
 
-interface PPEItemData {
-  name: string;
-  talla: string;
-  cantidad: number;
-  precio: number;
-  frecuencia: string;
-}
-
-export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose }) => {
+export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Record<PPEItemKey, PPEItemData>>({
     pantalon: { name: 'Pantalón', talla: '', cantidad: 0, precio: 0, frecuencia: '2 cada 6 meses' },
     camisa: { name: 'Camisa', talla: '', cantidad: 0, precio: 0, frecuencia: '2 cada 6 meses' },
@@ -44,6 +38,39 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose }) => {
 
   const calculateTotal = () => {
     return Object.values(formData).reduce((sum, item) => sum + (item.cantidad * item.precio), 0);
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const itemsToSave = Object.values(formData).filter(item => item.cantidad > 0);
+      if (itemsToSave.length === 0) {
+        alert('Debe ingresar al menos un equipo con cantidad mayor a 0 para guardar.');
+        setIsSaving(false);
+        return;
+      }
+
+      const newAssignment: PPEAssignment = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        items: itemsToSave,
+        totalCost: calculateTotal()
+      };
+
+      const updatedEmployee = {
+        ...employee,
+        ppeAssignments: [...(employee.ppeAssignments || []), newAssignment]
+      };
+
+      await onSave(updatedEmployee);
+      alert('Asignación de EPP guardada exitosamente en el expediente.');
+      onClose();
+    } catch (error) {
+      console.error('Error saving PPE assignment:', error);
+      alert('Hubo un error al guardar la asignación.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const generatePDF = () => {
@@ -217,19 +244,29 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose }) => {
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-4">
+        <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex flex-wrap justify-end gap-4">
           <button
             onClick={onClose}
             className="px-6 py-3 rounded-xl font-bold text-slate-300 hover:bg-slate-800 transition-colors"
+            disabled={isSaving}
           >
             Cancelar
           </button>
           <button
             onClick={generatePDF}
-            className="px-6 py-3 rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20"
+            className="px-6 py-3 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-white transition-colors flex items-center gap-2"
+            disabled={isSaving}
           >
             <FileDown size={20} />
-            Generar Acta PDF
+            Generar PDF
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-3 rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50"
+          >
+            <Save size={20} />
+            {isSaving ? 'Guardando...' : 'Guardar Asignación'}
           </button>
         </div>
       </motion.div>

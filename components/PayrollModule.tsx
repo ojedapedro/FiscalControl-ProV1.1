@@ -81,6 +81,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { exchangeRate } = useExchangeRate();
 
+  React.useEffect(() => {
+    if (viewingEmployee) {
+      const updated = employees.find(e => e.id === viewingEmployee.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(viewingEmployee)) {
+        setViewingEmployee(updated);
+      }
+    }
+  }, [employees, viewingEmployee]);
+
   const calculateParafiscales = (baseSalary: number, bonuses: {amount: number}[]) => {
     const totalBonuses = bonuses.reduce((sum, b) => sum + b.amount, 0);
     const salarioNormal = baseSalary;
