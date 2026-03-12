@@ -435,7 +435,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     if (editingEmployee) {
       await onUpdateEmployee({ ...employeeFormData, id: editingEmployee.id });
     } else {
-      await onAddEmployee({ ...employeeFormData, id: employeeIdInput });
+      const finalId = employeeIdInput.trim() || employeeFormData.code;
+      await onAddEmployee({ ...employeeFormData, id: finalId });
     }
     setIsAddingEmployee(false);
     setEditingEmployee(null);
@@ -726,10 +727,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           ) : (
             <button 
               onClick={() => {
+                const nextCode = (() => {
+                  if (employees.length === 0) return 'EMP-0001';
+                  const codes = employees
+                    .map(e => {
+                      const match = e.code.match(/\d+/);
+                      return match ? parseInt(match[0], 10) : 0;
+                    })
+                    .filter(n => !isNaN(n));
+                  const maxCode = codes.length > 0 ? Math.max(...codes) : 0;
+                  return `EMP-${(maxCode + 1).toString().padStart(4, '0')}`;
+                })();
+
                 setEditingEmployee(null);
                 setEmployeeIdInput('');
                 setEmployeeFormData({
-                  code: '',
+                  code: nextCode,
                   nationality: 'VENEZOLANO',
                   name: '',
                   lastName: '',
@@ -755,8 +768,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   isActive: true,
                   bankAccount: '',
                   defaultBonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
-                  defaultDeductions: [{ name: 'SSO (Seguro Social)', amount: 0 }, { name: 'LPH (Vivienda)', amount: 0 }],
-                  defaultEmployerLiabilities: [{ name: 'Aporte Patronal SSO', amount: 0 }, { name: 'Aporte Patronal LPH', amount: 0 }, { name: 'INCES', amount: 0 }]
+                  defaultDeductions: [
+                    { name: 'SSO (4%)', amount: 0 }, 
+                    { name: 'RPE (0.5%)', amount: 0 }, 
+                    { name: 'FAOV / LPH (1%)', amount: 0 }, 
+                    { name: 'INCES (0.5%)', amount: 0 }
+                  ],
+                  defaultEmployerLiabilities: [
+                    { name: 'SSO Patronal (9%)', amount: 0 }, 
+                    { name: 'RPE Patronal (2%)', amount: 0 }, 
+                    { name: 'FAOV Patronal (2%)', amount: 0 }, 
+                    { name: 'INCES Patronal (2%)', amount: 0 },
+                    { name: 'Fondo de Pensiones (9%)', amount: 0 }
+                  ]
                 });
                 setIsAddingEmployee(true);
               }}
@@ -1697,20 +1721,18 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 {/* Employee Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Código</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Código (Asignado)</label>
                     <input 
-                      required
+                      readOnly
                       type="text"
                       value={employeeFormData.code}
-                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, code: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-slate-400 outline-none cursor-not-allowed font-mono"
                       placeholder="Ej. 0001"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cédula / ID</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cédula / ID (Opcional)</label>
                     <input 
-                      required
                       disabled={!!editingEmployee}
                       type="text"
                       value={employeeIdInput}
@@ -1718,6 +1740,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono disabled:opacity-50"
                       placeholder="Ej. V-12345678"
                     />
+                    <p className="text-[10px] text-slate-500 ml-1">Si se deja vacío, se usará el Código como ID.</p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nacionalidad</label>

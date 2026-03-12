@@ -330,12 +330,30 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                     type="checkbox" 
                                     className="sr-only peer"
                                     checked={config.whatsappEnabled}
-                                    onChange={(e) => setConfig({...config, whatsappEnabled: e.target.checked})} 
+                                    onChange={(e) => {
+                                        const isChecked = e.target.checked;
+                                        setConfig({...config, whatsappEnabled: isChecked});
+                                        if (isChecked) {
+                                            // Optional: could also set a local state to show a more persistent message
+                                        }
+                                    }} 
                                   />
                                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-green-500"></div>
                               </label>
                           </div>
                       </div>
+
+                      {config.whatsappEnabled && (
+                          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-3 animate-in fade-in slide-in-from-top-2">
+                              <AlertTriangle className="text-amber-600 shrink-0" size={20} />
+                              <div className="space-y-1">
+                                  <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Acción requerida en Google Apps Script</p>
+                                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                                      Para que los envíos sean automáticos, debes configurar un <strong>Activador de tiempo</strong> (Trigger) en el editor de Apps Script para la función <code>checkDeadlinesAndNotify</code> (ej. una vez al día).
+                                  </p>
+                              </div>
+                          </div>
+                      )}
 
                       <div className={`space-y-4 transition-all ${config.whatsappEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
                           <div>
