@@ -36,6 +36,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PayrollEntry, Employee, PPEAssignment } from '../types';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -688,6 +690,52 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       return matchesSearch && matchesStore && matchesDate;
     }).sort((a, b) => new Date(b.assignment.date).getTime() - new Date(a.assignment.date).getTime());
   }, [employees, ppeSearchTerm, ppeStoreFilter, ppeDateFilter]);
+
+  const handleExportPpeCSV = () => {
+    const data = allPpeAssignments.map(item => ({
+      Fecha: new Date(item.assignment.date).toLocaleDateString(),
+      Trabajador: item.employeeName,
+      ID: item.employeeId,
+      Tienda: STORES.find(s => s.id === item.storeId)?.name || 'N/A',
+      Equipos: item.assignment.items.map(ppe => `${ppe.cantidad}x ${ppe.name}`).join('; '),
+      'Costo Total ($)': item.assignment.totalCost,
+      'Costo Total (Bs)': item.assignment.totalCost * exchangeRate
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Historial EPP");
+    XLSX.writeFile(wb, `Historial_EPP_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleExportPpePDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Historial de Entrega de EPP', 14, 22);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Fecha de reporte: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    const tableData = allPpeAssignments.map(item => [
+      new Date(item.assignment.date).toLocaleDateString(),
+      item.employeeName,
+      STORES.find(s => s.id === item.storeId)?.name || 'N/A',
+      item.assignment.items.map(ppe => `${ppe.cantidad}x ${ppe.name}`).join(', '),
+      `$${item.assignment.totalCost.toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Fecha', 'Trabajador', 'Tienda', 'Equipos', 'Costo ($)']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    doc.save(`Historial_EPP_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
@@ -1391,6 +1439,29 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         /* PPE History View */
         <div className="space-y-6">
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <History className="text-blue-400" size={20} />
+                Historial de Entregas de EPP
+              </h3>
+              <div className="flex gap-2 w-full md:w-auto">
+                <button 
+                  onClick={handleExportPpeCSV}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 rounded-xl hover:bg-emerald-600/30 transition-all font-bold text-sm"
+                >
+                  <Download size={16} />
+                  Excel/CSV
+                </button>
+                <button 
+                  onClick={handleExportPpePDF}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-xl hover:bg-red-600/30 transition-all font-bold text-sm"
+                >
+                  <FileText size={16} />
+                  PDF
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
