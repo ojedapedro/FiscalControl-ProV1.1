@@ -18,6 +18,7 @@ import {
   Trash2,
   Scan,
   X,
+  RefreshCw,
   AlertTriangle,
   Clock,
   FileWarning,
@@ -376,7 +377,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [taxGroup, setTaxGroup] = React.useState('');
   const [taxItem, setTaxItem] = React.useState('');
 
-  const [amount, setAmount] = React.useState(initialData?.amount.toString() || '');
+  const [amount, setAmount] = React.useState(initialData?.amount?.toString() || '');
   const [expectedBudget, setExpectedBudget] = React.useState<number | null>(initialData?.originalBudget || null);
   
   const [dueDate, setDueDate] = React.useState(initialData?.dueDate || '');
@@ -392,6 +393,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [showJustificationModal, setShowJustificationModal] = React.useState(false);
   const [justificationNote, setJustificationNote] = React.useState(initialData?.justification || '');
   const [justificationFile, setJustificationFile] = React.useState<File | null>(null);
+  const [justificationPreviewUrl, setJustificationPreviewUrl] = React.useState<string | null>(initialData?.justificationFileUrl || null);
   const [justificationConfirmed, setJustificationConfirmed] = React.useState(!!initialData?.justification);
   const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
@@ -760,7 +762,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         alert("Debe escribir una razón para el excedente.");
         return;
     }
-    if (isCurrentTaxItemVariable && manualOverBudget && !justificationFile) {
+    if (isCurrentTaxItemVariable && manualOverBudget && !justificationFile && !justificationPreviewUrl) {
         alert("Debe adjuntar un archivo de soporte para el excedente manual.");
         return;
     }
@@ -850,6 +852,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                           <CheckCircle2 size={16} />
                                           <span className="truncate max-w-[150px]">{justificationFile.name}</span>
                                       </div>
+                                  ) : justificationPreviewUrl ? (
+                                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
+                                          <FileText size={16} />
+                                          <span className="truncate max-w-[150px]">Documento previo</span>
+                                      </div>
                                   ) : (
                                       <>
                                         <Upload size={20} className="text-slate-400 mb-1" />
@@ -859,12 +866,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                   <input 
                                     type="file" 
                                     className="hidden" 
-                                    onChange={(e) => setJustificationFile(e.target.files?.[0] || null)}
+                                    onChange={(e) => {
+                                      setJustificationFile(e.target.files?.[0] || null);
+                                      if (e.target.files?.[0]) setJustificationPreviewUrl(null);
+                                    }}
                                   />
                               </label>
-                              {justificationFile && (
+                              {(justificationFile || justificationPreviewUrl) && (
                                   <button 
-                                    onClick={() => setJustificationFile(null)} 
+                                    onClick={() => {
+                                      setJustificationFile(null);
+                                      setJustificationPreviewUrl(null);
+                                    }} 
                                     className="p-3 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200"
                                   >
                                       <Trash2 size={20} />
@@ -895,8 +908,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
               </div>
           </div>
       )}
-      {/* --------------------------- */}
-
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -907,17 +918,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             )}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {initialData ? 'Corregir Pago' : 'Cargar Nuevo Pago'}
+                    {initialData?.status === PaymentStatus.REJECTED ? 'Corregir Pago Devuelto' : (initialData ? 'Editar Pago' : 'Cargar Nuevo Pago')}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">
-                    {initialData 
-                        ? `Editando pago devuelto: ${initialData.id}` 
-                        : 'Registre los detalles de la transacción para auditoría.'
+                    {initialData?.status === PaymentStatus.REJECTED 
+                        ? `Observación del Auditor: ${initialData.id}` 
+                        : (initialData ? `Editando pago: ${initialData.id}` : 'Registre los detalles de la transacción para auditoría.')
                     }
                 </p>
             </div>
         </div>
       </div>
+
+      {/* Auditor Feedback for Rejected Payments */}
+      {initialData?.status === PaymentStatus.REJECTED && initialData.rejectionReason && (
+        <div className="mb-8 p-5 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-800 rounded-2xl animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/40 rounded-2xl flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0">
+              <AlertCircle size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-pink-900 dark:text-pink-100 mb-1">Motivo de la Devolución</h3>
+              <p className="text-pink-800 dark:text-pink-300 text-sm leading-relaxed bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-pink-100 dark:border-pink-900/30">
+                "{initialData.rejectionReason}"
+              </p>
+              <p className="text-[10px] text-pink-600 dark:text-pink-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-1">
+                <RefreshCw size={10} /> Por favor, corrija los datos o documentos señalados arriba.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
@@ -1308,7 +1339,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 )}
 
                                 <div className="flex flex-col items-center justify-center w-full h-full">
-                                    {file ? (
+                                    {file || previewUrl ? (
                                         <div className="w-full h-full relative group/file">
                                             {previewUrl ? (
                                                 // Image Preview
@@ -1339,11 +1370,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                         <FileText size={32} className="text-red-500 dark:text-red-400" />
                                                     </div>
                                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
-                                                        {file.name}
+                                                        {file?.name || 'Archivo previo'}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
-                                                    </p>
+                                                    {file && (
+                                                      <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                          {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                      </p>
+                                                    )}
                                                     <button
                                                         onClick={clearFile}
                                                         type="button"

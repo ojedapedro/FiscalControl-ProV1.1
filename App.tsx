@@ -429,7 +429,11 @@ function App({ isDemoMode = false }: AppProps) {
         ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
         : [log],
       receiptUrl: receiptUrl,
-      justificationFileUrl: justificationFileUrl
+      justificationFileUrl: justificationFileUrl,
+      // Soporte Data
+      documentDate: paymentData.documentDate,
+      documentAmount: paymentData.documentAmount,
+      documentName: paymentData.documentName
     };
     
     if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
