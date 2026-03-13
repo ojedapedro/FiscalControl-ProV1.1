@@ -908,6 +908,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
               </div>
           </div>
       )}
+      {/* Top Banner for Rejected Payments */}
+      {initialData?.status === PaymentStatus.REJECTED && (
+        <div className="mb-6 -mx-6 -mt-6 p-3 bg-red-600 text-white text-center text-xs font-bold uppercase tracking-[0.2em] rounded-t-2xl flex items-center justify-center gap-2">
+          <AlertTriangle size={14} />
+          Atención: Este pago requiere correcciones inmediatas
+          <AlertTriangle size={14} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -917,12 +926,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 </button>
             )}
             <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {initialData?.status === PaymentStatus.REJECTED ? 'Corregir Pago Devuelto' : (initialData ? 'Editar Pago' : 'Cargar Nuevo Pago')}
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {initialData?.status === PaymentStatus.REJECTED ? 'Corregir Registro' : (initialData ? 'Editar Pago' : 'Cargar Nuevo Pago')}
+                  </h1>
+                  {initialData?.status === PaymentStatus.REJECTED && (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-black uppercase tracking-tighter rounded-md border border-red-200 animate-pulse">
+                      Devuelto
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
                     {initialData?.status === PaymentStatus.REJECTED 
-                        ? `Observación del Auditor: ${initialData.id}` 
+                        ? `ID de Transacción: ${initialData.id}` 
                         : (initialData ? `Editando pago: ${initialData.id}` : 'Registre los detalles de la transacción para auditoría.')
                     }
                 </p>
@@ -930,21 +946,39 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         </div>
       </div>
 
-      {/* Auditor Feedback for Rejected Payments */}
+      {/* Auditor Feedback for Rejected Payments - Refined UI */}
       {initialData?.status === PaymentStatus.REJECTED && initialData.rejectionReason && (
-        <div className="mb-8 p-5 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-800 rounded-2xl animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/40 rounded-2xl flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0">
-              <AlertCircle size={24} />
+        <div className="mb-10 overflow-hidden bg-white dark:bg-slate-900 border-2 border-red-500 rounded-3xl shadow-xl shadow-red-100 dark:shadow-red-900/10 animate-in zoom-in-95 duration-500">
+          <div className="flex flex-col md:flex-row">
+            <div className="md:w-1/4 bg-red-500 p-6 flex flex-col items-center justify-center text-white text-center gap-2">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                <AlertCircle size={28} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest mt-2">Auditoría</span>
+              <span className="text-xs font-bold opacity-80">Feedback</span>
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-pink-900 dark:text-pink-100 mb-1">Motivo de la Devolución</h3>
-              <p className="text-pink-800 dark:text-pink-300 text-sm leading-relaxed bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-pink-100 dark:border-pink-900/30">
-                "{initialData.rejectionReason}"
-              </p>
-              <p className="text-[10px] text-pink-600 dark:text-pink-400 font-bold uppercase tracking-widest mt-3 flex items-center gap-1">
-                <RefreshCw size={10} /> Por favor, corrija los datos o documentos señalados arriba.
-              </p>
+            <div className="flex-1 p-6 md:p-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Motivo de la Devolución</h3>
+                <span className="text-[10px] text-slate-400 font-mono">{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-red-500 rounded-full opacity-20"></div>
+                <p className="text-slate-700 dark:text-slate-300 text-lg font-serif italic leading-relaxed pl-2">
+                  "{initialData.rejectionReason}"
+                </p>
+              </div>
+              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <p className="text-xs text-slate-500 flex items-center gap-2">
+                  <RefreshCw size={14} className="text-red-500 animate-spin-slow" /> 
+                  Ajuste los campos marcados o reemplace los documentos.
+                </p>
+                <div className="flex -space-x-2">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800"></div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -953,9 +987,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Section 1: Origen y Clasificación */}
-        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                <MapPin size={16} /> Ubicación y Tipo
+        <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
+            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                Ubicación y Tipo
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1177,9 +1212,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 )}
 
                 {/* Section 2: Detalles Financieros */}
-                <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                        <DollarSign size={16} /> Detalles Financieros
+                <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
+                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        Detalles Financieros
                     </h2>
 
                     {/* Store Location Info (Auto-filled) */}
@@ -1311,19 +1347,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 </section>
 
                 {/* Section 3: Soportes y Notas */}
-                <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                        <Upload size={16} /> Soportes y Notas
+                <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-200 dark:border-red-800 shadow-lg shadow-red-50 dark:shadow-red-900/5' : 'border-slate-100 dark:border-slate-800'}`}>
+                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                        Soportes y Notas
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* File Upload */}
                         <div className="space-y-4">
                              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
-                             <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all group overflow-hidden ${
+                             <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
                                  isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
                              } ${
-                                 file ? 'border-green-400 bg-white dark:bg-slate-900' : errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                                 file || previewUrl ? 'border-green-400 bg-white dark:bg-slate-900' : 
+                                 initialData?.status === PaymentStatus.REJECTED ? 'border-red-300 dark:border-red-700 bg-red-50/30 dark:bg-red-900/5 hover:border-red-500' :
+                                 errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
                              }`}>
                                 
                                 {/* Overlay de Carga de Archivo */}
@@ -1518,7 +1557,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     </>
                 ) : (
                     <>
-                        <span>Enviar a Auditoría</span>
+                        <span>{initialData?.status === PaymentStatus.REJECTED ? 'Reenviar Corrección' : 'Enviar a Auditoría'}</span>
                         <CheckCircle2 size={20} />
                     </>
                 )}
