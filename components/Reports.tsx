@@ -20,7 +20,7 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus, User, Role, AuditLog } from '../types';
+import { Payment, PaymentStatus, User, Role, AuditLog, Category } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
@@ -250,6 +250,41 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
         };
     });
   }, [payments, currentUser]);
+
+  const monthlyCategoryData = React.useMemo(() => {
+    const currentYear = new Date(startDate + 'T12:00:00').getFullYear();
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const categories = Object.values(Category);
+
+    return months.map((monthName, index) => {
+      const monthlyPayments = payments.filter(p => {
+        const recordDateStr = p.submittedDate ? p.submittedDate : p.dueDate;
+        if (!recordDateStr) return false;
+        const datePart = recordDateStr.split('T')[0];
+        const d = new Date(datePart + 'T12:00:00');
+        const isSameMonthYear = d.getMonth() === index && d.getFullYear() === currentYear;
+        const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
+        const storeDetails = STORES.find(s => s.id === p.storeId);
+        const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
+        
+        return isSameMonthYear && storeMatch && municipalityMatch;
+      });
+
+      const categoryBreakdown = categories.map(cat => {
+        const catPayments = monthlyPayments.filter(p => p.category === cat);
+        const approved = catPayments.filter(p => p.status === PaymentStatus.APPROVED).reduce((sum, p) => sum + p.amount, 0);
+        const pending = catPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE).reduce((sum, p) => sum + p.amount, 0);
+        return { category: cat, approved, pending, total: approved + pending };
+      }).filter(item => item.total > 0);
+
+      return {
+        month: monthName,
+        categories: categoryBreakdown,
+        totalApproved: categoryBreakdown.reduce((sum, item) => sum + item.approved, 0),
+        totalPending: categoryBreakdown.reduce((sum, item) => sum + item.pending, 0),
+      };
+    }).filter(monthData => monthData.categories.length > 0);
+  }, [payments, startDate, selectedStore, selectedMunicipality]);
 
   const annualData = React.useMemo(() => {
     const currentYear = new Date(startDate + 'T12:00:00').getFullYear();
@@ -715,6 +750,87 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
             </motion.div>
           ))}
       </div>
+
+      {/* Reporte Mensual por Categoría */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl mb-8 overflow-hidden"
+      >
+        <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+                Reporte Mensual por Categoría
+            </h3>
+            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    Aprobado
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    Pendiente
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {monthlyCategoryData.map((monthData, idx) => (
+                <motion.div 
+                    key={monthData.month}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 + (idx * 0.05) }}
+                    className="bg-slate-800/30 border border-slate-800 rounded-3xl p-6 hover:bg-slate-800/50 transition-all group"
+                >
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700/50">
+                        <span className="text-lg font-bold text-white uppercase tracking-wider">{monthData.month}</span>
+                        <div className="text-right">
+                            <div className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Total Mes</div>
+                            <div className="text-sm font-bold text-blue-400 font-mono">${(monthData.totalApproved + monthData.totalPending).toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {monthData.categories.map((catData) => (
+                            <div key={`${monthData.month}-${catData.category}`} className="flex flex-col gap-1.5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[11px] font-bold text-slate-400 truncate max-w-[180px]">{catData.category}</span>
+                                    <span className="text-[11px] font-bold text-white font-mono">${catData.total.toLocaleString()}</span>
+                                </div>
+                                <div className="flex h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                                    <div 
+                                        className="bg-emerald-500 h-full transition-all duration-1000" 
+                                        style={{ width: `${(catData.approved / catData.total) * 100}%` }}
+                                    />
+                                    <div 
+                                        className="bg-yellow-500 h-full transition-all duration-1000" 
+                                        style={{ width: `${(catData.pending / catData.total) * 100}%` }}
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-tighter">
+                                    <span className="text-emerald-500/70">${catData.approved.toLocaleString()}</span>
+                                    <span className="text-yellow-500/70">${catData.pending.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Aprobado</span>
+                            <span className="text-sm font-bold text-emerald-400 font-mono">${monthData.totalApproved.toLocaleString()}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pendiente</span>
+                            <span className="text-sm font-bold text-yellow-400 font-mono">${monthData.totalPending.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+      </motion.div>
 
       {/* Main Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
