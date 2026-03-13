@@ -13,7 +13,7 @@ import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
@@ -46,6 +46,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
@@ -260,6 +261,69 @@ function App({ isDemoMode = false }: AppProps) {
           }
         ];
         setPayments(mockPayments);
+
+        // Mock Employees
+        const mockEmployees: Employee[] = [
+          {
+            id: 'V-12345678',
+            code: 'EMP001',
+            nationality: 'V',
+            name: 'Juan',
+            lastName: 'Pérez',
+            age: 35,
+            educationLevel: 'Universitario',
+            position: 'Analista de Datos',
+            department: 'IT',
+            positionDescription: 'Análisis de métricas fiscales',
+            hireDate: '2022-01-15',
+            email: 'juan.perez@example.com',
+            directPhone: '0414-1234567',
+            emergencyPhone: '0412-7654321',
+            homeAddress: 'Caracas, Venezuela',
+            gender: 'M',
+            wearsGlasses: 'No',
+            hasCondition: 'No',
+            height: '1.75',
+            storeId: 'S101',
+            baseSalary: 1000,
+            isActive: true,
+            defaultBonuses: [{ name: 'Bono Alimentación', amount: 200 }],
+            defaultDeductions: [],
+            defaultEmployerLiabilities: []
+          }
+        ];
+        setEmployees(mockEmployees);
+
+        // Mock Payroll Entries
+        const mockPayroll: PayrollEntry[] = [
+          {
+            id: 'PAY-202310-001',
+            employeeName: 'Juan Pérez',
+            employeeId: 'V-12345678',
+            storeId: 'S101',
+            month: '2023-10',
+            baseSalary: 1000,
+            bonuses: [{ name: 'Bono Alimentación', amount: 200 }],
+            deductions: [
+              { name: 'SSO (4%)', amount: 35.00 }, // Error: should be 40.00
+              { name: 'RPE (0.5%)', amount: 5.00 },
+              { name: 'FAOV / LPH (1%)', amount: 12.00 },
+              { name: 'INCES (0.5%)', amount: 5.00 }
+            ],
+            employerLiabilities: [
+              { name: 'SSO Patronal (9%)', amount: 90.00 },
+              { name: 'RPE Patronal (2%)', amount: 20.00 },
+              { name: 'FAOV Patronal (2%)', amount: 24.00 },
+              { name: 'INCES Patronal (2%)', amount: 20.00 },
+              { name: 'Fondo de Pensiones (9%)', amount: 108.00 }
+            ],
+            totalWorkerNet: 1143.00,
+            totalEmployerCost: 1405.00,
+            status: 'PROCESADO',
+            submittedDate: '2023-10-31T10:00:00Z'
+          }
+        ];
+        setPayrollEntries(mockPayroll);
       } else {
         const data = await api.getPayments();
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
@@ -571,8 +635,30 @@ function App({ isDemoMode = false }: AppProps) {
 
     switch (currentView) {
       case 'payments':
+        const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
         return (
           <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-950 custom-scrollbar">
+            {rejectedPayments.length > 0 && (
+              <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-b border-pink-100 dark:border-pink-900/30">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/40 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400">
+                      <AlertCircle size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-pink-900 dark:text-pink-100">Pagos Devueltos ({rejectedPayments.length})</h3>
+                      <p className="text-xs text-pink-700 dark:text-pink-300">Tienes pagos que requieren corrección según el auditor.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowRejectedModal(true)}
+                    className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                  >
+                    Ver y Corregir
+                  </button>
+                </div>
+              </div>
+            )}
             <PaymentForm 
               initialData={editingPayment}
               payments={filteredPayments}
@@ -583,6 +669,93 @@ function App({ isDemoMode = false }: AppProps) {
               isEmbedded={true}
               currentUser={currentUser}
             />
+            
+            {/* Modal for Rejected Payments */}
+            {showRejectedModal && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/40 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400">
+                        <RefreshCw size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Corrección de Pagos Devueltos</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona un pago para editar y reenviar al auditor.</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setShowRejectedModal(false);
+                        setEditingPayment(null);
+                      }}
+                      className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    {editingPayment && editingPayment.status === PaymentStatus.REJECTED ? (
+                      <div className="space-y-4">
+                        <button 
+                          onClick={() => setEditingPayment(null)}
+                          className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline mb-4"
+                        >
+                          <ChevronLeft size={16} />
+                          Volver a la lista
+                        </button>
+                        <PaymentForm 
+                          initialData={editingPayment}
+                          payments={filteredPayments}
+                          onSubmit={async (data) => {
+                            await handleNewPayment(data);
+                            setEditingPayment(null);
+                            // If no more rejected payments, close modal
+                            if (rejectedPayments.length <= 1) {
+                              setShowRejectedModal(false);
+                            }
+                          }}
+                          onCancel={() => setEditingPayment(null)}
+                          isEmbedded={true}
+                          currentUser={currentUser}
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {rejectedPayments.map(payment => (
+                          <div 
+                            key={payment.id}
+                            onClick={() => setEditingPayment(payment)}
+                            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-pink-500 dark:hover:border-pink-500 cursor-pointer transition-all group"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{payment.category}</span>
+                              <span className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 text-[10px] font-bold px-2 py-0.5 rounded-full">Devuelto</span>
+                            </div>
+                            <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-pink-600 transition-colors">{payment.specificType}</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{payment.storeName} • {payment.dueDate}</p>
+                            
+                            <div className="p-2 bg-pink-50 dark:bg-pink-900/10 rounded-lg border border-pink-100 dark:border-pink-900/20 mb-3">
+                              <p className="text-[10px] text-pink-700 dark:text-pink-300 italic">
+                                <span className="font-bold">Motivo:</span> {payment.rejectionReason || 'No especificado'}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-auto">
+                              <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
+                              <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
+                                Corregir <ChevronRight size={14} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'approvals':

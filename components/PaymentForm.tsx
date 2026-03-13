@@ -777,7 +777,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       
       {/* --- CONFIRMATION MODAL --- */}
       {showConfirmSubmitModal && (
-          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-900 animate-in zoom-in-95 duration-200">
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-blue-50 dark:bg-blue-900/20 rounded-t-2xl">
                       <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-2">
@@ -813,7 +813,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
       {/* --- JUSTIFICATION MODAL --- */}
       {showJustificationModal && (
-          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-red-50 dark:bg-red-900/20 rounded-t-2xl">
                       <h3 className="text-xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
@@ -1385,7 +1385,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                          type="text"
                                          value={docName}
                                          onChange={(e) => setDocName(e.target.value)}
-                                         placeholder="Ej: Factura rgb(226, 229, 233)"
+                                         placeholder="Ej: Factura #123"
                                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                                      />
                                  </div>
