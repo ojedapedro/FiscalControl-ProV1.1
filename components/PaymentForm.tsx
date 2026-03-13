@@ -1385,7 +1385,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                          type="text"
                                          value={docName}
                                          onChange={(e) => setDocName(e.target.value)}
-                                         placeholder="Ej: Factura #123"
+                                         placeholder="Ej: Factura rgb(226, 229, 233)"
                                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                                      />
                                  </div>
