@@ -1373,9 +1373,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 />
                              </label>
                              {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+                        </div>
 
+                        {/* Notes and Support Details */}
+                        <div className="flex flex-col space-y-6">
                              {/* Campos adicionales del soporte */}
-                             <div className="grid grid-cols-1 gap-4 pt-2">
+                             <div className="grid grid-cols-1 gap-4">
                                  <div>
                                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre del Documento</label>
                                      <input
@@ -1408,19 +1411,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                      </div>
                                  </div>
                              </div>
-                        </div>
 
-                        {/* Notes */}
-                        <div className="flex flex-col">
-                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
-                             <div className="relative h-full">
-                                 <textarea
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    disabled={isSubmitting}
-                                    placeholder="Añada notas adicionales para el auditor..."
-                                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
-                                 ></textarea>
+                             <div className="flex flex-col">
+                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
+                                 <div className="relative h-full">
+                                     <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        disabled={isSubmitting}
+                                        placeholder="Añada notas adicionales para el auditor..."
+                                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
+                                     ></textarea>
+                                 </div>
                              </div>
                         </div>
                     </div>
