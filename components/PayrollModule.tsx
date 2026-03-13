@@ -427,12 +427,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const handlePayrollSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { workerNet, employerCost } = calculateTotals(payrollFormData);
-    await onAddEntry({
+    const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
       ...payrollFormData,
       totalWorkerNet: workerNet,
       totalEmployerCost: employerCost,
       status: 'PROCESADO'
-    });
+    };
+    await onAddEntry(entry);
+    generatePaymentReceiptPDF(entry);
     setIsAddingEntry(false);
   };
 
@@ -482,7 +484,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     
     for (const emp of activeEmployees) {
       const { workerNet, employerCost } = calculateTotals(emp);
-      await onAddEntry({
+      const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
         employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
         employeeId: emp.id,
         storeId: emp.storeId,
@@ -494,7 +496,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         totalWorkerNet: workerNet,
         totalEmployerCost: employerCost,
         status: 'PROCESADO'
-      });
+      };
+      await onAddEntry(entry);
+      generatePaymentReceiptPDF(entry);
     }
   };
 
@@ -560,7 +564,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             employerLiabilities: employee.defaultEmployerLiabilities
           });
 
-          await onAddEntry({
+          const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
             employeeName: `${employee.name} ${employee.lastName || ''}`.trim(),
             employeeId: employee.id,
             storeId: employee.storeId,
@@ -572,7 +576,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             totalWorkerNet: workerNet,
             totalEmployerCost: employerCost,
             status: 'PROCESADO'
-          });
+          };
+
+          await onAddEntry(entry);
+          generatePaymentReceiptPDF(entry);
 
           processedCount++;
           setImportProgress(Math.round(((i + 1) / data.length) * 100));
@@ -737,6 +744,80 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     doc.save(`Historial_EPP_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const generatePaymentReceiptPDF = (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
+    const doc = new jsPDF();
+    const store = STORES.find(s => s.id === entry.storeId);
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(37, 99, 235);
+    doc.text('RECIBO DE PAGO', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text('FiscalControl Pro - Gestión de Nómina', 105, 28, { align: 'center' });
+    
+    // Employee Info
+    doc.setDrawColor(200);
+    doc.line(14, 35, 196, 35);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL TRABAJADOR', 14, 45);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Nombre: ${entry.employeeName}`, 14, 52);
+    doc.text(`Cédula/ID: ${entry.employeeId}`, 14, 57);
+    doc.text(`Tienda: ${store?.name || 'N/A'}`, 14, 62);
+    doc.text(`Periodo: ${entry.month}`, 14, 67);
+    
+    // Financial Details
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALLE DE PAGO', 14, 80);
+    
+    const tableData: any[][] = [
+      ['Concepto', 'Asignaciones ($)', 'Deducciones ($)']
+    ];
+    
+    tableData.push(['Sueldo Base', `$${entry.baseSalary.toLocaleString()}`, '']);
+    
+    entry.bonuses.forEach(b => {
+      tableData.push([b.name, `$${b.amount.toLocaleString()}`, '']);
+    });
+    
+    entry.deductions.forEach(d => {
+      tableData.push([d.name, '', `$${d.amount.toLocaleString()}`]);
+    });
+    
+    autoTable(doc, {
+      startY: 85,
+      head: [tableData[0]],
+      body: tableData.slice(1),
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235] },
+      foot: [['TOTAL NETO', `$${entry.totalWorkerNet.toLocaleString()}`, '']],
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Totals in Local Currency
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total a Pagar: $${entry.totalWorkerNet.toLocaleString()}`, 14, finalY);
+    doc.text(`Equivalente en Bs (Tasa ${exchangeRate}): Bs. ${(entry.totalWorkerNet * exchangeRate).toLocaleString()}`, 14, finalY + 7);
+    
+    // Signature area
+    doc.line(14, finalY + 40, 80, finalY + 40);
+    doc.text('Firma del Trabajador', 14, finalY + 45);
+    
+    doc.line(130, finalY + 40, 196, finalY + 40);
+    doc.text('Sello y Firma Patrono', 130, finalY + 45);
+    
+    doc.save(`Recibo_${entry.employeeName.replace(/ /g, '_')}_${entry.month}.pdf`);
+  };
+
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -874,6 +955,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           )}
         </div>
       </div>
+
+      {/* Verification Banner */}
+      {activeTab === 'payroll' && filteredEntries.some(hasParafiscalDiscrepancies) && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-orange-500/10 border border-orange-500/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+              <AlertTriangle size={24} className="animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-orange-400">Discrepancias de Ley Detectadas</h3>
+              <p className="text-sm text-slate-400">Se han encontrado diferencias entre los aportes manuales y los cálculos teóricos de SSO, RPE, FAOV e INCES.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold px-4 py-2 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">
+            {filteredEntries.filter(hasParafiscalDiscrepancies).length} REGISTROS AFECTADOS
+          </div>
+        </motion.div>
+      )}
 
       {importProgress !== null && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
