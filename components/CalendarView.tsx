@@ -5,6 +5,7 @@ import {
   ChevronRight, 
   Plus, 
   Calendar as CalendarIcon, 
+  Calendar,
   CheckCircle2, 
   Landmark, 
   AlertOctagon,
@@ -14,6 +15,7 @@ import {
   DollarSign,
   Tag
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
 
 interface CalendarViewProps {
@@ -108,6 +110,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   
   // Estado para Presupuestos Manuales (Eliminado: Usando props)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isAnnualAssistantOpen, setIsAnnualAssistantOpen] = useState(false);
+  
+  // Estado para el asistente anual
+  const [annualBudgetForm, setAnnualBudgetForm] = useState<{
+    year: number;
+    category: Category;
+    amounts: number[];
+  }>({
+    year: new Date().getFullYear(),
+    category: Category.MUNICIPAL_TAX,
+    amounts: Array(12).fill(0)
+  });
   
   // Formulario de presupuesto
   const [newBudget, setNewBudget] = useState<{
@@ -254,6 +268,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX }); // Reset
   };
 
+  const handleSaveAnnualBudget = async () => {
+    const entries: BudgetEntry[] = [];
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      if (annualBudgetForm.amounts[i] > 0) {
+        const dateStr = `${annualBudgetForm.year}-${String(i + 1).padStart(2, '0')}-01`;
+        entries.push({
+          id: `BUD-ANNUAL-${Math.random().toString(36).substr(2, 9)}`,
+          date: dateStr,
+          title: `Presupuesto Anual: ${months[i]}`,
+          amount: annualBudgetForm.amounts[i],
+          category: annualBudgetForm.category
+        });
+      }
+    }
+
+    // Guardar todos secuencialmente
+    for (const entry of entries) {
+      await onAddBudget(entry);
+    }
+
+    setIsAnnualAssistantOpen(false);
+    setAnnualBudgetForm({ ...annualBudgetForm, amounts: Array(12).fill(0) });
+  };
+
   const handleDeleteBudget = async (id: string) => {
       if (confirm('¿Estás seguro de eliminar este presupuesto?')) {
           await onDeleteBudget(id);
@@ -350,6 +393,119 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
       
+      {/* Modal Asistente Anual */}
+      <AnimatePresence>
+        {isAnnualAssistantOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-cyan-600 text-white">
+                <div>
+                  <h2 className="text-2xl font-bold">Asistente de Presupuesto Anual</h2>
+                  <p className="text-cyan-100 text-sm">Configura la proyección fiscal para todo el año {annualBudgetForm.year}</p>
+                </div>
+                <button onClick={() => setIsAnnualAssistantOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Categoría de Presupuesto</label>
+                    <select 
+                      value={annualBudgetForm.category}
+                      onChange={(e) => setAnnualBudgetForm({...annualBudgetForm, category: e.target.value as Category})}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl focus:border-cyan-500 outline-none transition-all"
+                    >
+                      {Object.values(Category).map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Acción Rápida</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="number" 
+                        placeholder="Monto para todos los meses..."
+                        className="flex-1 p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl focus:border-cyan-500 outline-none transition-all"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseFloat((e.target as HTMLInputElement).value);
+                            if (!isNaN(val)) {
+                              setAnnualBudgetForm({...annualBudgetForm, amounts: Array(12).fill(val)});
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button 
+                        onClick={() => {
+                          const input = document.querySelector('input[placeholder="Monto para todos los meses..."]') as HTMLInputElement;
+                          const val = parseFloat(input.value);
+                          if (!isNaN(val)) {
+                            setAnnualBudgetForm({...annualBudgetForm, amounts: Array(12).fill(val)});
+                            input.value = '';
+                          }
+                        }}
+                        className="px-4 bg-cyan-100 text-cyan-700 font-bold rounded-xl hover:bg-cyan-200 transition-colors"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                  ].map((month, idx) => (
+                    <div key={month} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                      <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">{month}</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                        <input 
+                          type="number"
+                          value={annualBudgetForm.amounts[idx] || ''}
+                          onChange={(e) => {
+                            const newAmounts = [...annualBudgetForm.amounts];
+                            newAmounts[idx] = parseFloat(e.target.value) || 0;
+                            setAnnualBudgetForm({...annualBudgetForm, amounts: newAmounts});
+                          }}
+                          className="w-full pl-7 pr-3 py-2 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-700 rounded-xl focus:border-cyan-500 outline-none transition-all font-mono"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsAnnualAssistantOpen(false)}
+                  className="px-6 py-3 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSaveAnnualBudget}
+                  className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-xl shadow-lg shadow-cyan-200 dark:shadow-none hover:bg-cyan-700 transition-all active:scale-95 flex items-center gap-2"
+                >
+                  <CheckCircle2 size={20} />
+                  Guardar Presupuesto Anual
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Budget Modal */}
       {isBudgetModalOpen && (
           <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -608,6 +764,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         >
             <Plus size={20} />
             Cargar Presupuesto
+        </button>
+
+        <button 
+            onClick={() => setIsAnnualAssistantOpen(true)}
+            disabled={currentUser?.role !== Role.ADMIN && currentUser?.role !== Role.SUPER_ADMIN}
+            className="mt-3 w-full py-3 bg-white dark:bg-slate-800 border-2 border-cyan-600 text-cyan-600 dark:text-cyan-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-cyan-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            <Calendar size={20} />
+            Asistente Anual
         </button>
       </div>
     </div>
