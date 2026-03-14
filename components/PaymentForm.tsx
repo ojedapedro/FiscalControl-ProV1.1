@@ -598,10 +598,46 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // --- LOGICA SEMÁFORO FISCAL ---
   const getTaxStatus = (deadlineDay: number) => {
     const today = new Date();
-    const currentDay = today.getDate();
-    if (currentDay > deadlineDay) return { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
-    if (deadlineDay - currentDay <= 5) return { color: 'bg-yellow-500', text: 'text-yellow-600', bgSoft: 'bg-yellow-100', status: 'Próximo', icon: Clock };
-    return { color: 'bg-green-500', text: 'text-green-600', bgSoft: 'bg-green-100', status: 'En fecha', icon: CheckCircle2 };
+    today.setHours(0, 0, 0, 0);
+    
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    // Obtener el último día del mes actual para ajustar si el deadlineDay es mayor (ej. Feb 28 vs 30)
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+    const actualDeadlineDay = Math.min(deadlineDay, lastDayOfMonth);
+    
+    const deadlineDate = new Date(year, month, actualDeadlineDay);
+    
+    // Calcular diferencia en días
+    const diffTime = deadlineDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { 
+        color: 'bg-red-500', 
+        text: 'text-red-600', 
+        bgSoft: 'bg-red-100', 
+        status: 'Vencido', 
+        icon: AlertCircle 
+      };
+    } else if (diffDays <= 5) {
+      return { 
+        color: 'bg-amber-500', 
+        text: 'text-amber-600', 
+        bgSoft: 'bg-amber-100', 
+        status: 'Próximo', 
+        icon: Clock 
+      };
+    } else {
+      return { 
+        color: 'bg-emerald-500', 
+        text: 'text-emerald-600', 
+        bgSoft: 'bg-emerald-100', 
+        status: 'En fecha', 
+        icon: CheckCircle2 
+      };
+    }
   };
 
   const taxStatusList = React.useMemo(() => {
@@ -619,21 +655,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const groupConfig = configMap[taxGroup];
     if (!groupConfig) return [];
 
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
     return groupConfig.items.map(item => {
-      // Verificar si ya existe un pago para este concepto en esta tienda
-      const existingPayment = payments.find(p => 
-        p.storeId === store && 
-        p.category === category && 
-        p.specificType.startsWith(item.code) &&
-        (p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
-      );
+      // Verificar si ya existe un pago para este concepto en esta tienda para el mes actual
+      const existingPayment = payments.find(p => {
+        const pDate = new Date(p.dueDate);
+        return p.storeId === store && 
+               p.category === category && 
+               p.specificType.startsWith(item.code) &&
+               pDate.getMonth() === currentMonth &&
+               pDate.getFullYear() === currentYear &&
+               (p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
+      });
 
       if (existingPayment) {
         return { 
           ...item, 
-          color: 'bg-green-500', 
-          text: 'text-green-600', 
-          bgSoft: 'bg-green-100', 
+          color: 'bg-emerald-500', 
+          text: 'text-emerald-600', 
+          bgSoft: 'bg-emerald-100', 
           status: 'Al día', 
           icon: CheckCircle2 
         };
@@ -646,8 +689,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
-    if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-yellow-500', border: 'border-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', label: 'ATENCIÓN (PRÓXIMOS)' };
-    return { color: 'bg-green-500', border: 'border-green-200', text: 'text-green-700', bg: 'bg-green-50', label: 'TODO EN REGLA' };
+    if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-amber-500', border: 'border-amber-200', text: 'text-amber-700', bg: 'bg-amber-50', label: 'ATENCIÓN (PRÓXIMOS)' };
+    return { color: 'bg-emerald-500', border: 'border-emerald-200', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'TODO EN REGLA' };
   }, [taxStatusList]);
 
 
@@ -1267,7 +1310,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         onChange={(e) => setAmount(e.target.value)}
                                         className={`${!isManualOverride ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800'} border ${
                                             isOverBudget 
-                                                ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-900/30' 
+                                                ? 'border-amber-400 ring-2 ring-amber-200 dark:ring-amber-900/30' 
                                                 : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
                                         } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
                                     />
@@ -1275,7 +1318,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         Equivalente: Bs. {(parseFloat(amount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                     {isOverBudget && (
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-500 animate-pulse" title="Excede Presupuesto">
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
                                             <AlertTriangle size={20} />
                                         </div>
                                     )}
@@ -1283,14 +1326,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
                                 
                                 {isOverBudget && (
-                                    <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1.5 font-bold flex items-center gap-1">
+                                    <p className="text-amber-600 dark:text-amber-400 text-xs mt-1.5 font-bold flex items-center gap-1">
                                         <AlertTriangle size={12} />
                                         Excede presupuesto (${expectedBudget?.toLocaleString()})
                                     </p>
                                 )}
 
                                 {justificationConfirmed && (
-                                    <p className="text-green-600 dark:text-green-400 text-xs mt-1 flex items-center gap-1 font-semibold">
+                                    <p className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 flex items-center gap-1 font-semibold">
                                         <CheckCircle2 size={12} /> Justificación añadida
                                     </p>
                                 )}
@@ -1398,7 +1441,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             <span>Eliminar Imagen</span>
                                                          </button>
                                                     </div>
-                                                    <div className="absolute top-4 right-4 bg-green-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
+                                                    <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
                                                         <CheckCircle2 size={16} />
                                                     </div>
                                                 </div>
@@ -1536,7 +1579,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 disabled={isSubmitting || isFileScanning}
                 className={`w-full md:flex-1 ${
                     isOverBudget && !justificationConfirmed 
-                    ? 'bg-yellow-500 hover:bg-yellow-600' 
+                    ? 'bg-amber-500 hover:bg-amber-600' 
                     : 'bg-blue-600 hover:bg-blue-700'
                 } text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
