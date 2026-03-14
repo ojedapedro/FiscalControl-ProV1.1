@@ -12,7 +12,7 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from './services/api';
 import { APP_LOGO_URL } from './constants';
@@ -35,6 +35,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
     return saved ? Number(saved) : 1;
@@ -214,6 +215,38 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
+  const handleAddBudget = async (budget: BudgetEntry) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.createBudget(budget);
+      }
+      setBudgets(prev => [...prev, budget]);
+      setNotification('✅ Presupuesto cargado');
+    } catch (error) {
+      setNotification('❌ Error guardando presupuesto');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleDeleteBudget = async (id: string) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await api.deleteBudget(id);
+      }
+      setBudgets(prev => prev.filter(b => b.id !== id));
+      setNotification('🗑️ Presupuesto eliminado');
+    } catch (error) {
+      setNotification('❌ Error eliminando presupuesto');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   const handleLogout = () => {
     setCurrentUser(null);
     setIsAuthenticated(false);
@@ -325,18 +358,19 @@ function App({ isDemoMode = false }: AppProps) {
         ];
         setPayrollEntries(mockPayroll);
       } else {
-        const data = await api.getPayments();
+        const [data, employeesData, payrollData, budgetsData, settings] = await Promise.all([
+          api.getPayments(),
+          api.getEmployees(),
+          api.getPayrollEntries(),
+          api.getBudgets(),
+          api.getSettings()
+        ]);
+
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
-        
-        // Cargar empleados
-        const employeesData = await api.getEmployees();
         setEmployees(employeesData);
-
-        // Cargar histórico de nómina
-        const payrollData = await api.getPayrollEntries();
         setPayrollEntries(payrollData.sort((a: any, b: any) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
+        setBudgets(budgetsData);
 
-        const settings = await api.getSettings();
         if (settings && settings.exchangeRate) {
           setExchangeRate(settings.exchangeRate);
           setExchangeRateInput(settings.exchangeRate);
@@ -765,13 +799,13 @@ function App({ isDemoMode = false }: AppProps) {
       case 'approvals':
         return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} />;
       case 'presidency':
         return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'network':
         return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} />;
       case 'calendar':
-        return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} />;
+        return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={budgets} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} currentUser={currentUser} />;
       case 'payroll':
         return (
           <PayrollModule 

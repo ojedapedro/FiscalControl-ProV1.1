@@ -1,10 +1,10 @@
 
-import { Payment, SystemSettings, User } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry } from '../types';
 import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbzns2LHhoqtlSzHXtfCi588SG4R-MqCOo4imEuwCJF7Ojb5XwWK4kQW9WCBZDyfIURWew/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyxVkNV8XIqvDgTOY5kj5FQsHCR6BWkHHnxaQ78rMW5kPm_EWoOc3iusVxiG3Dyfp9e/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -326,6 +326,57 @@ export const api = {
        return { status: 'success', message: 'Nómina simulada eliminada' };
     }
     const response = await fetch(`${API_URL}?action=deletePayrollEntry`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    return await response.json();
+  },
+
+  // --- PRESUPUESTO ---
+  
+  getBudgets: async (): Promise<BudgetEntry[]> => {
+    if (isMockMode()) {
+      const saved = localStorage.getItem('fiscal_budgets');
+      return saved ? JSON.parse(saved) : [];
+    }
+    try {
+      const response = await fetch(`${API_URL}?action=getBudgets`);
+      const json = await response.json();
+      if (json.status === 'error') return [];
+      return (json.data || []).map((b: any) => ({
+        ...b,
+        amount: Number(b.amount)
+      }));
+    } catch (e) {
+      console.error("Error fetching budgets", e);
+      return [];
+    }
+  },
+
+  createBudget: async (budget: BudgetEntry) => {
+    if (isMockMode()) {
+      const saved = localStorage.getItem('fiscal_budgets');
+      const budgets = saved ? JSON.parse(saved) : [];
+      const newBudgets = [...budgets, budget];
+      localStorage.setItem('fiscal_budgets', JSON.stringify(newBudgets));
+      return { status: 'success', message: 'Presupuesto simulado guardado' };
+    }
+    const response = await fetch(`${API_URL}?action=addBudget`, {
+      method: 'POST',
+      body: JSON.stringify(budget)
+    });
+    return await response.json();
+  },
+
+  deleteBudget: async (id: string) => {
+    if (isMockMode()) {
+      const saved = localStorage.getItem('fiscal_budgets');
+      const budgets = saved ? JSON.parse(saved) : [];
+      const newBudgets = budgets.filter((b: any) => b.id !== id);
+      localStorage.setItem('fiscal_budgets', JSON.stringify(newBudgets));
+      return { status: 'success', message: 'Presupuesto simulado eliminado' };
+    }
+    const response = await fetch(`${API_URL}?action=deleteBudget`, {
       method: 'POST',
       body: JSON.stringify({ id })
     });

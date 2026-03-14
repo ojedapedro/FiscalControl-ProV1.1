@@ -195,3 +195,12 @@ export interface Employee {
   defaultEmployerLiabilities: { name: string; amount: number }[];
   ppeAssignments?: PPEAssignment[];
 }
+
+export interface BudgetEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  amount: number;
+  category: Category;
+  notes?: string;
+}

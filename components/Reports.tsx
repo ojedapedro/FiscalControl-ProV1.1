@@ -20,7 +20,7 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus, User, Role, AuditLog, Category } from '../types';
+import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry } from '../types';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
@@ -28,11 +28,12 @@ import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface ReportsProps {
   payments: Payment[];
+  budgets: BudgetEntry[];
   currentUser: User | null;
 }
 
-// Configuración simulada de presupuesto mensual (En un caso real vendría del backend)
-const MONTHLY_BUDGET_TARGET = 6000; 
+// Configuración simulada de presupuesto mensual (Eliminado: Usando props)
+// const MONTHLY_BUDGET_TARGET = 6000; 
 
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -60,9 +61,12 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
     const approvedValue = approvedEntry?.value || 0;
     const pendingValue = pendingEntry?.value || 0;
     
-    const approvedPercent = (approvedValue / MONTHLY_BUDGET_TARGET) * 100;
-    const pendingPercent = (pendingValue / MONTHLY_BUDGET_TARGET) * 100;
-    const totalPercent = ((approvedValue + pendingValue) / MONTHLY_BUDGET_TARGET) * 100;
+    // Get budget from payload if available (from annualData)
+    const budgetTarget = payload[0]?.payload?.budget || 1; 
+    
+    const approvedPercent = (approvedValue / budgetTarget) * 100;
+    const pendingPercent = (pendingValue / budgetTarget) * 100;
+    const totalPercent = ((approvedValue + pendingValue) / budgetTarget) * 100;
 
     return (
       <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
@@ -138,7 +142,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
           </div>
           <div className="flex justify-between items-center text-[10px] text-slate-600">
             <span>Presupuesto Base:</span>
-            <span>${MONTHLY_BUDGET_TARGET.toLocaleString()}</span>
+            <span>${budgetTarget.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -147,7 +151,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
   return null;
 };
 
-export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
+export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
 
@@ -313,17 +317,23 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
             .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE)
             .reduce((sum, p) => sum + p.amount, 0);
 
+        // Calcular presupuesto para este mes específico
+        const monthlyBudget = budgets.filter(b => {
+            const d = new Date(b.date + 'T12:00:00');
+            return d.getMonth() === index && d.getFullYear() === currentYear;
+        }).reduce((sum, b) => sum + b.amount, 0);
+
         return {
             name: monthName,
             approved: approvedAmount,
             pending: pendingAmount,
-            budget: MONTHLY_BUDGET_TARGET,
+            budget: monthlyBudget || 0,
             total: approvedAmount + pendingAmount
         };
     });
-  }, [payments, startDate, selectedStore, selectedMunicipality]);
+  }, [payments, budgets, startDate, selectedStore, selectedMunicipality]);
 
-  const totalAnnualBudget = MONTHLY_BUDGET_TARGET * 12;
+  const totalAnnualBudget = annualData.reduce((acc, curr) => acc + curr.budget, 0) || 1;
   const totalYTDExecuted = annualData.reduce((acc, curr) => acc + curr.approved, 0);
   const totalYTDPending = annualData.reduce((acc, curr) => acc + curr.pending, 0);
   const budgetUtilization = (totalYTDExecuted / totalAnnualBudget) * 100;
@@ -850,7 +860,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, currentUser }) => {
                         </div>
                         Proyección Financiera Anual
                     </h3>
-                    <p className="text-slate-400 text-sm mt-1.5 font-medium">Comparativa de Ejecución vs. Presupuesto Base (${MONTHLY_BUDGET_TARGET.toLocaleString()}/mes)</p>
+                    <p className="text-slate-400 text-sm mt-1.5 font-medium">Comparativa de Ejecución vs. Presupuesto Base</p>
                 </div>
                 
                 <div className="flex gap-3">

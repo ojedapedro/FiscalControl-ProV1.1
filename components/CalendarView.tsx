@@ -14,11 +14,15 @@ import {
   DollarSign,
   Tag
 } from 'lucide-react';
-import { Payment, PaymentStatus, Category, PayrollEntry } from '../types';
+import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
 
 interface CalendarViewProps {
   payments: Payment[];
   payrollEntries?: PayrollEntry[];
+  budgets: BudgetEntry[];
+  onAddBudget: (budget: BudgetEntry) => Promise<void>;
+  onDeleteBudget: (id: string) => Promise<void>;
+  currentUser: User | null;
 }
 
 // Definición de Obligación Estatutaria (Basada en el cuadro)
@@ -33,14 +37,7 @@ interface StatutoryDeadline {
 }
 
 // Definición de Entrada de Presupuesto Manual
-interface BudgetEntry {
-  id: string;
-  date: string; // YYYY-MM-DD
-  title: string;
-  amount: number;
-  category: Category;
-  notes?: string;
-}
+// Eliminado: Usando BudgetEntry de types.ts
 
 // Configuración de Reglas Fiscales (Alcaldía)
 const TAX_RULES: StatutoryDeadline[] = [
@@ -98,12 +95,18 @@ const TAX_RULES: StatutoryDeadline[] = [
   }
 ];
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ payments, payrollEntries = [] }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ 
+  payments, 
+  payrollEntries = [], 
+  budgets, 
+  onAddBudget, 
+  onDeleteBudget,
+  currentUser 
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Estado para Presupuestos Manuales (Simulado localmente)
-  const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
+  // Estado para Presupuestos Manuales (Eliminado: Usando props)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   
   // Formulario de presupuesto
@@ -229,7 +232,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments, payrollEnt
   }, [selectedDate, payments, budgets]);
 
   // Manejo de creación de presupuesto
-  const handleAddBudget = (e: React.FormEvent) => {
+  const handleAddBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBudget.title || !newBudget.amount) return;
 
@@ -239,20 +242,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments, payrollEnt
     const dateStr = `${year}-${month}-${day}`;
 
     const entry: BudgetEntry = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: `BUD-${Math.random().toString(36).substr(2, 9)}`,
         date: dateStr,
         title: newBudget.title,
         amount: parseFloat(newBudget.amount),
         category: newBudget.category
     };
 
-    setBudgets([...budgets, entry]);
+    await onAddBudget(entry);
     setIsBudgetModalOpen(false);
     setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX }); // Reset
   };
 
-  const handleDeleteBudget = (id: string) => {
-      setBudgets(budgets.filter(b => b.id !== id));
+  const handleDeleteBudget = async (id: string) => {
+      if (confirm('¿Estás seguro de eliminar este presupuesto?')) {
+          await onDeleteBudget(id);
+      }
   };
 
   // Generación de Grid
@@ -598,7 +603,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ payments, payrollEnt
 
         <button 
             onClick={() => setIsBudgetModalOpen(true)}
-            className="mt-6 w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-200 dark:shadow-cyan-900/30 transition-all active:scale-[0.99]"
+            disabled={currentUser?.role !== Role.ADMIN && currentUser?.role !== Role.SUPER_ADMIN}
+            className="mt-6 w-full py-3 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-200 dark:shadow-cyan-900/30 transition-all active:scale-[0.99]"
         >
             <Plus size={20} />
             Cargar Presupuesto
