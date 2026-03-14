@@ -247,6 +247,45 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setDayEvents({ realPayments: real, deadlines: statutory, budgets: dayBudgets });
   }, [selectedDate, payments, budgets]);
 
+  // Cálculo de resumen mensual para comparación de presupuesto
+  const monthlyComparison = React.useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // Filtrar pagos aprobados del mes actual
+    const approvedPayments = payments.filter(p => {
+      const pDate = new Date(p.paymentDate || p.dueDate);
+      return pDate.getFullYear() === year && 
+             pDate.getMonth() === month && 
+             p.status === PaymentStatus.APPROVED;
+    });
+
+    // Filtrar presupuestos del mes actual
+    const monthBudgets = budgets.filter(b => {
+      const bDate = new Date(b.date);
+      return bDate.getFullYear() === year && bDate.getMonth() === month;
+    });
+
+    // Agrupar por categoría
+    const categories = Object.values(Category);
+    return categories.map(cat => {
+      const spent = approvedPayments
+        .filter(p => p.category === cat)
+        .reduce((acc, curr) => acc + curr.amount, 0);
+      
+      const budget = monthBudgets
+        .filter(b => b.category === cat)
+        .reduce((acc, curr) => acc + curr.amount, 0);
+      
+      return {
+        category: cat,
+        spent,
+        budget,
+        isOver: spent > budget && budget > 0
+      };
+    }).filter(item => item.spent > 0 || item.budget > 0);
+  }, [currentDate, payments, budgets]);
+
   // Manejo de creación de presupuesto
   const handleAddBudget = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -732,6 +771,47 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             
+            {/* Sección de Comparativa de Presupuesto Mensual */}
+            {monthlyComparison.length > 0 && (
+                <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4">
+                        <TrendingUp size={12} /> Comparativa Mensual ({months[currentDate.getMonth()]})
+                    </h3>
+                    <div className="space-y-3">
+                        {monthlyComparison.map((item, idx) => (
+                            <div key={idx} className="space-y-1">
+                                <div className="flex justify-between items-center text-[10px] font-bold">
+                                    <span className="text-slate-600 dark:text-slate-400 truncate max-w-[180px]">{item.category}</span>
+                                    <span className={item.isOver ? 'text-red-500' : 'text-slate-500'}>
+                                        {Math.round((item.spent / (item.budget || 1)) * 100)}%
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min((item.spent / (item.budget || 1)) * 100, 100)}%` }}
+                                        className={`h-full rounded-full ${item.isOver ? 'bg-red-500' : 'bg-blue-500'}`}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-[9px] font-mono">
+                                    <span className={item.isOver ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-500'}>
+                                        ${item.spent.toLocaleString()}
+                                    </span>
+                                    <span className="text-slate-400">
+                                        de ${item.budget.toLocaleString()}
+                                    </span>
+                                </div>
+                                {item.isOver && (
+                                    <div className="flex items-center gap-1 text-[8px] text-red-500 font-bold animate-pulse">
+                                        <AlertCircle size={8} /> Exceso: ${(item.spent - item.budget).toLocaleString()}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Sección de Obligaciones Estatutarias y Nómina */}
             {dayEvents.deadlines.length > 0 && (
                 <div className="space-y-3">
