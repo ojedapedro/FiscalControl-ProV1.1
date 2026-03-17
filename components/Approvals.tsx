@@ -221,20 +221,24 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     }
   };
 
-  const getUrgencyDetails = (dueDateStr: string) => {
+  const getUrgencyDetails = (dueDateStr: string, status?: PaymentStatus) => {
       const today = new Date();
       today.setHours(0,0,0,0);
       const due = new Date(dueDateStr + 'T00:00:00');
       const diffTime = due.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      if (diffDays < 0) {
+      const isOverdue = diffDays < 0 || status === PaymentStatus.OVERDUE;
+
+      if (isOverdue) {
           return { 
               label: `Vencido (${Math.abs(diffDays)}d)`, 
               colorClass: 'text-red-600 bg-red-100 border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400',
-              borderClass: 'border-l-4 border-l-red-500',
+              borderClass: 'border-l-4 border-l-red-600',
               textClass: 'text-red-600 dark:text-red-400',
-              icon: <AlertTriangle size={14} />
+              cardBg: 'bg-red-50/50 dark:bg-red-900/10',
+              badge: <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded uppercase font-black tracking-tighter animate-pulse shadow-sm">Crítico</span>,
+              icon: <AlertTriangle size={14} className="animate-bounce" />
           };
       } else if (diffDays === 0) {
           return { 
@@ -469,13 +473,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                  </div>
             ) : (
                 processedPayments.map(payment => {
-                    const urgency = getUrgencyDetails(payment.dueDate);
+                    const urgency = getUrgencyDetails(payment.dueDate, payment.status);
                     
                     return (
                         <div 
                             key={payment.id}
                             onClick={() => setSelectedId(payment.id)}
-                            className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${urgency.borderClass} ${
+                            className={`group relative p-3 rounded-xl border transition-all cursor-pointer hover:shadow-lg ${urgency.borderClass} ${urgency.cardBg || ''} ${
                                 selectedId === payment.id 
                                 ? 'bg-white dark:bg-slate-800 border-blue-500/50 shadow-md ring-1 ring-blue-500/20 z-10' 
                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-600'
@@ -487,6 +491,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                          <span className="text-[10px] font-mono font-bold text-slate-400">{payment.id}</span>
                                          {payment.status === PaymentStatus.UPLOADED ? (
                                              <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1 rounded uppercase font-bold tracking-tight">Nuevo</span>
+                                         ) : payment.status === PaymentStatus.OVERDUE ? (
+                                             urgency.badge || <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded uppercase font-bold tracking-tight">Vencido</span>
                                          ) : (
                                              <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded uppercase font-bold tracking-tight">Pendiente</span>
                                          )}
@@ -562,7 +568,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                 <span>Ref: {selectedPayment.id}</span>
                                 <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                <span className="text-blue-600 dark:text-blue-400 font-medium">Verificando Pago</span>
+                                {selectedPayment.status === PaymentStatus.OVERDUE || (new Date(selectedPayment.dueDate + 'T00:00:00').getTime() < new Date().setHours(0,0,0,0)) ? (
+                                    <span className="text-red-600 dark:text-red-400 font-black uppercase animate-pulse flex items-center gap-1">
+                                        <AlertTriangle size={12} />
+                                        Pago Vencido - Crítico
+                                    </span>
+                                ) : (
+                                    <span className="text-blue-600 dark:text-blue-400 font-medium">Verificando Pago</span>
+                                )}
                             </p>
                         </div>
                     </div>
@@ -575,6 +588,19 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                          </div>
                     </div>
                 </div>
+
+                {/* Banner de Urgencia Crítica */}
+                {(selectedPayment.status === PaymentStatus.OVERDUE || (new Date(selectedPayment.dueDate + 'T00:00:00').getTime() < new Date().setHours(0,0,0,0))) && (
+                    <div className="bg-red-600 text-white px-6 py-2 flex items-center justify-between shadow-lg z-10">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                            <AlertTriangle size={18} className="animate-bounce" />
+                            <span className="tracking-wide">ATENCIÓN: ESTE PAGO ESTÁ VENCIDO Y REQUIERE ACCIÓN INMEDIATA</span>
+                        </div>
+                        <div className="hidden md:flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded border border-white/30">Prioridad Máxima</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Content Scrollable Area */}
                 <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
