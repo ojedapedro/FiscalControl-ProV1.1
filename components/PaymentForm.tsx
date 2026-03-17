@@ -382,6 +382,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   
   const [dueDate, setDueDate] = React.useState(initialData?.dueDate || '');
   const [paymentDate, setPaymentDate] = React.useState(initialData?.paymentDate || new Date().toISOString().split('T')[0]);
+  const [daysToExpire, setDaysToExpire] = React.useState<string>(initialData?.daysToExpire?.toString() || '');
   const [specificType, setSpecificType] = React.useState(initialData?.specificType || '');
   
   // Archivos
@@ -403,6 +404,51 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
 
   const [notes, setNotes] = React.useState(initialData?.notes || '');
+
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      setStore(initialData.storeId || '');
+      setCategory(initialData.category || '');
+      setAmount(initialData.amount?.toString() || '');
+      setExpectedBudget(initialData.originalBudget || null);
+      setDueDate(initialData.dueDate || '');
+      setPaymentDate(initialData.paymentDate || new Date().toISOString().split('T')[0]);
+      setDaysToExpire(initialData.daysToExpire?.toString() || '');
+      setSpecificType(initialData.specificType || '');
+      setPreviewUrl(initialData.receiptUrl || null);
+      setIsOverBudget(initialData.isOverBudget || false);
+      setJustificationNote(initialData.justification || '');
+      setJustificationPreviewUrl(initialData.justificationFileUrl || null);
+      setJustificationConfirmed(!!initialData.justification);
+      setDocDate(initialData.documentDate || '');
+      setDocAmount(initialData.documentAmount?.toString() || '');
+      setDocName(initialData.documentName || '');
+      setNotes(initialData.notes || '');
+    } else {
+      // Reset to defaults for new payment
+      setStore(currentUser?.storeId || '');
+      setCategory('');
+      setAmount('');
+      setExpectedBudget(null);
+      setDueDate('');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setDaysToExpire('');
+      setSpecificType('');
+      setPreviewUrl(null);
+      setIsOverBudget(false);
+      setJustificationNote('');
+      setJustificationPreviewUrl(null);
+      setJustificationConfirmed(false);
+      setDocDate('');
+      setDocAmount('');
+      setDocName('');
+      setNotes('');
+    }
+    setErrors({});
+    setIsManualOverride(false);
+  }, [initialData, currentUser]);
+
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isManualOverride, setIsManualOverride] = React.useState(false);
   
@@ -501,7 +547,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const configMap = getTaxConfig(category);
     const isTaxCategory = !!configMap;
 
-    if (isTaxCategory && configMap && taxGroup) {
+    if (isTaxCategory && configMap && taxGroup && !initialData) {
         const config = configMap[taxGroup];
         if (config) {
             const now = new Date();
@@ -517,7 +563,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             setDueDate(formattedDate);
         }
     }
-  }, [category, taxGroup]);
+  }, [category, taxGroup, initialData]);
+
+  // Sync daysToExpire when dueDate or paymentDate changes
+  React.useEffect(() => {
+    if (dueDate && paymentDate) {
+      const d1 = new Date(paymentDate);
+      const d2 = new Date(dueDate);
+      const diffTime = d2.getTime() - d1.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (daysToExpire !== diffDays.toString()) {
+        setDaysToExpire(diffDays.toString());
+      }
+    }
+  }, [dueDate, paymentDate]);
+
+  // Sync dueDate when daysToExpire changes manually
+  const handleDaysToExpireChange = (val: string) => {
+    setDaysToExpire(val);
+    if (val && paymentDate) {
+      const days = parseInt(val);
+      if (!isNaN(days)) {
+        const d = new Date(paymentDate);
+        d.setDate(d.getDate() + days);
+        const formatted = d.toISOString().split('T')[0];
+        if (dueDate !== formatted) {
+          setDueDate(formatted);
+        }
+      }
+    }
+  };
 
   const isCurrentTaxItemVariable = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -778,6 +853,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             amount: parseFloat(amount),
             dueDate,
             paymentDate,
+            daysToExpire: daysToExpire ? parseInt(daysToExpire) : undefined,
             specificType,
             file,
             notes,
@@ -1295,7 +1371,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             {errors.specificType && <p className="text-red-500 text-xs mt-1 ml-1">{errors.specificType}</p>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             {/* Amount */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monto Total</label>
@@ -1354,22 +1430,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 )}
                             </div>
 
-                            {/* Due Date */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
-                                <div className="relative group">
-                                    <input
-                                        type="date"
-                                        value={dueDate}
-                                        readOnly={!isManualOverride}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        className={`${!isManualOverride ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800'} border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark]`}
-                                    />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                                </div>
-                                {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
-                            </div>
-
                             {/* Payment Date */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha de Pago</label>
@@ -1384,6 +1444,40 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                                 </div>
                                 {errors.paymentDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.paymentDate}</p>}
+                            </div>
+
+                            {/* Days to Expire */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Días a Vencer</label>
+                                <div className="relative group">
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={daysToExpire}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => handleDaysToExpireChange(e.target.value)}
+                                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all"
+                                    />
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1 ml-1">Lapsos de vencimiento</p>
+                            </div>
+
+                            {/* Due Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={dueDate}
+                                        readOnly={!isManualOverride}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => setDueDate(e.target.value)}
+                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] ${!isManualOverride ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                </div>
+                                {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
                             </div>
                         </div>
                     </div>

@@ -794,6 +794,11 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                         <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
                                             <Clock size={14} className="text-slate-400" />
                                             {selectedPayment.dueDate}
+                                            {selectedPayment.daysToExpire !== undefined && (
+                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
+                                                    ({selectedPayment.daysToExpire} días)
+                                                </span>
+                                            )}
                                         </div>
                                      </div>
                                 </div>

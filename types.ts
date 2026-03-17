@@ -71,6 +71,7 @@ export interface Payment {
   amount: number;
   dueDate: string;
   paymentDate?: string;
+  daysToExpire?: number;
   status: PaymentStatus;
   receiptUrl?: string;
   notes?: string;
