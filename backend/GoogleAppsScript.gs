@@ -134,6 +134,32 @@ function handleRequest(e) {
         result = { status: 'success', message: `Reporte generado. Alertas encontradas: ${count}` };
         break;
 
+      // --- NUEVAS ACCIONES DE NOTIFICACIÓN DIRECTA ---
+      case 'sendEmail':
+        if (!data.to || !data.subject || !data.body) {
+          result = { status: 'error', message: 'Faltan datos para el envío de email' };
+        } else {
+          MailApp.sendEmail({
+            to: data.to,
+            subject: data.subject,
+            body: data.body
+          });
+          result = { status: 'success', message: 'Email enviado correctamente' };
+        }
+        break;
+
+      case 'sendWhatsApp':
+        const settings = getSettings(ss);
+        if (!settings || !settings.whatsappEnabled || !settings.whatsappGatewayUrl) {
+          result = { status: 'error', message: 'WhatsApp no está configurado o habilitado' };
+        } else if (!data.to || !data.message) {
+          result = { status: 'error', message: 'Faltan datos para el envío de WhatsApp' };
+        } else {
+          const sent = sendWhatsAppMessage(settings.whatsappGatewayUrl, data.to, data.message);
+          result = sent ? { status: 'success', message: 'WhatsApp enviado' } : { status: 'error', message: 'Error al enviar WhatsApp' };
+        }
+        break;
+
       default:
         result = { status: 'error', message: 'Acción desconocida o petición vacía' };
     }
