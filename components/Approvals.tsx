@@ -55,9 +55,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   
   // --- Checklist State ---
   const [checklist, setChecklist] = React.useState({
-    amountVerified: false,
     receiptValid: false,
-    dateCorrect: false,
     storeConceptMatch: false,
     stampLegible: false
   });
@@ -146,9 +144,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setImageError(false);
     setShowApprovalModal(false); 
     setChecklist({
-      amountVerified: false,
       receiptValid: false,
-      dateCorrect: false,
       storeConceptMatch: false,
       stampLegible: false
     });
@@ -763,10 +759,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </label>
                                 <div className="space-y-3">
                                     {[
-                                        { id: 'amountVerified', label: 'Monto verificado vs Comprobante' },
                                         { id: 'receiptValid', label: 'Comprobante legible y válido' },
                                         { id: 'stampLegible', label: 'Sello legible del soporte de pago' },
-                                        { id: 'dateCorrect', label: 'Fecha de vencimiento correcta' },
                                         { id: 'storeConceptMatch', label: 'Tienda y concepto coinciden' }
                                     ].map((item) => (
                                         <button
