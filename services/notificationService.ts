@@ -75,5 +75,50 @@ export const notificationService = {
     if (settings.emailEnabled && creator.email) {
       await api.sendEmail(creator.email, 'Pago Devuelto - FiscalCtl', message.replace(/\*/g, ''));
     }
+  },
+
+  /**
+   * Notifica un recordatorio de pago próximo a vencer o vencido
+   */
+  notifyPaymentReminder: async (payment: Payment, users: User[], settings: SystemSettings | null) => {
+    if (!settings?.whatsappEnabled && !settings?.emailEnabled) return;
+
+    // Personas involucradas: El creador del pago y los auditores de la tienda
+    const recipients = users.filter(u => 
+      (u.id === payment.userId) || 
+      ((u.role === Role.AUDITOR || u.role === Role.ADMIN || u.role === Role.SUPER_ADMIN) && 
+       (u.storeId === payment.storeId || u.role === Role.SUPER_ADMIN))
+    );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(payment.dueDate + 'T00:00:00');
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    let statusText = '';
+    if (diffDays < 0) {
+      statusText = `⚠️ *VENCIDO* hace ${Math.abs(diffDays)} día(s)`;
+    } else if (diffDays === 0) {
+      statusText = `🚨 *VENCE HOY*`;
+    } else {
+      statusText = `📅 Vence en ${diffDays} día(s)`;
+    }
+
+    const message = `🔔 *RECORDATORIO DE PAGO*\n\n` +
+      `Tienda: ${payment.storeName}\n` +
+      `Concepto: ${payment.specificType}\n` +
+      `Monto: $${payment.amount.toLocaleString()}\n` +
+      `Estado: ${statusText}\n\n` +
+      `Por favor, asegúrese de procesar este pago a la brevedad.`;
+
+    for (const user of recipients) {
+      if (settings.whatsappEnabled && user.phone) {
+        await api.sendWhatsApp(user.phone, message);
+      }
+      if (settings.emailEnabled && user.email) {
+        await api.sendEmail(user.email, 'Recordatorio de Pago - FiscalCtl', message.replace(/\*/g, ''));
+      }
+    }
   }
 };

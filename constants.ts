@@ -166,6 +166,7 @@ export const REPORT_DATA = [
 export const MOCK_ALERTS: AlertItem[] = [
   {
     id: 'AL-001',
+    paymentId: 'P-001',
     storeName: 'TIENDA A',
     category: 'MUNICIPAL',
     title: 'Impuesto Municipal - T3',
@@ -176,6 +177,7 @@ export const MOCK_ALERTS: AlertItem[] = [
   },
   {
     id: 'AL-002',
+    paymentId: 'P-002',
     storeName: 'TIENDA C',
     category: 'ESTATAL',
     title: 'Impuesto Estatal Ventas',
@@ -186,6 +188,7 @@ export const MOCK_ALERTS: AlertItem[] = [
   },
   {
     id: 'AL-003',
+    paymentId: 'P-003',
     storeName: 'TIENDA B',
     category: 'SERVICIOS',
     title: 'Factura Electricidad - Tienda B',
@@ -196,6 +199,7 @@ export const MOCK_ALERTS: AlertItem[] = [
   },
   {
     id: 'AL-004',
+    paymentId: 'P-004',
     storeName: 'ALMACÉN 1',
     category: 'INVENTARIO',
     title: 'Reposición de Inventario',
@@ -206,6 +210,7 @@ export const MOCK_ALERTS: AlertItem[] = [
   },
   {
     id: 'AL-005',
+    paymentId: 'P-005',
     storeName: 'TIENDA A',
     category: 'ALQUILER',
     title: 'Pago de Arrendamiento',

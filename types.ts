@@ -104,6 +104,7 @@ export type AlertSeverity = 'critical' | 'scheduled';
 
 export interface AlertItem {
   id: string;
+  paymentId: string;
   storeName: string;
   category: string;
   title: string;

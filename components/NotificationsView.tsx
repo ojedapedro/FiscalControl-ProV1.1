@@ -16,27 +16,39 @@ import {
   Loader2,
   Save,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Send
 } from 'lucide-react';
-import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus } from '../types';
+import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus, User } from '../types';
 import { api } from '../services/api';
+import { notificationService } from '../services/notificationService';
 
 interface NotificationsViewProps {
   onBack: () => void;
   payments: Payment[]; // Recibe los datos reales
   onManage: (paymentId: string) => void; // Callback para el botón gestionar
   onRefresh?: () => Promise<void> | void; // Callback para actualizar datos
+  users?: User[];
+  settings?: SystemSettings | null;
 }
 
 const ITEMS_PER_PAGE = 6;
 const REFRESH_INTERVAL = 60000; // 60 segundos
 
-export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, payments, onManage, onRefresh }) => {
+export const NotificationsView: React.FC<NotificationsViewProps> = ({ 
+  onBack, 
+  payments, 
+  onManage, 
+  onRefresh,
+  users = [],
+  settings = null
+}) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [notifyingAlertId, setNotifyingAlertId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   
   // Paginación State
@@ -100,6 +112,23 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
       }
   };
 
+  const handleNotifyPerson = async (alert: AlertItem) => {
+    if (!users.length || !settings) return;
+    
+    const payment = payments.find(p => p.id === alert.paymentId);
+    if (!payment) return;
+
+    setNotifyingAlertId(alert.id);
+    try {
+      await notificationService.notifyPaymentReminder(payment, users, settings);
+      // Podríamos mostrar un toast de éxito aquí si tuviéramos un sistema de notificaciones globales
+    } catch (error) {
+      console.error('Error sending manual notification:', error);
+    } finally {
+      setNotifyingAlertId(null);
+    }
+  };
+
   // Generar Alertas dinámicamente basadas en los Pagos reales
   const alerts: AlertItem[] = useMemo(() => {
     const today = new Date();
@@ -138,6 +167,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
 
         return {
             id: p.id,
+            paymentId: p.id,
             storeName: p.storeName,
             category: p.category,
             title: p.specificType,
@@ -666,13 +696,28 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, pa
                                 <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
                                 <span className="text-xs text-slate-400">Monto estimado</span>
                             </div>
-                            <button 
-                                onClick={() => onManage(alert.id)}
-                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <span>Gestionar</span>
-                                <ChevronRight size={16} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => handleNotifyPerson(alert)}
+                                    disabled={notifyingAlertId === alert.id || (!settings?.whatsappEnabled && !settings?.emailEnabled)}
+                                    className="px-4 py-2 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                                    title="Enviar recordatorio por WhatsApp/Email"
+                                >
+                                    {notifyingAlertId === alert.id ? (
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                        <Send size={16} />
+                                    )}
+                                    <span className="hidden sm:inline">Notificar</span>
+                                </button>
+                                <button 
+                                    onClick={() => onManage(alert.id)}
+                                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                                >
+                                    <span>Gestionar</span>
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
