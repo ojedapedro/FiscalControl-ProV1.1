@@ -84,6 +84,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       refreshInterval: 60
   });
 
+  // Sync config with settings prop
+  useEffect(() => {
+    if (settings) {
+      setConfig(settings);
+    }
+  }, [settings]);
+
   // Auto-refresh Timer
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -113,14 +120,14 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   };
 
   const handleNotifyPerson = async (alert: AlertItem) => {
-    if (!users.length || !settings) return;
+    if (!users.length || !config) return;
     
     const payment = payments.find(p => p.id === alert.paymentId);
     if (!payment) return;
 
     setNotifyingAlertId(alert.id);
     try {
-      await notificationService.notifyPaymentReminder(payment, users, settings);
+      await notificationService.notifyPaymentReminder(payment, users, config);
       // Podríamos mostrar un toast de éxito aquí si tuviéramos un sistema de notificaciones globales
     } catch (error) {
       console.error('Error sending manual notification:', error);
@@ -278,6 +285,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
     setIsSaving(true);
     try {
       await api.saveSettings(config);
+      await onRefresh();
       alert('✅ Configuración guardada. Recuerda configurar el activador temporal en Apps Script.');
     } catch (e) {
       alert('❌ Error guardando configuración');
@@ -542,7 +550,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                   <div className="flex flex-col-reverse sm:flex-row gap-4 pt-4">
                        <button 
                         onClick={handleTestNotification}
-                        disabled={isTesting || (!config.whatsappEnabled && !config.pushEnabled)}
+                        disabled={isTesting || (!config.whatsappEnabled && !config.pushEnabled && !config.emailEnabled)}
                         className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                        >
                            {isTesting ? <Loader2 className="animate-spin" size={20} /> : <PlayCircle size={20} />}
@@ -699,7 +707,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => handleNotifyPerson(alert)}
-                                    disabled={notifyingAlertId === alert.id || (!settings?.whatsappEnabled && !settings?.emailEnabled)}
+                                    disabled={notifyingAlertId === alert.id || (!config.whatsappEnabled && !config.emailEnabled)}
                                     className="px-4 py-2 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                                     title="Enviar recordatorio por WhatsApp/Email"
                                 >
