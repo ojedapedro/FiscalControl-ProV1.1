@@ -11,7 +11,7 @@ import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
-import { CloudSync } from './components/CloudSync';
+import { CloudSync } from './components/CloudSync.tsx';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';

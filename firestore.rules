@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: id, name, email, role, avatar, storeId
+    //
+    // Collection: payments
+    // Fields: id, storeId, storeName, userId, category, amount, dueDate, status, history, etc.
+    //
+    // Collection: employees
+    // Fields: id, name, lastName, storeId, baseSalary, isActive, ppeAssignments, etc.
+    //
+    // Collection: payroll
+    // Fields: id, employeeId, storeId, month, baseSalary, status, etc.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario' ||
+         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario' ||
+         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isAuditor() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor';
+    }
+
+    function isPresident() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Presidencia';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // Domain Validators
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['Super Usuario', 'Administrador', 'Auditor', 'Presidencia'];
+    }
+
+    function isValidPayment(data) {
+      return data.amount is number && data.amount >= 0 &&
+             data.category is string &&
+             data.status in ['Pendiente', 'Aprobado', 'Rechazado', 'Vencido', 'Cargado'];
+    }
+
+    function isValidEmployee(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.baseSalary is number && data.baseSalary >= 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isPresident() || isAuditor());
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isSuperAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidPayment(request.resource.data);
+      allow update: if isAuthenticated() && isValidPayment(request.resource.data);
+      allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || isSuperAdmin();
+      allow update: if isAuthenticated() && isValidEmployee(request.resource.data);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /payroll/{payrollId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || isSuperAdmin();
+      allow update: if isAdmin() || isSuperAdmin() || isAuditor() || isPresident();
+      allow delete: if isSuperAdmin();
+    }
+  }
+}

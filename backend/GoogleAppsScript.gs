@@ -363,7 +363,7 @@ function setupDatabase(ss) {
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
     'Users': ['id', 'username', 'role', 'email', 'password'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled'],
-    'Employees': ['id', 'code', 'nationality', 'name', 'lastName', 'age', 'educationLevel', 'position', 'department', 'positionDescription', 'hireDate', 'socialBenefitsDate', 'projectedExitDate', 'email', 'projectAddress', 'directPhone', 'emergencyPhone', 'homeAddress', 'gender', 'wearsGlasses', 'hasCondition', 'height', 'storeId', 'baseSalary', 'isActive', 'bankAccount', 'defaultBonuses', 'defaultDeductions', 'defaultEmployerLiabilities'],
+    'Employees': ['id', 'code', 'nationality', 'name', 'lastName', 'age', 'educationLevel', 'position', 'department', 'positionDescription', 'hireDate', 'socialBenefitsDate', 'projectedExitDate', 'email', 'projectAddress', 'directPhone', 'emergencyPhone', 'homeAddress', 'gender', 'wearsGlasses', 'hasCondition', 'height', 'storeId', 'baseSalary', 'isActive', 'bankAccount', 'defaultBonuses', 'defaultDeductions', 'defaultEmployerLiabilities', 'ppeAssignments'],
     'PayrollEntries': ['id', 'employeeName', 'employeeId', 'month', 'baseSalary', 'bonuses', 'deductions', 'employerLiabilities', 'totalWorkerNet', 'totalEmployerCost', 'status', 'submittedDate']
   };
 
@@ -414,7 +414,7 @@ function getData(ss, sheetName) {
   return data.map(row => {
     let obj = {};
     headers.forEach((header, i) => {
-      if ((header === 'history' || header === 'parts' || header === 'defaultBonuses' || header === 'defaultDeductions' || header === 'defaultEmployerLiabilities' || header === 'bonuses' || header === 'deductions' || header === 'employerLiabilities') && row[i]) {
+      if ((header === 'history' || header === 'parts' || header === 'defaultBonuses' || header === 'defaultDeductions' || header === 'defaultEmployerLiabilities' || header === 'bonuses' || header === 'deductions' || header === 'employerLiabilities' || header === 'ppeAssignments') && row[i]) {
         try {
           obj[header] = JSON.parse(row[i]);
         } catch (e) {
