@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon, 
   Calendar,
   CheckCircle2, 
+  Clock,
   Landmark, 
   AlertOctagon,
   FileText,
@@ -109,6 +110,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<'fiscal' | 'payroll'>('fiscal');
   
   // Estado para Presupuestos Manuales (Eliminado: Usando props)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -359,6 +361,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     for (let day = 1; day <= totalDays; day++) {
       const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const dayString = `${currentDayDate.getFullYear()}-${String(currentDayDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const monthStr = `${currentDayDate.getFullYear()}-${String(currentDayDate.getMonth() + 1).padStart(2, '0')}`;
+      const lastDay = getDaysInMonth(currentDayDate);
       
       const isSelected = selectedDate.toDateString() === currentDayDate.toDateString();
       const isToday = new Date().toDateString() === currentDayDate.toDateString();
@@ -370,6 +374,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       
       const hasOverdue = dayPayments.some(p => p.status === PaymentStatus.OVERDUE);
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
+
+      // Datos de Nómina
+      const isPayrollDay = day === 15 || day === lastDay;
+      const monthPayroll = payrollEntries.filter(e => e.month === monthStr);
+      const payrollStatus = monthPayroll.length > 0 
+        ? (monthPayroll.every(e => e.status === 'PROCESADO') ? 'PROCESADO' : 'PENDIENTE')
+        : 'PENDIENTE';
       
       days.push(
         <div 
@@ -382,10 +393,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="flex justify-between items-start">
             <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
               isToday 
-                ? 'bg-blue-600 text-white' 
-                : isSelected 
-                  ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-900/50' 
-                  : 'text-slate-700 dark:text-slate-300'
+              ? 'bg-blue-600 text-white' 
+              : isSelected 
+                ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-900/50' 
+                : 'text-slate-700 dark:text-slate-300'
             }`}>
               {day}
             </span>
@@ -393,33 +404,56 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Indicadores Visuales */}
           <div className="flex flex-col gap-1 mt-1">
-             {/* Indicadores de Pagos Reales & Presupuestos */}
-            <div className="flex gap-1 flex-wrap">
-                {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
-                {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
-                {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !hasOverdue && !hasPending && 
-                    <div className="w-2 h-2 rounded-full bg-green-500" title="Pagado"></div>
-                }
-                {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
-            </div>
-
-            {/* Indicadores de Reglas Fiscales (Alcaldía y Nómina) */}
-            {dayDeadlines.map((rule, idx) => (
-                <div key={idx} className={`text-[10px] px-1.5 py-0.5 rounded truncate font-medium border flex items-center gap-1 ${
-                  rule.category === Category.PAYROLL 
-                    ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
-                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50'
-                }`}>
-                    <Landmark size={8} />
-                    {rule.title}
+            {viewMode === 'fiscal' ? (
+              <>
+                {/* Indicadores de Pagos Reales & Presupuestos */}
+                <div className="flex gap-1 flex-wrap">
+                    {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
+                    {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
+                    {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !hasOverdue && !hasPending && 
+                        <div className="w-2 h-2 rounded-full bg-green-500" title="Pagado"></div>
+                    }
+                    {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
                 </div>
-            ))}
-            
-            {/* Texto de presupuesto si existe y no hay reglas que ocupen espacio */}
-            {dayBudgets.length > 0 && dayDeadlines.length === 0 && (
-                 <div className="text-[10px] text-cyan-600 dark:text-cyan-400 truncate font-medium px-1">
-                    ${dayBudgets.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} (P)
-                 </div>
+
+                {/* Indicadores de Reglas Fiscales (Alcaldía y Nómina) */}
+                {dayDeadlines.map((rule, idx) => (
+                    <div key={idx} className={`text-[10px] px-1.5 py-0.5 rounded truncate font-medium border flex items-center gap-1 ${
+                      rule.category === Category.PAYROLL 
+                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
+                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50'
+                    }`}>
+                        <Landmark size={8} />
+                        {rule.title}
+                    </div>
+                ))}
+                
+                {/* Texto de presupuesto si existe y no hay reglas que ocupen espacio */}
+                {dayBudgets.length > 0 && dayDeadlines.length === 0 && (
+                    <div className="text-[10px] text-cyan-600 dark:text-cyan-400 truncate font-medium px-1">
+                        ${dayBudgets.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} (P)
+                    </div>
+                )}
+              </>
+            ) : (
+              /* Vista de Nómina */
+              <>
+                {isPayrollDay && (
+                  <div className={`text-[10px] px-1.5 py-1 rounded font-bold border flex items-center gap-1 ${
+                    payrollStatus === 'PROCESADO'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50'
+                      : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
+                  }`}>
+                    {payrollStatus === 'PROCESADO' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                    {day === 15 ? '1ra Qna' : '2da Qna'}
+                  </div>
+                )}
+                {monthPayroll.length > 0 && isPayrollDay && (
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-1 px-1">
+                    ${(monthPayroll.reduce((acc, curr) => acc + curr.totalWorkerNet, 0) / 2).toLocaleString()}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -713,9 +747,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Calendar Grid Section */}
       <div className="flex-1 p-4 lg:p-8 flex flex-col h-full overflow-y-auto no-scrollbar">
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones, pagos y presupuestos.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones, pagos y presupuestos.</p>
+            </div>
+            
+            {/* Toggle de Vista */}
+            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+              <button 
+                onClick={() => setViewMode('fiscal')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'fiscal' 
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
+              >
+                Fiscal
+              </button>
+              <button 
+                onClick={() => setViewMode('payroll')}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'payroll' 
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
+              >
+                Nómina
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
             <button onClick={prevMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
@@ -749,11 +809,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         
         {/* Legend */}
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400 px-2">
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
+            {viewMode === 'fiscal' ? (
+              <>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Nómina Procesada</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Nómina Pendiente</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Fecha de Pago (Quincena)</div>
+              </>
+            )}
         </div>
       </div>
 
@@ -771,6 +841,69 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             
+            {/* Sección de Nómina (Solo en vista Nómina) */}
+            {viewMode === 'payroll' && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign size={12} /> Detalle de Nómina
+                </h3>
+                {(() => {
+                  const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+                  const monthPayroll = payrollEntries.filter(e => e.month === monthStr);
+                  const isPayrollDay = selectedDate.getDate() === 15 || selectedDate.getDate() === getDaysInMonth(selectedDate);
+                  
+                  if (!isPayrollDay && monthPayroll.length === 0) return <p className="text-xs text-slate-400 italic">No hay eventos de nómina para este día.</p>;
+
+                  return (
+                    <div className="space-y-3">
+                      {isPayrollDay && (
+                        <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-bold text-sm text-blue-700 dark:text-blue-300">
+                              {selectedDate.getDate() === 15 ? '1ra Quincena' : '2da Quincena'}
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                              monthPayroll.length > 0 && monthPayroll.every(e => e.status === 'PROCESADO')
+                                ? 'bg-green-200 text-green-800'
+                                : 'bg-orange-200 text-orange-800'
+                            }`}>
+                              {monthPayroll.length > 0 && monthPayroll.every(e => e.status === 'PROCESADO') ? 'PROCESADO' : 'PENDIENTE'}
+                            </span>
+                          </div>
+                          <div className="text-2xl font-black text-slate-800 dark:text-white">
+                            ${(monthPayroll.reduce((acc, curr) => acc + curr.totalWorkerNet, 0) / 2).toLocaleString()}
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">Monto estimado para {monthPayroll.length} trabajadores</p>
+                        </div>
+                      )}
+
+                      {monthPayroll.length > 0 && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                          <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">Trabajadores en Nómina</span>
+                          </div>
+                          <div className="max-h-60 overflow-y-auto">
+                            {monthPayroll.map(emp => (
+                              <div key={emp.id} className="p-3 border-b border-slate-50 dark:border-slate-800 last:border-0 flex justify-between items-center">
+                                <div>
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{emp.employeeName}</p>
+                                  <p className="text-[9px] text-slate-400">{emp.employeeId}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-bold text-slate-800 dark:text-white">${(emp.totalWorkerNet / 2).toLocaleString()}</p>
+                                  <p className={`text-[8px] font-bold ${emp.status === 'PROCESADO' ? 'text-green-500' : 'text-orange-500'}`}>{emp.status}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Sección de Comparativa de Presupuesto Mensual */}
             {monthlyComparison.length > 0 && (
                 <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
