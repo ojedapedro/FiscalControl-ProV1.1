@@ -33,6 +33,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const [newUser, setNewUser] = React.useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     role: Role.ADMIN,
     storeId: currentUser?.storeId || ''
@@ -61,6 +62,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     setNewUser({
       name: user.name,
       email: user.email,
+      phone: user.phone || '',
       password: user.password || '',
       role: user.role,
       storeId: user.storeId || ''
@@ -115,7 +117,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         
         setShowForm(false);
         setEditingUserId(null);
-        setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
+        setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
       } else {
         setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
@@ -160,7 +162,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             setShowForm(!showForm);
             if (showForm) {
               setEditingUserId(null);
-              setNewUser({ name: '', email: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
+              setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '' });
             }
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
@@ -225,6 +227,20 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                   placeholder="usuario@fiscal.com"
                 />
                 <Mail className="absolute left-3 top-3 text-slate-400" size={16} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono (WhatsApp)</label>
+              <div className="relative">
+                <input 
+                  type="tel" 
+                  value={newUser.phone}
+                  onChange={e => setNewUser({...newUser, phone: e.target.value})}
+                  className="w-full p-3 pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="+584120000000"
+                />
+                <Store className="absolute left-3 top-3 text-slate-400" size={16} />
               </div>
             </div>
 

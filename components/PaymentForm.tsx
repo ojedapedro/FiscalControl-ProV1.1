@@ -1470,10 +1470,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <input
                                         type="date"
                                         value={dueDate}
-                                        readOnly={!isManualOverride}
                                         disabled={isSubmitting}
                                         onChange={(e) => setDueDate(e.target.value)}
-                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] ${!isManualOverride ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                                 </div>

@@ -28,7 +28,8 @@ import {
   History,
   ShieldCheck,
   RefreshCw,
-  Download
+  Download,
+  Plus
 } from 'lucide-react';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
@@ -815,54 +816,71 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                             {/* --- HISTORIAL DE AUDITORÍA (TIMELINE) --- */}
                             {selectedPayment.history && selectedPayment.history.length > 0 && (
                                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                            <History size={14} /> Línea de Tiempo del Proceso
-                                        </label>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex flex-col">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <History size={14} className="text-blue-500" />
+                                                Historial de Auditoría
+                                            </label>
+                                            <p className="text-[10px] text-slate-500 mt-1">Trazabilidad completa del registro</p>
+                                        </div>
                                         <button 
                                             onClick={() => handleDownloadAuditPDF(selectedPayment)}
                                             disabled={isExporting}
-                                            className="flex items-center gap-2 text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-bold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all border border-blue-100 dark:border-blue-800 uppercase tracking-wider"
                                         >
-                                            <Download size={12} />
-                                            {isExporting ? 'Exportando...' : 'Exportar Log'}
+                                            <Download size={14} />
+                                            {isExporting ? 'Generando...' : 'Exportar PDF'}
                                         </button>
                                     </div>
                                     
-                                    <div className="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
+                                    <div className="space-y-4">
                                         {selectedPayment.history.map((log, index) => (
-                                            <div key={index} className="relative">
-                                                {/* Punto de la línea de tiempo */}
-                                                <div className={`absolute -left-[21px] mt-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
-                                                    log.action === 'CREACION' ? 'bg-blue-500' :
-                                                    log.action === 'APROBACION' ? 'bg-green-500' :
-                                                    log.action === 'RECHAZO' ? 'bg-red-500' : 'bg-orange-400'
-                                                }`}></div>
+                                            <div key={index} className="group relative flex gap-4 pb-4 last:pb-0">
+                                                {/* Línea conectora */}
+                                                {index !== selectedPayment.history.length - 1 && (
+                                                    <div className="absolute left-[15px] top-[30px] bottom-0 w-[1px] bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors"></div>
+                                                )}
                                                 
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                                            log.action === 'CREACION' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
-                                                            log.action === 'APROBACION' ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
-                                                            log.action === 'RECHAZO' ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' :
-                                                            'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
-                                                        }`}>
+                                                {/* Icono de Acción */}
+                                                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-2 border-white dark:border-slate-900 shadow-sm ${
+                                                    log.action === 'CREACION' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' :
+                                                    log.action === 'APROBACION' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' :
+                                                    log.action === 'RECHAZO' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' :
+                                                    'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'
+                                                }`}>
+                                                    {log.action === 'CREACION' ? <Plus size={14} /> :
+                                                     log.action === 'APROBACION' ? <ShieldCheck size={14} /> :
+                                                     log.action === 'RECHAZO' ? <XCircle size={14} /> :
+                                                     <RefreshCw size={14} />}
+                                                </div>
+
+                                                {/* Contenido del Log */}
+                                                <div className="flex-1 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50 group-hover:border-blue-100 dark:group-hover:border-blue-900/30 transition-all">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className="text-[10px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400">
                                                             {log.action}
                                                         </span>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <UserIcon size={12} className="text-slate-400" />
-                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.actorName}</span>
-                                                            <span className="text-xs text-slate-400">({log.role})</span>
+                                                        <span className="text-[10px] font-mono text-slate-400">
+                                                            {new Date(log.date).toLocaleString([], { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center border border-slate-200 dark:border-slate-600">
+                                                            <UserIcon size={10} className="text-slate-400" />
                                                         </div>
-                                                        {log.note && (
-                                                            <p className="text-xs text-slate-500 mt-1 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg italic">
-                                                                "{log.note}"
-                                                            </p>
-                                                        )}
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{log.actorName}</span>
+                                                        <span className="text-[9px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium">
+                                                            {log.role}
+                                                        </span>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400 whitespace-nowrap">
-                                                        {new Date(log.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                    </div>
+
+                                                    {log.note && (
+                                                        <div className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 italic leading-relaxed">
+                                                            "{log.note}"
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

@@ -11,10 +11,12 @@ import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
+import { CloudSync } from './components/CloudSync';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from './services/api';
+import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
@@ -36,6 +38,8 @@ function App({ isDemoMode = false }: AppProps) {
   const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
     return saved ? Number(saved) : 1;
@@ -50,6 +54,81 @@ function App({ isDemoMode = false }: AppProps) {
   const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+
+  // --- GOOGLE SYNC STATE ---
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    const checkGoogleAuth = async () => {
+      const status = await api.getAuthStatus();
+      setIsGoogleAuthenticated(status.authenticated);
+    };
+    checkGoogleAuth();
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const urlRes = await fetch('/api/auth/google/url');
+      const { url } = await urlRes.json();
+      window.location.href = url;
+    } catch (e) {
+      setNotification('❌ Error al conectar con Google');
+    }
+  };
+
+  const handlePushSync = async () => {
+    if (!isGoogleAuthenticated) return;
+    setIsSyncing(true);
+    try {
+      const appState = {
+        payments,
+        payrollEntries,
+        employees,
+        budgets,
+        exchangeRate
+      };
+      const res = await api.pushSync(appState);
+      if (res.success) {
+        setNotification('✅ Datos sincronizados con Google Drive');
+      } else {
+        setNotification('❌ Error al sincronizar: ' + res.error);
+      }
+    } catch (e) {
+      setNotification('❌ Error de red al sincronizar');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handlePullSync = async () => {
+    if (!isGoogleAuthenticated) return;
+    if (!confirm("¿Deseas cargar los datos desde Google Drive? Esto reemplazará los datos actuales.")) return;
+    setIsSyncing(true);
+    try {
+      const res = await api.pullSync();
+      if (res.success && res.data) {
+        const data = res.data;
+        if (data.payments) setPayments(data.payments);
+        if (data.payrollEntries) setPayrollEntries(data.payrollEntries);
+        if (data.employees) setEmployees(data.employees);
+        if (data.budgets) setBudgets(data.budgets);
+        if (data.exchangeRate) {
+          setExchangeRate(data.exchangeRate);
+          setExchangeRateInput(data.exchangeRate);
+        }
+        setNotification('✅ Datos recuperados de Google Drive');
+      } else {
+        setNotification('❌ No se encontraron datos o error: ' + res.error);
+      }
+    } catch (e) {
+      setNotification('❌ Error de red al recuperar datos');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
 
   // --- MOBILE & PWA STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -358,23 +437,26 @@ function App({ isDemoMode = false }: AppProps) {
         ];
         setPayrollEntries(mockPayroll);
       } else {
-        const [data, employeesData, payrollData, budgetsData, settings] = await Promise.all([
+        const [data, employeesData, payrollData, budgetsData, settingsData, usersData] = await Promise.all([
           api.getPayments(),
           api.getEmployees(),
           api.getPayrollEntries(),
           api.getBudgets(),
-          api.getSettings()
+          api.getSettings(),
+          api.getUsers()
         ]);
 
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
         setEmployees(employeesData);
         setPayrollEntries(payrollData.sort((a: any, b: any) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
         setBudgets(budgetsData);
+        setSettings(settingsData);
+        setUsers(usersData);
 
-        if (settings && settings.exchangeRate) {
-          setExchangeRate(settings.exchangeRate);
-          setExchangeRateInput(settings.exchangeRate);
-          localStorage.setItem('fiscal_exchange_rate', settings.exchangeRate.toString());
+        if (settingsData && settingsData.exchangeRate) {
+          setExchangeRate(settingsData.exchangeRate);
+          setExchangeRateInput(settingsData.exchangeRate);
+          localStorage.setItem('fiscal_exchange_rate', settingsData.exchangeRate.toString());
         }
       }
     } catch (error) {
@@ -456,6 +538,7 @@ function App({ isDemoMode = false }: AppProps) {
       amount: paymentData.amount,
       dueDate: paymentData.dueDate,
       paymentDate: paymentData.paymentDate,
+      daysToExpire: paymentData.daysToExpire,
       status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
       submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       notes: paymentData.notes,
@@ -483,6 +566,9 @@ function App({ isDemoMode = false }: AppProps) {
             if (!isDemoMode) await api.createPayment(paymentToSave);
             setPayments(prev => [paymentToSave, ...prev]);
             setNotification('✅ Pago guardado en Google Sheets.');
+            
+            // Notificar a involucrados (Auditores/Admins)
+            notificationService.notifyNewPayment(paymentToSave, users, settings);
         }
         setIsFormOpen(false);
         setEditingPayment(null);
@@ -502,8 +588,21 @@ function App({ isDemoMode = false }: AppProps) {
         let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
         const notes = [];
 
+        let newDaysToExpire = paymentToUpdate.daysToExpire;
+
         if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
             notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
+            
+            // Recalcular daysToExpire si cambia la fecha de vencimiento
+            if (paymentToUpdate.paymentDate) {
+                const d1 = new Date(paymentToUpdate.paymentDate);
+                const d2 = new Date(newDueDate);
+                const diffTime = d2.getTime() - d1.getTime();
+                newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
+                    notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
+                }
+            }
         }
 
         if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
@@ -522,10 +621,11 @@ function App({ isDemoMode = false }: AppProps) {
             note: actionNote
         };
 
-        const updatedPayment = {
+        const updatedPayment: Payment = {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
             dueDate: newDueDate || paymentToUpdate.dueDate,
+            daysToExpire: newDaysToExpire,
             originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
         };
@@ -538,6 +638,9 @@ function App({ isDemoMode = false }: AppProps) {
             if (!isDemoMode) await api.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
+
+            // Notificar al creador del pago
+            notificationService.notifyPaymentApproved(updatedPayment, users, settings);
         } catch (error) {
             setNotification('❌ Error sincronizando aprobación.');
         } finally {
@@ -618,6 +721,9 @@ function App({ isDemoMode = false }: AppProps) {
             if (!isDemoMode) await api.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Rechazado y Sincronizado`);
+
+            // Notificar al creador del pago
+            notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
 
             // Enviar Notificación Push
             if (pushPermission === 'granted') {
@@ -911,32 +1017,13 @@ function App({ isDemoMode = false }: AppProps) {
                    </div>
                 </div>
 
-                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
-                       <Building2 size={20} /> Conexión Google Drive
-                   </h3>
-                   <p className="text-sm text-slate-400 mb-4">
-                       Hoja conectada: <strong>FiscalCtl Server</strong>
-                   </p>
-                   <div className="flex flex-wrap gap-4">
-                       <button 
-                            onClick={loadData}
-                            disabled={isLoading}
-                            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                        >
-                            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                            Sincronizar Datos
-                       </button>
-                       <button 
-                            onClick={handleSetupDatabase}
-                            disabled={isLoading}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                        >
-                            <Building2 size={16} />
-                            Inicializar Tablas en Drive
-                       </button>
-                   </div>
-                </div>
+                <CloudSync 
+                    isAuthenticated={isGoogleAuthenticated}
+                    isSyncing={isSyncing}
+                    onLogin={handleGoogleLogin}
+                    onPush={handlePushSync}
+                    onPull={handlePullSync}
+                />
 
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
