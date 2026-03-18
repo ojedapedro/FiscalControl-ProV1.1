@@ -9,6 +9,20 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwgYiuOojnTJKpIHFhZZdRf
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
 
+const safeJSONParse = (val: any, fallback: any = []) => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    if (!val.trim()) return fallback;
+    try {
+      return JSON.parse(val);
+    } catch (e) {
+      console.warn('Error parsing JSON:', val);
+      return fallback;
+    }
+  }
+  return fallback;
+};
+
 export const api = {
   // Inicializar estructura de hojas
   setupDatabase: async () => {
@@ -144,7 +158,7 @@ export const api = {
         ...p,
         amount: Number(p.amount),
         // Manejo robusto del historial (puede venir como string JSON o array)
-        history: Array.isArray(p.history) ? p.history : (typeof p.history === 'string' ? JSON.parse(p.history) : [])
+        history: safeJSONParse(p.history)
       }));
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -215,10 +229,10 @@ export const api = {
         age: Number(e.age || 0),
         baseSalary: Number(e.baseSalary || 0),
         isActive: e.isActive === true || e.isActive === 'true' || e.isActive === 'TRUE',
-        defaultBonuses: Array.isArray(e.defaultBonuses) ? e.defaultBonuses : (typeof e.defaultBonuses === 'string' ? JSON.parse(e.defaultBonuses) : []),
-        defaultDeductions: Array.isArray(e.defaultDeductions) ? e.defaultDeductions : (typeof e.defaultDeductions === 'string' ? JSON.parse(e.defaultDeductions) : []),
-        defaultEmployerLiabilities: Array.isArray(e.defaultEmployerLiabilities) ? e.defaultEmployerLiabilities : (typeof e.defaultEmployerLiabilities === 'string' ? JSON.parse(e.defaultEmployerLiabilities) : []),
-        ppeAssignments: Array.isArray(e.ppeAssignments) ? e.ppeAssignments : (typeof e.ppeAssignments === 'string' ? JSON.parse(e.ppeAssignments) : [])
+        defaultBonuses: safeJSONParse(e.defaultBonuses),
+        defaultDeductions: safeJSONParse(e.defaultDeductions),
+        defaultEmployerLiabilities: safeJSONParse(e.defaultEmployerLiabilities),
+        ppeAssignments: safeJSONParse(e.ppeAssignments)
       }));
     } catch (e) {
       console.error("Error fetching employees", e);
@@ -283,9 +297,9 @@ export const api = {
         baseSalary: Number(entry.baseSalary || 0),
         totalWorkerNet: Number(entry.totalWorkerNet || 0),
         totalEmployerCost: Number(entry.totalEmployerCost || 0),
-        bonuses: Array.isArray(entry.bonuses) ? entry.bonuses : (typeof entry.bonuses === 'string' ? JSON.parse(entry.bonuses) : []),
-        deductions: Array.isArray(entry.deductions) ? entry.deductions : (typeof entry.deductions === 'string' ? JSON.parse(entry.deductions) : []),
-        employerLiabilities: Array.isArray(entry.employerLiabilities) ? entry.employerLiabilities : (typeof entry.employerLiabilities === 'string' ? JSON.parse(entry.employerLiabilities) : [])
+        bonuses: safeJSONParse(entry.bonuses),
+        deductions: safeJSONParse(entry.deductions),
+        employerLiabilities: safeJSONParse(entry.employerLiabilities)
       }));
     } catch (e) {
       console.error("Error fetching payroll entries", e);
