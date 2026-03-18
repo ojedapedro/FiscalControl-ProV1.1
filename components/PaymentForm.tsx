@@ -26,6 +26,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User } from '../types';
+import { formatDate } from '../utils';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -1079,7 +1080,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             <div className="flex-1 p-6 md:p-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Motivo de la Devolución</h3>
-                <span className="text-[10px] text-slate-400 font-mono">{new Date().toLocaleDateString()}</span>
+                <span className="text-[10px] text-slate-400 font-mono">{formatDate(new Date())}</span>
               </div>
               <div className="relative">
                 <div className="absolute -left-4 top-0 bottom-0 w-1 bg-red-500 rounded-full opacity-20"></div>

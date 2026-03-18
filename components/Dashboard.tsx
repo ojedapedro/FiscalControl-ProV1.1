@@ -20,6 +20,7 @@ import {
   Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
+import { formatDate } from '../utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface DashboardProps {
@@ -53,7 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
     doc.setFontSize(18);
     doc.text("Balance de Gestión Fiscal", 14, 20);
     doc.setFontSize(10);
-    doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+    doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
     doc.text(`Total de Pagos: ${payments.length}`, 14, 35);
     
     const grandTotal = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -97,7 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
         y += 6;
 
         const tableData = subPayments.map(p => [
-          new Date(p.submittedDate || p.dueDate).toLocaleDateString(),
+          formatDate(p.submittedDate || p.dueDate),
           p.storeName,
           `$${p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           p.status
@@ -420,7 +421,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">{payment.specificType}</h4>
-                    <p className="text-[10px] text-slate-500">{payment.storeName} • {new Date(payment.submittedDate).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-slate-500">{payment.storeName} • {formatDate(payment.submittedDate)}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -494,7 +495,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {payment.dueDate}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {formatDate(payment.dueDate)}</p>
                   </div>
                 </div>
                   <div className="flex flex-col items-end gap-1 w-full sm:w-auto">

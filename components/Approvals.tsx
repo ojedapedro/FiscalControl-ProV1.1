@@ -3,6 +3,7 @@ import React from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Payment, PaymentStatus, Role, User } from '../types';
+import { formatDate, formatDateTime } from '../utils';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -85,10 +86,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
         doc.text(`Tienda: ${payment.storeName}`, 14, 30);
         doc.text(`Concepto: ${payment.specificType}`, 14, 35);
         doc.text(`Monto: $${payment.amount.toLocaleString()}`, 14, 40);
-        doc.text(`Fecha de Generación: ${new Date().toLocaleString()}`, 14, 45);
+        doc.text(`Fecha de Generación: ${formatDateTime(new Date())}`, 14, 45);
 
         const tableData = payment.history.map(log => [
-            new Date(log.date).toLocaleString(),
+            formatDateTime(log.date),
             log.action,
             log.actorName,
             log.role,
@@ -305,7 +306,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Registrada</label>
                           <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                               <span className="font-mono text-slate-500 dark:text-slate-400 strike-through decoration-slate-400">
-                                  {selectedPayment.dueDate}
+                                  {formatDate(selectedPayment.dueDate)}
                               </span>
                               {isDateModified && (
                                 <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
@@ -525,7 +526,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     <span>{urgency.label}</span>
                                 </div>
                                 <div className="text-[10px] text-slate-400 font-medium">
-                                    Vence: {payment.dueDate}
+                                    Vence: {formatDate(payment.dueDate)}
                                 </div>
                             </div>
                         </div>
@@ -579,7 +580,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                          <div className="text-right hidden sm:block">
                             <p className="text-[10px] text-slate-400 uppercase font-bold">Fecha de Carga</p>
                             <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                {new Date(selectedPayment.submittedDate).toLocaleString()}
+                                {formatDateTime(selectedPayment.submittedDate)}
                             </p>
                          </div>
                     </div>
@@ -763,18 +764,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
+                                                 <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
                                         <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
                                             <Calendar size={14} className="text-slate-400" />
-                                            {selectedPayment.paymentDate}
+                                            {formatDate(selectedPayment.paymentDate)}
                                         </div>
                                      </div>
                                      <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
                                         <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
                                             <Clock size={14} className="text-slate-400" />
-                                            {selectedPayment.dueDate}
+                                            {formatDate(selectedPayment.dueDate)}
                                             {selectedPayment.daysToExpire !== undefined && (
                                                 <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
                                                     ({selectedPayment.daysToExpire} días)
@@ -882,7 +882,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                             {log.action}
                                                         </span>
                                                         <span className="text-[10px] font-mono text-slate-400">
-                                                            {new Date(log.date).toLocaleString([], { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                            {formatDateTime(log.date)}
                                                         </span>
                                                     </div>
                                                     

@@ -39,6 +39,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PayrollEntry, Employee, PPEAssignment } from '../types';
+import { formatDate } from '../utils';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { PPEModal } from './PPEModal';
@@ -392,7 +393,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         entry.totalWorkerNet.toFixed(2),
         entry.totalEmployerCost.toFixed(2),
         `"${entry.status}"`,
-        `"${new Date(entry.submittedDate).toLocaleDateString()}"`
+        `"${formatDate(entry.submittedDate)}"`
       ];
     });
 
@@ -700,7 +701,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const handleExportPpeCSV = () => {
     const data = allPpeAssignments.map(item => ({
-      Fecha: new Date(item.assignment.date).toLocaleDateString(),
+      Fecha: formatDate(item.assignment.date),
       Trabajador: item.employeeName,
       ID: item.employeeId,
       Tienda: STORES.find(s => s.id === item.storeId)?.name || 'N/A',
@@ -723,10 +724,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Fecha de reporte: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Fecha de reporte: ${formatDate(new Date())}`, 14, 30);
     
     const tableData = allPpeAssignments.map(item => [
-      new Date(item.assignment.date).toLocaleDateString(),
+      formatDate(item.assignment.date),
       item.employeeName,
       STORES.find(s => s.id === item.storeId)?.name || 'N/A',
       item.assignment.items.map(ppe => `${ppe.cantidad}x ${ppe.name}`).join(', '),
@@ -1628,7 +1629,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     allPpeAssignments.map((item) => (
                       <tr key={item.assignment.id} className="hover:bg-slate-800/30 transition-colors group">
                         <td className="px-6 py-4 text-slate-300 font-medium">
-                          {new Date(item.assignment.date).toLocaleDateString()}
+                          {formatDate(item.assignment.date)}
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-white">{item.employeeName}</div>
@@ -2790,7 +2791,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <div key={assignment.id} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                           <div className="flex justify-between items-center mb-3">
                             <div className="text-sm font-bold text-white">
-                              Asignación del {new Date(assignment.date).toLocaleDateString('es-VE')}
+                              Asignación del {formatDate(assignment.date)}
                             </div>
                             <div className="text-sm font-mono font-bold text-amber-400">
                               Total: ${assignment.totalCost.toFixed(2)}
@@ -2864,7 +2865,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Registro</p>
-                    <p className="text-lg font-bold text-white">{new Date(viewingEntry.submittedDate).toLocaleDateString()}</p>
+                    <p className="text-lg font-bold text-white">{formatDate(viewingEntry.submittedDate)}</p>
                     <p className="text-sm text-slate-400">{new Date(viewingEntry.submittedDate).toLocaleTimeString()}</p>
                   </div>
                 </div>

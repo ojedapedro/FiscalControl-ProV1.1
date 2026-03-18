@@ -21,6 +21,7 @@ import {
   Legend
 } from 'recharts';
 import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry } from '../types';
+import { formatDate, formatDateTime } from '../utils';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
@@ -407,14 +408,14 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
         
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
         doc.text(`Eventos Totales: ${allAuditLogs.length}`, 14, 35);
 
         doc.setDrawColor(200, 200, 200);
         doc.line(14, 40, 196, 40);
         
         const tableData = allAuditLogs.map(log => [
-            new Date(log.date).toLocaleString(),
+            formatDateTime(log.date),
             log.action,
             log.actorName,
             log.role,
@@ -505,8 +506,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
       `"${p.storeName}"`,
       `"${p.specificType}"`,
       p.amount,
-      p.dueDate,
-      p.paymentDate || '',
+      formatDate(p.dueDate),
+      formatDate(p.paymentDate || ''),
       p.status,
       `"${p.notes || ''}"`,
       p.originalBudget || '',
@@ -552,8 +553,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
         
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
-        doc.text(`Período: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`, 14, 35);
+        doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Período: ${formatDate(startDate)} - ${formatDate(endDate)}`, 14, 35);
 
         doc.setDrawColor(200, 200, 200);
         doc.line(14, 40, 196, 40);
@@ -573,7 +574,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
         
         const tableData = filteredPayments
             .map(p => [
-                new Date(p.submittedDate || p.dueDate).toLocaleDateString(),
+                formatDate(p.submittedDate || p.dueDate),
                 p.storeName,
                 p.specificType,
                 `$${p.amount.toLocaleString()}`,
@@ -1166,7 +1167,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate max-w-[150px] text-slate-400">{log.storeName} - {log.specificType}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                                <span>{new Date(log.date).toLocaleString()}</span>
+                                                <span>{formatDateTime(log.date)}</span>
                                             </div>
                                             {log.note && (
                                                 <div className="text-[10px] italic text-slate-500 mt-1 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800">

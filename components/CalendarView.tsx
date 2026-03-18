@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
+import { formatDate } from '../utils';
 
 interface CalendarViewProps {
   payments: Payment[];
@@ -689,7 +690,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <label className="block text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Fecha Seleccionada</label>
                           <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-200 text-sm font-medium flex items-center gap-2">
                               <CalendarIcon size={16} />
-                              {selectedDate.toLocaleDateString()}
+                              {formatDate(selectedDate)}
                           </div>
                       </div>
                       

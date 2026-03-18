@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, FileDown, ShieldCheck, Calculator, Save } from 'lucide-react';
 import { Employee, PPEItemData, PPEAssignment } from '../types';
+import { formatDate } from '../utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -102,11 +103,7 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave })
     doc.text('SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO', pageWidth / 2, 32, { align: 'center' });
 
     // Date and Document Info
-    const today = new Date().toLocaleDateString('es-VE', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
+    const today = formatDate(new Date());
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(`Fecha de Emisión: ${today}`, pageWidth - 15, 48, { align: 'right' });
