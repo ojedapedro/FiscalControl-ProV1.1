@@ -70,12 +70,41 @@ function App({ isDemoMode = false }: AppProps) {
   const handleGoogleLogin = async () => {
     try {
       const urlRes = await fetch('/api/auth/google/url');
-      const { url } = await urlRes.json();
-      window.location.href = url;
+      const data = await urlRes.json();
+      
+      if (!urlRes.ok) {
+        setNotification(`❌ Error: ${data.error || 'No se pudo generar la URL de autenticación'}`);
+        return;
+      }
+
+      const authWindow = window.open(
+        data.url,
+        'oauth_popup',
+        'width=600,height=700'
+      );
+
+      if (!authWindow) {
+        setNotification('⚠️ Por favor permite las ventanas emergentes (popups) para iniciar sesión con Google.');
+      }
     } catch (e) {
       setNotification('❌ Error al conectar con Google');
     }
   };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+        return;
+      }
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        setIsGoogleAuthenticated(true);
+        setNotification('✅ Autenticación con Google exitosa');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const handlePushSync = async () => {
     if (!isGoogleAuthenticated) return;

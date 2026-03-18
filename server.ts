@@ -26,30 +26,42 @@ async function startServer() {
     }
   }));
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.APP_URL}/auth/google/callback`
-  );
+  const getOAuth2Client = () => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('Faltan las credenciales de Google (GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET) en las variables de entorno.');
+    }
+    return new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      `${process.env.APP_URL}/auth/google/callback`
+    );
+  };
 
   const SPREADSHEET_ID = '1EaYm-kbgFciU2ZFIJk5B8rLb9y07hZEDbGKIiElLbd8';
 
   // Auth Routes
   app.get('/api/auth/google/url', (req, res) => {
-    const url = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file'
-      ],
-      prompt: 'consent'
-    });
-    res.json({ url });
+    try {
+      const oauth2Client = getOAuth2Client();
+      const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: [
+          'https://www.googleapis.com/auth/spreadsheets',
+          'https://www.googleapis.com/auth/drive.file'
+        ],
+        prompt: 'consent'
+      });
+      res.json({ url });
+    } catch (error: any) {
+      console.error('Error generating auth URL:', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
     try {
+      const oauth2Client = getOAuth2Client();
       const { tokens } = await oauth2Client.getToken(code as string);
       // Store tokens in session or database
       // For this demo, we'll use session
@@ -84,12 +96,12 @@ async function startServer() {
     const tokens = (req.session as any).tokens;
     if (!tokens) return res.status(401).json({ error: 'No autenticado' });
 
-    oauth2Client.setCredentials(tokens);
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
-
-    const { data } = req.body; // Expecting { payments: [], budgets: [], employees: [], ... }
-    
     try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials(tokens);
+      const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+      const { data } = req.body; // Expecting { payments: [], budgets: [], employees: [], ... }
       // 1. Store the entire state as a JSON string in 'App_Data!A1'
       // First, ensure 'App_Data' sheet exists
       const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
@@ -171,10 +183,11 @@ async function startServer() {
     const tokens = (req.session as any).tokens;
     if (!tokens) return res.status(401).json({ error: 'No autenticado' });
 
-    oauth2Client.setCredentials(tokens);
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
-
     try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials(tokens);
+      const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'App_Data!A1',
