@@ -751,6 +751,40 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                 </div>
                             )}
 
+                            {/* Detalles Principales */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concepto de Pago</label>
+                                    <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{selectedPayment.specificType}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-medium">
+                                            {selectedPayment.category}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                     <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
+                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
+                                            <Calendar size={14} className="text-slate-400" />
+                                            {selectedPayment.paymentDate}
+                                        </div>
+                                     </div>
+                                     <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
+                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
+                                            <Clock size={14} className="text-slate-400" />
+                                            {selectedPayment.dueDate}
+                                            {selectedPayment.daysToExpire !== undefined && (
+                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
+                                                    ({selectedPayment.daysToExpire} días)
+                                                </span>
+                                            )}
+                                        </div>
+                                     </div>
+                                </div>
+                            </div>
+
                             {/* Checklist de Auditoría */}
                             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -789,40 +823,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                         Complete todos los puntos para habilitar la aprobación.
                                     </p>
                                 )}
-                            </div>
-
-                            {/* Detalles Principales */}
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concepto de Pago</label>
-                                    <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{selectedPayment.specificType}</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-medium">
-                                            {selectedPayment.category}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
-                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
-                                            <Calendar size={14} className="text-slate-400" />
-                                            {selectedPayment.paymentDate}
-                                        </div>
-                                     </div>
-                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
-                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
-                                            <Clock size={14} className="text-slate-400" />
-                                            {selectedPayment.dueDate}
-                                            {selectedPayment.daysToExpire !== undefined && (
-                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
-                                                    ({selectedPayment.daysToExpire} días)
-                                                </span>
-                                            )}
-                                        </div>
-                                     </div>
-                                </div>
                             </div>
 
                             {/* Notas */}
