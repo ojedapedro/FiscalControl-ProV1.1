@@ -22,7 +22,7 @@ import {
 } from 'recharts';
 import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry, PayrollEntry, Employee } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator, ShieldCheck } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -155,7 +155,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
 };
 
 export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntries, employees, currentUser }) => {
-  const [activeReport, setActiveReport] = React.useState<'financial' | 'labor'>('financial');
+  const [activeReport, setActiveReport] = React.useState<'financial' | 'labor' | 'auditor'>('financial');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
 
@@ -447,6 +447,14 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
     return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredPayments]);
 
+  const auditorActivity = React.useMemo(() => {
+    return allAuditLogs.filter(log => 
+      log.action === 'APROBACION' || 
+      log.action === 'RECHAZO' || 
+      log.action === 'APROBACION_MASIVA'
+    );
+  }, [allAuditLogs]);
+
   const handleDownloadAuditPDF = async () => {
     setIsGeneratingPdf(true);
     await new Promise(r => setTimeout(r, 100));
@@ -516,6 +524,105 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
     } finally {
         setIsGeneratingPdf(false);
     }
+  };
+
+  const handleDownloadAuditorActivityPDF = async () => {
+    setIsGeneratingPdf(true);
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const logoData = await getDataUrl(APP_LOGO_URL);
+        const doc = new jsPDF();
+        
+        if (logoData) {
+            try {
+                doc.addImage(logoData, 'PNG', 14, 10, 15, 15);
+            } catch (e) {
+                console.warn("Error adding image to PDF:", e);
+            }
+        }
+
+        doc.setFontSize(20);
+        doc.text("Reporte de Actividad de Auditores", logoData ? 35 : 14, 20); 
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
+        doc.text(`Acciones Registradas: ${auditorActivity.length}`, 14, 35);
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 40, 196, 40);
+        
+        const tableData = auditorActivity.map(log => [
+            formatDateTime(log.date),
+            log.action,
+            log.actorName,
+            log.role,
+            `${log.storeName} - ${log.specificType} ($${log.amount.toLocaleString()})`,
+            log.note || '-'
+        ]);
+
+        autoTable(doc, {
+            startY: 45,
+            head: [['Fecha/Hora', 'Acción', 'Auditor', 'Rol', 'Referencia', 'Nota']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [147, 51, 234] }, // Purple for auditor activity
+            styles: { fontSize: 7 },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 40 },
+                5: { cellWidth: 'auto' }
+            }
+        });
+
+        const pageCount = doc.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`FiscalCtl Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+        }
+
+        doc.save(`Actividad_Auditores_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (error) {
+        console.error("Error generando PDF de actividad de auditores:", error);
+        alert("Ocurrió un error al generar el PDF. Revise la consola.");
+    } finally {
+        setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadAuditorActivityCSV = () => {
+    const headers = ['Fecha/Hora', 'Accion', 'Usuario', 'Rol', 'Referencia', 'Monto ($)', 'Nota'];
+    const rows = auditorActivity.map(log => [
+      formatDateTime(log.date),
+      log.action,
+      log.actorName,
+      log.role,
+      `${log.storeName} - ${log.specificType}`,
+      log.amount,
+      log.note || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Actividad_Auditores_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
@@ -835,19 +942,19 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         >
                             <div className="p-1">
                                 <button 
-                                    onClick={activeReport === 'financial' ? handleDownloadPDF : handleDownloadLaborPDF}
+                                    onClick={activeReport === 'financial' ? handleDownloadPDF : activeReport === 'labor' ? handleDownloadLaborPDF : handleDownloadAuditorActivityPDF}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
                                 >
-                                    <div className={`p-1.5 ${activeReport === 'financial' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'} rounded-lg`}>
+                                    <div className={`p-1.5 ${activeReport === 'financial' ? 'bg-red-500/10 text-red-400' : activeReport === 'labor' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-purple-500/10 text-purple-400'} rounded-lg`}>
                                         <FileText size={16} />
                                     </div>
                                     Exportar como PDF
                                 </button>
                                 <button 
-                                    onClick={activeReport === 'financial' ? handleDownloadCSV : handleDownloadLaborCSV}
+                                    onClick={activeReport === 'financial' ? handleDownloadCSV : activeReport === 'labor' ? handleDownloadLaborCSV : handleDownloadAuditorActivityCSV}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
                                 >
-                                    <div className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                                    <div className={`p-1.5 ${activeReport === 'financial' ? 'bg-emerald-500/10 text-emerald-400' : activeReport === 'labor' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'} rounded-lg`}>
                                         <FileSpreadsheet size={16} />
                                     </div>
                                     Exportar como CSV
@@ -883,6 +990,17 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         >
           <Users size={18} />
           <span>Pasivos Laborales</span>
+        </button>
+        <button
+          onClick={() => setActiveReport('auditor')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
+            activeReport === 'auditor'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
+          }`}
+        >
+          <ShieldCheck size={18} />
+          <span>Actividad de Auditores</span>
         </button>
       </div>
 
@@ -1358,7 +1476,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           </motion.div>
       </div>
         </>
-      ) : (
+      ) : activeReport === 'labor' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Labor KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1518,6 +1636,74 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     <tr>
                       <td colSpan={5} className="p-20 text-center text-slate-500 italic">
                         No se encontraron registros de pasivos laborales para los filtros seleccionados.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Auditor Activity Table */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 border-b border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+                Actividad de Auditores (Aprobaciones y Rechazos)
+              </h3>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                {auditorActivity.length} Acciones Registradas
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/50">
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha y Hora</th>
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Auditor</th>
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Acción</th>
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pago / Tienda</th>
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
+                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nota</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {auditorActivity.map((log, idx) => (
+                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="p-4 text-sm font-medium text-slate-300">{formatDateTime(log.date)}</td>
+                      <td className="p-4">
+                        <div className="font-bold text-white">{log.actorName}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">{log.role}</div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
+                          log.action === 'RECHAZO' 
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm font-bold text-white">{log.specificType}</div>
+                        <div className="text-xs text-slate-500">{log.storeName} ({log.paymentId})</div>
+                      </td>
+                      <td className="p-4 text-sm font-bold text-white text-right font-mono">${log.amount.toLocaleString()}</td>
+                      <td className="p-4 text-xs text-slate-400 italic max-w-xs truncate" title={log.note}>
+                        {log.note || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  {auditorActivity.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-20 text-center text-slate-500 italic">
+                        No se encontraron acciones de auditoría para los filtros seleccionados.
                       </td>
                     </tr>
                   )}
