@@ -57,8 +57,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
   // --- Checklist State ---
   const [checklist, setChecklist] = React.useState({
     receiptValid: false,
+    stampLegible: false,
     storeConceptMatch: false,
-    stampLegible: false
+    datesApproved: false,
+    proposedDatesApproved: false,
+    amountsApproved: false,
+    proposedAmountApproved: false,
+    observationsApproved: false
   });
 
   const isChecklistComplete = Object.values(checklist).every(val => val === true);
@@ -146,8 +151,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
     setShowApprovalModal(false); 
     setChecklist({
       receiptValid: false,
+      stampLegible: false,
       storeConceptMatch: false,
-      stampLegible: false
+      datesApproved: false,
+      proposedDatesApproved: false,
+      amountsApproved: false,
+      proposedAmountApproved: false,
+      observationsApproved: false
     });
   }, [selectedId]);
 
@@ -796,7 +806,12 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     {[
                                         { id: 'receiptValid', label: 'Comprobante legible y válido' },
                                         { id: 'stampLegible', label: 'Sello legible del soporte de pago' },
-                                        { id: 'storeConceptMatch', label: 'Tienda y concepto coinciden' }
+                                        { id: 'storeConceptMatch', label: 'Tienda y concepto coinciden' },
+                                        { id: 'datesApproved', label: 'Fechas de pago y vencimiento correctas' },
+                                        { id: 'proposedDatesApproved', label: 'Fechas propuestas validadas' },
+                                        { id: 'amountsApproved', label: 'Montos de pago correctos' },
+                                        { id: 'proposedAmountApproved', label: 'Monto propuesto validado' },
+                                        { id: 'observationsApproved', label: 'Observaciones revisadas y aprobadas' }
                                     ].map((item) => (
                                         <button
                                             key={item.id}
