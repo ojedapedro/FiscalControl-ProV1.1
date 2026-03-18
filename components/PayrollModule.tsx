@@ -39,7 +39,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PayrollEntry, Employee, PPEAssignment } from '../types';
-import { formatDate } from '../utils';
+import { formatDate, formatTime } from '../src/utils';
 import { STORES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { PPEModal } from './PPEModal';
@@ -2866,7 +2866,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Registro</p>
                     <p className="text-lg font-bold text-white">{formatDate(viewingEntry.submittedDate)}</p>
-                    <p className="text-sm text-slate-400">{new Date(viewingEntry.submittedDate).toLocaleTimeString()}</p>
+                    <p className="text-sm text-slate-400">{formatTime(viewingEntry.submittedDate)}</p>
                   </div>
                 </div>
 

@@ -36,3 +36,14 @@ export const formatDateTime = (date: string | Date | number | undefined | null) 
   
   return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
+
+export const formatTime = (date: string | Date | number | undefined | null) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return String(date);
+
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  
+  return `${hours}:${minutes}`;
+};

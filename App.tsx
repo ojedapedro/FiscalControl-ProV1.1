@@ -933,6 +933,8 @@ function App({ isDemoMode = false }: AppProps) {
             payments={filteredPayments}
             onManage={handleManageNotification}
             onRefresh={loadData}
+            users={users}
+            settings={settings}
           />
         );
       case 'settings':

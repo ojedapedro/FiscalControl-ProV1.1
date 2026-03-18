@@ -26,7 +26,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User } from '../types';
-import { formatDate } from '../utils';
+import { formatDate } from '../src/utils';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';

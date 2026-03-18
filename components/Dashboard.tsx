@@ -20,7 +20,7 @@ import {
   Download
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry } from '../types';
-import { formatDate } from '../utils';
+import { formatDate, formatDateTime } from '../src/utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface DashboardProps {
@@ -54,7 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, 
     doc.setFontSize(18);
     doc.text("Balance de Gestión Fiscal", 14, 20);
     doc.setFontSize(10);
-    doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
+    doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
     doc.text(`Total de Pagos: ${payments.length}`, 14, 35);
     
     const grandTotal = payments.reduce((sum, p) => sum + p.amount, 0);

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
-import { formatDate } from '../utils';
+import { formatDate } from '../src/utils';
 
 interface CalendarViewProps {
   payments: Payment[];

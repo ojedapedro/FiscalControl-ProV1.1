@@ -21,7 +21,7 @@ import {
   Legend
 } from 'recharts';
 import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry } from '../types';
-import { formatDate, formatDateTime } from '../utils';
+import { formatDate, formatDateTime } from '../src/utils';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
@@ -408,7 +408,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
         
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
         doc.text(`Eventos Totales: ${allAuditLogs.length}`, 14, 35);
 
         doc.setDrawColor(200, 200, 200);
@@ -553,7 +553,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser
         
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generado: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`, 14, 30);
+        doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
         doc.text(`Período: ${formatDate(startDate)} - ${formatDate(endDate)}`, 14, 35);
 
         doc.setDrawColor(200, 200, 200);

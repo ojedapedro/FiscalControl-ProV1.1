@@ -22,6 +22,7 @@ import {
 import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus, User } from '../types';
 import { api } from '../services/api';
 import { notificationService } from '../services/notificationService';
+import { formatTime } from '../src/utils';
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -587,7 +588,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                     </p>
                     {onRefresh && (
                         <div className="flex items-center gap-1 text-xs text-slate-400 pl-2 border-l border-slate-300 dark:border-slate-700">
-                            <span>Actualizado: {lastUpdated.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span>Actualizado: {formatTime(lastUpdated)}</span>
                             <button 
                                 onClick={handleManualRefresh}
                                 disabled={isRefreshing}

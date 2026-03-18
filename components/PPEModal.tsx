@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, FileDown, ShieldCheck, Calculator, Save } from 'lucide-react';
 import { Employee, PPEItemData, PPEAssignment } from '../types';
-import { formatDate } from '../utils';
+import { formatDate } from '../src/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 

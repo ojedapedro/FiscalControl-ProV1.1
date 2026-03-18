@@ -3,7 +3,7 @@ import React from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Payment, PaymentStatus, Role, User } from '../types';
-import { formatDate, formatDateTime } from '../utils';
+import { formatDate, formatDateTime } from '../src/utils';
 import { 
   CheckCircle2, 
   XCircle, 
