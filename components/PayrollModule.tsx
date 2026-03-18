@@ -33,7 +33,8 @@ import {
   Eye,
   X,
   History,
-  HandCoins
+  HandCoins,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -86,6 +87,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [ppeDateFilter, setPpeDateFilter] = React.useState('');
   const [importProgress, setImportProgress] = React.useState<number | null>(null);
   const [importErrors, setImportErrors] = React.useState<string[]>([]);
+  const [notification, setNotification] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { exchangeRate } = useExchangeRate();
 
@@ -1030,7 +1032,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     { name: 'FAOV Patronal (2%)', amount: 0 }, 
                     { name: 'INCES Patronal (2%)', amount: 0 },
                     { name: 'Fondo de Pensiones (9%)', amount: 0 }
-                  ]
+                  ],
+                  ppeAssignments: []
                 });
                 setIsAddingEmployee(true);
               }}
@@ -1375,6 +1378,44 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <Download size={18} />
                 Exportar CSV
               </button>
+              <button
+                onClick={() => {
+                  let syncCount = 0;
+                  filteredEntries.forEach(entry => {
+                    const emp = employees.find(e => e.id === entry.employeeId);
+                    if (emp) {
+                      const updatedEntry = {
+                        ...entry,
+                        employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
+                        baseSalary: emp.baseSalary,
+                        bonuses: emp.defaultBonuses,
+                        deductions: emp.defaultDeductions,
+                        employerLiabilities: emp.defaultEmployerLiabilities,
+                        ...calculateTotals({
+                          baseSalary: emp.baseSalary,
+                          bonuses: emp.defaultBonuses,
+                          deductions: emp.defaultDeductions,
+                          employerLiabilities: emp.defaultEmployerLiabilities
+                        })
+                      };
+                      onUpdateEntry(updatedEntry);
+                      syncCount++;
+                    }
+                  });
+                  if (syncCount > 0) {
+                    setNotification(`🔄 ${syncCount} registros sincronizados con sus expedientes`);
+                  } else {
+                    setNotification('⚠️ No se encontraron trabajadores para sincronizar');
+                  }
+                  setTimeout(() => setNotification(null), 3000);
+                }}
+                disabled={filteredEntries.length === 0}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Sincroniza todos los registros visibles con los datos actuales de sus expedientes"
+              >
+                <RefreshCw size={18} />
+                Sincronizar Todo
+              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -1454,6 +1495,37 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => {
+                                const emp = employees.find(e => e.id === entry.employeeId);
+                                if (emp) {
+                                  const updatedEntry = {
+                                    ...entry,
+                                    employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
+                                    baseSalary: emp.baseSalary,
+                                    bonuses: emp.defaultBonuses,
+                                    deductions: emp.defaultDeductions,
+                                    employerLiabilities: emp.defaultEmployerLiabilities,
+                                    ...calculateTotals({
+                                      baseSalary: emp.baseSalary,
+                                      bonuses: emp.defaultBonuses,
+                                      deductions: emp.defaultDeductions,
+                                      employerLiabilities: emp.defaultEmployerLiabilities
+                                    })
+                                  };
+                                  onUpdateEntry(updatedEntry);
+                                  setNotification('🔄 Registro sincronizado con expediente');
+                                  setTimeout(() => setNotification(null), 3000);
+                                } else {
+                                  setNotification('⚠️ No se encontró el trabajador en el expediente');
+                                  setTimeout(() => setNotification(null), 3000);
+                                }
+                              }}
+                              className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="Sincronizar con Expediente"
+                            >
+                              <RefreshCw size={18} />
+                            </button>
                             <button 
                               onClick={() => setViewingEntry(entry)}
                               className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
@@ -1812,6 +1884,52 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
 
               <form onSubmit={handlePayrollSubmit} className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+                {/* Employee Selector */}
+                <div className="bg-blue-500/5 border border-blue-500/20 p-6 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                      <Users size={16} />
+                      Vincular con Expediente
+                    </h3>
+                    <span className="text-[10px] text-slate-500 italic">Auto-completa datos desde el expediente</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Seleccionar Trabajador</label>
+                      <select 
+                        onChange={(e) => {
+                          const empId = e.target.value;
+                          if (!empId) return;
+                          const emp = employees.find(e => e.id === empId);
+                          if (emp) {
+                            setPayrollFormData({
+                              ...payrollFormData,
+                              employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
+                              employeeId: emp.id,
+                              storeId: emp.storeId,
+                              baseSalary: emp.baseSalary,
+                              bonuses: emp.defaultBonuses,
+                              deductions: emp.defaultDeductions,
+                              employerLiabilities: emp.defaultEmployerLiabilities
+                            });
+                          }
+                        }}
+                        className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      >
+                        <option value="">-- Seleccionar de la lista --</option>
+                        {employees.filter(e => e.isActive).map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.name} {emp.lastName} ({emp.id})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <p className="text-xs text-slate-500">
+                        Al seleccionar un trabajador, se cargarán automáticamente su sueldo base, bonos y deducciones configurados en su expediente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -3534,6 +3652,23 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Notification Toast */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-8 right-8 z-[100] px-6 py-4 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500">
+              <AlertCircle size={18} />
+            </div>
+            <span className="text-white font-medium">{notification}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
