@@ -764,13 +764,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                 <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
                                         <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
                                             <Calendar size={14} className="text-slate-400" />
                                             {formatDate(selectedPayment.paymentDate)}
                                         </div>
-                                     </div>
-                                     <div>
+                                    </div>
+                                    <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
                                         <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
                                             <Clock size={14} className="text-slate-400" />
@@ -781,7 +782,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                                                 </span>
                                             )}
                                         </div>
-                                     </div>
+                                    </div>
                                 </div>
                             </div>
 
