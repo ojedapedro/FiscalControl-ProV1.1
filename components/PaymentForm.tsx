@@ -549,7 +549,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (val && dueDate) {
       const d1 = new Date(val);
       const d2 = new Date(dueDate);
-      const diffTime = d2.getTime() - d1.getTime();
+      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       setDaysToExpire(diffDays.toString());
     }
@@ -562,14 +562,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       const days = parseInt(daysToExpire);
       if (!isNaN(days)) {
         const d = new Date(val);
-        d.setDate(d.getDate() - days);
+        d.setDate(d.getDate() + days); // Add days instead of subtract
         const formatted = d.toISOString().split('T')[0];
         setPaymentDate(formatted);
       }
     } else if (val && paymentDate) {
       const d1 = new Date(paymentDate);
       const d2 = new Date(val);
-      const diffTime = d2.getTime() - d1.getTime();
+      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       setDaysToExpire(diffDays.toString());
     }
@@ -582,7 +582,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       const days = parseInt(val);
       if (!isNaN(days)) {
         const d = new Date(dueDate);
-        d.setDate(d.getDate() - days);
+        d.setDate(d.getDate() + days); // Add days instead of subtract
         const formatted = d.toISOString().split('T')[0];
         setPaymentDate(formatted);
       }
