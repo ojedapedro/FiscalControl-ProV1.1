@@ -905,7 +905,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'approvals':
         return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} />;
       case 'presidency':
         return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'network':
