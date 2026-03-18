@@ -433,19 +433,18 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const totalDeductions = (data.deductions || data.defaultDeductions || []).reduce((acc: number, d: any) => acc + d.amount, 0);
     const totalLiabilities = (data.employerLiabilities || data.defaultEmployerLiabilities || []).reduce((acc: number, l: any) => acc + l.amount, 0);
     
-    const workerNet = data.baseSalary + totalBonuses - totalDeductions;
-    const employerCost = workerNet + totalLiabilities;
+    const totalWorkerNet = data.baseSalary + totalBonuses - totalDeductions;
+    const totalEmployerCost = data.baseSalary + totalBonuses + totalLiabilities;
     
-    return { workerNet, employerCost };
+    return { totalWorkerNet, totalEmployerCost };
   };
 
   const handlePayrollSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { workerNet, employerCost } = calculateTotals(payrollFormData);
+    const totals = calculateTotals(payrollFormData);
     const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
       ...payrollFormData,
-      totalWorkerNet: workerNet,
-      totalEmployerCost: employerCost,
+      ...totals,
       status: 'PROCESADO'
     };
     await onAddEntry(entry);
@@ -498,7 +497,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const currentMonth = new Date().toISOString().slice(0, 7);
     
     for (const emp of activeEmployees) {
-      const { workerNet, employerCost } = calculateTotals(emp);
+      const totals = calculateTotals(emp);
       const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
         employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
         employeeId: emp.id,
@@ -508,8 +507,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         bonuses: emp.defaultBonuses,
         deductions: emp.defaultDeductions,
         employerLiabilities: emp.defaultEmployerLiabilities,
-        totalWorkerNet: workerNet,
-        totalEmployerCost: employerCost,
+        ...totals,
         status: 'PROCESADO'
       };
       await onAddEntry(entry);
@@ -572,7 +570,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           const baseSalary = Number(normalizedRow.basesalary);
           const bonuses = employee.defaultBonuses;
           
-          const { workerNet, employerCost } = calculateTotals({
+          const totals = calculateTotals({
             baseSalary,
             bonuses,
             deductions: employee.defaultDeductions,
@@ -588,8 +586,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             bonuses,
             deductions: employee.defaultDeductions,
             employerLiabilities: employee.defaultEmployerLiabilities,
-            totalWorkerNet: workerNet,
-            totalEmployerCost: employerCost,
+            ...totals,
             status: 'PROCESADO'
           };
 
@@ -1379,11 +1376,20 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Exportar CSV
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   let syncCount = 0;
-                  filteredEntries.forEach(entry => {
+                  if (!onUpdateEntry) return;
+                  
+                  for (const entry of filteredEntries) {
                     const emp = employees.find(e => e.id === entry.employeeId);
                     if (emp) {
+                      const totals = calculateTotals({
+                        baseSalary: emp.baseSalary,
+                        bonuses: emp.defaultBonuses,
+                        deductions: emp.defaultDeductions,
+                        employerLiabilities: emp.defaultEmployerLiabilities
+                      });
+                      
                       const updatedEntry = {
                         ...entry,
                         employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
@@ -1391,17 +1397,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         bonuses: emp.defaultBonuses,
                         deductions: emp.defaultDeductions,
                         employerLiabilities: emp.defaultEmployerLiabilities,
-                        ...calculateTotals({
-                          baseSalary: emp.baseSalary,
-                          bonuses: emp.defaultBonuses,
-                          deductions: emp.defaultDeductions,
-                          employerLiabilities: emp.defaultEmployerLiabilities
-                        })
+                        ...totals
                       };
-                      onUpdateEntry(updatedEntry);
+                      await onUpdateEntry(updatedEntry);
                       syncCount++;
                     }
-                  });
+                  }
+                  
                   if (syncCount > 0) {
                     setNotification(`🔄 ${syncCount} registros sincronizados con sus expedientes`);
                   } else {
@@ -1496,9 +1498,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button 
-                              onClick={() => {
+                              onClick={async () => {
                                 const emp = employees.find(e => e.id === entry.employeeId);
-                                if (emp) {
+                                if (emp && onUpdateEntry) {
+                                  const totals = calculateTotals({
+                                    baseSalary: emp.baseSalary,
+                                    bonuses: emp.defaultBonuses,
+                                    deductions: emp.defaultDeductions,
+                                    employerLiabilities: emp.defaultEmployerLiabilities
+                                  });
+                                  
                                   const updatedEntry = {
                                     ...entry,
                                     employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
@@ -1506,14 +1515,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     bonuses: emp.defaultBonuses,
                                     deductions: emp.defaultDeductions,
                                     employerLiabilities: emp.defaultEmployerLiabilities,
-                                    ...calculateTotals({
-                                      baseSalary: emp.baseSalary,
-                                      bonuses: emp.defaultBonuses,
-                                      deductions: emp.defaultDeductions,
-                                      employerLiabilities: emp.defaultEmployerLiabilities
-                                    })
+                                    ...totals
                                   };
-                                  onUpdateEntry(updatedEntry);
+                                  await onUpdateEntry(updatedEntry);
                                   setNotification('🔄 Registro sincronizado con expediente');
                                   setTimeout(() => setNotification(null), 3000);
                                 } else {
@@ -1993,7 +1997,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         type="number"
                         step="0.01"
                         value={payrollFormData.baseSalary || ''}
-                        onChange={(e) => setPayrollFormData({ ...payrollFormData, baseSalary: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => {
+                        const baseSalary = parseFloat(e.target.value) || 0;
+                        const { deductions, liabilities } = calculateParafiscales(baseSalary, payrollFormData.bonuses);
+                        setPayrollFormData({ 
+                          ...payrollFormData, 
+                          baseSalary,
+                          deductions,
+                          employerLiabilities: liabilities
+                        });
+                      }}
                         className="w-full pl-12 pr-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                         placeholder="0.00"
                       />
@@ -2048,7 +2061,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             onChange={(e) => {
                               const newBonuses = [...payrollFormData.bonuses];
                               newBonuses[idx].amount = parseFloat(e.target.value) || 0;
-                              setPayrollFormData({ ...payrollFormData, bonuses: newBonuses });
+                              const { deductions, liabilities } = calculateParafiscales(payrollFormData.baseSalary, newBonuses);
+                              setPayrollFormData({ 
+                                ...payrollFormData, 
+                                bonuses: newBonuses,
+                                deductions,
+                                employerLiabilities: liabilities
+                              });
                             }}
                             className="w-24 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                           />
@@ -2204,13 +2223,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <div className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800 flex flex-col md:flex-row justify-between gap-6">
                   <div className="space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Neto Trabajador</span>
-                    <div className="text-2xl font-bold text-emerald-400 font-mono">${calculateTotals(payrollFormData).workerNet.toLocaleString()}</div>
-                    <div className="text-xs text-slate-500">Bs. {(calculateTotals(payrollFormData).workerNet * exchangeRate).toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-emerald-400 font-mono">${calculateTotals(payrollFormData).totalWorkerNet.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">Bs. {(calculateTotals(payrollFormData).totalWorkerNet * exchangeRate).toLocaleString()}</div>
                   </div>
                   <div className="space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Costo Total Empresa</span>
-                    <div className="text-2xl font-bold text-blue-400 font-mono">${calculateTotals(payrollFormData).employerCost.toLocaleString()}</div>
-                    <div className="text-xs text-slate-500">Bs. {(calculateTotals(payrollFormData).employerCost * exchangeRate).toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-blue-400 font-mono">${calculateTotals(payrollFormData).totalEmployerCost.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">Bs. {(calculateTotals(payrollFormData).totalEmployerCost * exchangeRate).toLocaleString()}</div>
                   </div>
                   <div className="flex items-end">
                     <button 
@@ -2525,7 +2544,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="number"
                       step="0.01"
                       value={employeeFormData.baseSalary || ''}
-                      onChange={(e) => setEmployeeFormData({ ...employeeFormData, baseSalary: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const baseSalary = parseFloat(e.target.value) || 0;
+                        const { deductions, liabilities } = calculateParafiscales(baseSalary, employeeFormData.defaultBonuses);
+                        setEmployeeFormData({ 
+                          ...employeeFormData, 
+                          baseSalary,
+                          defaultDeductions: deductions,
+                          defaultEmployerLiabilities: liabilities
+                        });
+                      }}
                       className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="0.00"
                     />
@@ -2582,7 +2610,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               onChange={(e) => {
                                 const newBonuses = [...employeeFormData.defaultBonuses];
                                 newBonuses[idx].amount = parseFloat(e.target.value) || 0;
-                                setEmployeeFormData({ ...employeeFormData, defaultBonuses: newBonuses });
+                                const { deductions, liabilities } = calculateParafiscales(employeeFormData.baseSalary, newBonuses);
+                                setEmployeeFormData({ 
+                                  ...employeeFormData, 
+                                  defaultBonuses: newBonuses,
+                                  defaultDeductions: deductions,
+                                  defaultEmployerLiabilities: liabilities
+                                });
                               }}
                               className="w-20 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                             />
