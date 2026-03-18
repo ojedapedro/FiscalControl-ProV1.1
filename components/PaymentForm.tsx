@@ -543,6 +543,52 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [category, taxGroup, taxItem]);
 
+  // Sync daysToExpire when paymentDate changes
+  const handlePaymentDateChange = React.useCallback((val: string) => {
+    setPaymentDate(val);
+    if (val && dueDate) {
+      const d1 = new Date(val);
+      const d2 = new Date(dueDate);
+      const diffTime = d2.getTime() - d1.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [dueDate]);
+
+  // Sync paymentDate or daysToExpire when dueDate changes
+  const handleDueDateChange = React.useCallback((val: string) => {
+    setDueDate(val);
+    if (val && daysToExpire) {
+      const days = parseInt(daysToExpire);
+      if (!isNaN(days)) {
+        const d = new Date(val);
+        d.setDate(d.getDate() - days);
+        const formatted = d.toISOString().split('T')[0];
+        setPaymentDate(formatted);
+      }
+    } else if (val && paymentDate) {
+      const d1 = new Date(paymentDate);
+      const d2 = new Date(val);
+      const diffTime = d2.getTime() - d1.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [daysToExpire, paymentDate]);
+
+  // Sync paymentDate when daysToExpire changes manually
+  const handleDaysToExpireChange = React.useCallback((val: string) => {
+    setDaysToExpire(val);
+    if (val && dueDate) {
+      const days = parseInt(val);
+      if (!isNaN(days)) {
+        const d = new Date(dueDate);
+        d.setDate(d.getDate() - days);
+        const formatted = d.toISOString().split('T')[0];
+        setPaymentDate(formatted);
+      }
+    }
+  }, [dueDate]);
+
   // Auto-fill Due Date based on Tax Group Configuration
   React.useEffect(() => {
     const configMap = getTaxConfig(category);
@@ -561,39 +607,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             
             // Formatear a YYYY-MM-DD
             const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
-            setDueDate(formattedDate);
+            handleDueDateChange(formattedDate);
         }
     }
-  }, [category, taxGroup, initialData]);
-
-  // Sync daysToExpire when dueDate or paymentDate changes
-  React.useEffect(() => {
-    if (dueDate && paymentDate) {
-      const d1 = new Date(paymentDate);
-      const d2 = new Date(dueDate);
-      const diffTime = d2.getTime() - d1.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (daysToExpire !== diffDays.toString()) {
-        setDaysToExpire(diffDays.toString());
-      }
-    }
-  }, [dueDate, paymentDate]);
-
-  // Sync dueDate when daysToExpire changes manually
-  const handleDaysToExpireChange = (val: string) => {
-    setDaysToExpire(val);
-    if (val && paymentDate) {
-      const days = parseInt(val);
-      if (!isNaN(days)) {
-        const d = new Date(paymentDate);
-        d.setDate(d.getDate() + days);
-        const formatted = d.toISOString().split('T')[0];
-        if (dueDate !== formatted) {
-          setDueDate(formatted);
-        }
-      }
-    }
-  };
+  }, [category, taxGroup, initialData, handleDueDateChange]);
 
   const isCurrentTaxItemVariable = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -1439,7 +1456,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={paymentDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => setPaymentDate(e.target.value)}
+                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
                                         className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
@@ -1472,7 +1489,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={dueDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => setDueDate(e.target.value)}
+                                        onChange={(e) => handleDueDateChange(e.target.value)}
                                         className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
