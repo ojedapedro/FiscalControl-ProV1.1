@@ -521,9 +521,53 @@ function App({ isDemoMode = false }: AppProps) {
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        if (file.size > 35000) {
+          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 35KB. Por favor, suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+        return;
+      }
+
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.7 quality to keep size small
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = error => reject(error);
+      };
       reader.onerror = error => reject(error);
     });
   };
@@ -546,6 +590,9 @@ function App({ isDemoMode = false }: AppProps) {
             receiptUrl = await fileToBase64(paymentData.file);
         } catch (e) {
             console.error("Error converting file", e);
+            setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
+            setIsLoading(false);
+            return;
         }
     }
 
@@ -555,6 +602,9 @@ function App({ isDemoMode = false }: AppProps) {
             justificationFileUrl = await fileToBase64(paymentData.justificationFile);
         } catch (e) {
             console.error("Error converting justification file", e);
+            setNotification(e instanceof Error ? e.message : "Error procesando el archivo de justificación.");
+            setIsLoading(false);
+            return;
         }
     }
 
@@ -570,6 +620,7 @@ function App({ isDemoMode = false }: AppProps) {
       paymentDate: paymentData.paymentDate,
       daysToExpire: paymentData.daysToExpire,
       status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
+      rejectionReason: '', // Clear rejection reason on correction
       submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       notes: paymentData.notes,
       history: isUpdate 
@@ -603,6 +654,7 @@ function App({ isDemoMode = false }: AppProps) {
         setIsFormOpen(false);
         setEditingPayment(null);
     } catch (error) {
+        console.error('Error en handleSavePayment:', error);
         setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
     } finally {
         setIsLoading(false);

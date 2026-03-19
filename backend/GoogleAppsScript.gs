@@ -459,8 +459,15 @@ function addRow(ss, sheetName, item) {
   const sheet = ss.getSheetByName(sheetName);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const row = headers.map(header => {
-    const val = item[header];
-    return (typeof val === 'object') ? JSON.stringify(val) : val;
+    let val = item[header];
+    if (typeof val === 'object') val = JSON.stringify(val);
+    if (typeof val === 'string' && (val.startsWith('=') || val.startsWith('+') || val.startsWith('-'))) {
+      val = "'" + val;
+    }
+    if (typeof val === 'string' && val.length > 50000) {
+      val = val.substring(0, 49990) + '...'; // Truncate to avoid error
+    }
+    return val;
   });
   sheet.appendRow(row);
 }
@@ -474,13 +481,25 @@ function updateRow(ss, sheetName, id, updates) {
   
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idIndex]) === String(id)) {
+      const rowValues = data[i];
+      let changed = false;
       headers.forEach((header, colIndex) => {
         if (updates.hasOwnProperty(header)) {
           let val = updates[header];
           if (typeof val === 'object') val = JSON.stringify(val);
-          sheet.getRange(i + 1, colIndex + 1).setValue(val);
+          if (typeof val === 'string' && (val.startsWith('=') || val.startsWith('+') || val.startsWith('-'))) {
+            val = "'" + val;
+          }
+          if (typeof val === 'string' && val.length > 50000) {
+            val = val.substring(0, 49990) + '...'; // Truncate to avoid error
+          }
+          rowValues[colIndex] = val;
+          changed = true;
         }
       });
+      if (changed) {
+        sheet.getRange(i + 1, 1, 1, headers.length).setValues([rowValues]);
+      }
       return;
     }
   }
