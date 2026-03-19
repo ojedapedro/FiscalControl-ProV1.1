@@ -14,7 +14,7 @@ import { PayrollModule } from './components/PayrollModule';
 import { CloudSync } from './components/CloudSync.tsx';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { api } from './services/api';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
@@ -162,6 +162,7 @@ function App({ isDemoMode = false }: AppProps) {
   // --- MOBILE & PWA STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
 
   // PWA Install Prompt Listener
   useEffect(() => {
@@ -1115,6 +1116,35 @@ function App({ isDemoMode = false }: AppProps) {
         {/* Contenedor Principal */}
         <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
           
+          {/* PWA Install Banner */}
+          {installPrompt && showInstallBanner && (
+            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Download size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
+                  <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleInstallClick}
+                  className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                >
+                  Instalar
+                </button>
+                <button 
+                  onClick={() => setShowInstallBanner(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Header Móvil */}
           <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
              <div className="flex items-center gap-3">
