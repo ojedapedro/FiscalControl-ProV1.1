@@ -92,6 +92,13 @@ export interface Payment {
   documentDate?: string;
   documentAmount?: number;
   documentName?: string;
+
+  // Campos de Propuesta Financiera
+  proposedAmount?: number;
+  proposedPaymentDate?: string;
+  proposedDueDate?: string;
+  proposedDaysToExpire?: number;
+  proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 }
 
 export interface ChartData {
