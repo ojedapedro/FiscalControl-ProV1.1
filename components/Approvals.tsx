@@ -30,7 +30,8 @@ import {
   ShieldCheck,
   RefreshCw,
   Download,
-  Plus
+  Plus,
+  Check
 } from 'lucide-react';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
@@ -610,371 +611,310 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                 )}
 
                 {/* Content Scrollable Area */}
-                <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-                    <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-8">
-                        
-                        {/* Column 1: Receipt & Visuals (MEJORADO) */}
-                        <div className="space-y-6 order-2 xl:order-1">
-                            <div className={`relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl transition-all duration-300 group ${isImageFullscreen ? 'fixed inset-4 z-50 order-none m-0 h-auto' : 'h-[500px] flex flex-col'}`}>
-                                
-                                {selectedPayment.receiptUrl ? (
-                                    <>
-                                        {/* Barra de herramientas superior dentro del visor */}
-                                        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <div className="pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs text-slate-200 border border-white/10 flex items-center gap-2">
-                                                {isPdf(selectedPayment.receiptUrl) ? <FileText size={12}/> : <Receipt size={12}/>}
-                                                {isPdf(selectedPayment.receiptUrl) ? 'Documento PDF' : 'Imagen de Recibo'}
-                                            </div>
-                                            <div className="flex gap-2 pointer-events-auto">
-                                                <button 
-                                                    onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
-                                                    className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70 border border-white/10"
-                                                    title="Abrir en nueva pestaña"
-                                                >
-                                                    <ExternalLink size={16} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => setIsImageFullscreen(!isImageFullscreen)}
-                                                    className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm hover:bg-black/70 border border-white/10"
-                                                    title={isImageFullscreen ? "Minimizar" : "Maximizar"}
-                                                >
-                                                    {isImageFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Renderizado del Archivo */}
-                                        <div className="flex-1 w-full h-full flex items-center justify-center bg-slate-900 relative" key={selectedPayment.id}>
-                                            {isPdf(selectedPayment.receiptUrl) ? (
-                                                <div className="w-full h-full flex flex-col">
-                                                     <embed
-                                                        src={selectedPayment.receiptUrl}
-                                                        type="application/pdf"
-                                                        className="w-full h-full"
-                                                    />
-                                                    {/* Fallback visible si el embed falla o no es soportado */}
-                                                    <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
-                                                        <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm pointer-events-auto">
-                                                            Si no carga, <a href="#" onClick={(e) => { e.preventDefault(); openInNewTab(selectedPayment.receiptUrl!); }} className="underline text-blue-300">clic aquí</a>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ) : imageError ? (
-                                                <div className="flex flex-col items-center text-slate-500">
-                                                    <AlertTriangle size={48} className="mb-2" />
-                                                    <span className="text-sm">Error cargando imagen</span>
-                                                    <button 
-                                                        onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
-                                                        className="mt-2 text-xs text-blue-400 underline"
-                                                    >
-                                                        Abrir enlace directo
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <img 
-                                                    src={selectedPayment.receiptUrl} 
-                                                    alt="Recibo" 
-                                                    className="max-w-full max-h-full object-contain"
-                                                    onError={() => setImageError(true)}
-                                                />
-                                            )}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950/50">
-                                        <AlertCircle size={48} className="mb-4 opacity-50" />
-                                        <p className="text-sm font-medium">Sin comprobante digital</p>
-                                    </div>
-                                )}
-                            </div>
-                            {/* Backdrop for fullscreen */}
-                            {isImageFullscreen && <div className="fixed inset-0 bg-black/90 z-40 backdrop-blur-sm" onClick={() => setIsImageFullscreen(false)}></div>}
+                <div className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar bg-white dark:bg-slate-900">
+                    <div className="max-w-[1200px] mx-auto">
+                        {/* Header: SOLO PARA AUDITOR */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-black uppercase tracking-tighter text-black dark:text-white">
+                                SOLO PARA AUDITOR
+                            </h1>
                         </div>
 
-                        {/* Column 2: Data Validation & History */}
-                        <div className="space-y-6 order-1 xl:order-2">
+                        <div className="grid grid-cols-1 xl:grid-cols-[350px_1fr] gap-10">
                             
-                            {/* TARJETA DE AUDITORIA DE EXCESO */}
-                            {selectedPayment.isOverBudget && (
-                                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-3xl p-5 shadow-lg shadow-red-500/5 animate-in slide-in-from-top-4">
-                                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-red-200 dark:border-red-900/50">
-                                        <div className="bg-red-500 text-white p-2 rounded-lg">
-                                            <AlertTriangle size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-red-800 dark:text-red-300 text-sm">Alerta de Desviación Presupuestaria</h3>
-                                            <p className="text-xs text-red-600 dark:text-red-400/80">Requiere aprobación extraordinaria</p>
-                                        </div>
-                                    </div>
-
-                                    {budgetAnalysis ? (
-                                        <div className="space-y-4">
-                                            {/* Grilla de Métricas Financieras */}
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
-                                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex justify-center items-center gap-1">
-                                                        <Target size={10} /> Presupuesto
-                                                    </div>
-                                                    <div className="font-mono text-slate-700 dark:text-slate-300 font-bold">
-                                                        ${budgetAnalysis.budget.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
-                                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex justify-center items-center gap-1">
-                                                        <DollarSign size={10} /> Real
-                                                    </div>
-                                                    <div className="font-mono text-slate-900 dark:text-white font-bold">
-                                                        ${Number(selectedPayment.amount).toLocaleString()}
-                                                    </div>
-                                                    <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                                        Bs. {(Number(selectedPayment.amount) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </div>
-                                                </div>
-                                                <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-xl border border-red-200 dark:border-red-800 text-center">
-                                                    <div className="text-[10px] uppercase font-bold text-red-600 dark:text-red-300 mb-1 flex justify-center items-center gap-1">
-                                                        <TrendingUp size={10} /> Desviación
-                                                    </div>
-                                                    <div className="font-mono text-red-600 dark:text-red-400 font-bold">
-                                                        +{budgetAnalysis.percent.toFixed(1)}%
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Justificación del Usuario */}
-                                            {selectedPayment.justification && (
-                                                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Justificación del solicitante:</p>
-                                                    <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{selectedPayment.justification}"</p>
-                                                    {selectedPayment.justificationFileUrl && (
+                            {/* LEFT COLUMN: Document & Checklist */}
+                            <div className="space-y-8">
+                                {/* CARGA DE DOCUMENTOS */}
+                                <div className="flex flex-col h-full min-h-[600px]">
+                                    <div className="border-2 border-black dark:border-white p-2 flex flex-col h-full">
+                                        <div className="text-[10px] font-black uppercase mb-2">CARGA DE DOCUMENTOS</div>
+                                        <div className="flex-1 bg-gray-50 dark:bg-slate-800 relative overflow-hidden group">
+                                            {selectedPayment.receiptUrl ? (
+                                                <>
+                                                    <div className="absolute top-2 right-2 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button 
-                                                            onClick={() => openInNewTab(selectedPayment.justificationFileUrl!)}
-                                                            className="mt-2 text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 font-bold"
+                                                            onClick={() => openInNewTab(selectedPayment.receiptUrl!)}
+                                                            className="p-1.5 bg-black text-white rounded border border-white/20"
                                                         >
-                                                            <ExternalLink size={12} /> Ver soporte adicional
+                                                            <ExternalLink size={14} />
                                                         </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-red-500">Error calculando desviación.</p>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Detalles Principales */}
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concepto de Pago</label>
-                                    <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{selectedPayment.specificType}</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-medium">
-                                            {selectedPayment.category}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Pago</label>
-                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
-                                            <Calendar size={14} className="text-slate-400" />
-                                            {formatDate(selectedPayment.paymentDate)}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Vencimiento</label>
-                                        <div className="flex items-center gap-2 mt-1 text-slate-700 dark:text-slate-200 text-sm font-medium">
-                                            <Clock size={14} className="text-slate-400" />
-                                            {formatDate(selectedPayment.dueDate)}
-                                            {selectedPayment.daysToExpire !== undefined && (
-                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
-                                                    ({selectedPayment.daysToExpire} días)
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Checklist de Auditoría */}
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                    <CheckSquare size={14} className="text-blue-500" />
-                                    Checklist de Verificación Obligatoria
-                                </label>
-                                <div className="space-y-3">
-                                    {[
-                                        { id: 'receiptValid', label: 'Comprobante legible y válido' },
-                                        { id: 'stampLegible', label: 'Sello legible del soporte de pago' },
-                                        { id: 'storeConceptMatch', label: 'Tienda y concepto coinciden' },
-                                        { id: 'datesApproved', label: 'Fechas de pago y vencimiento correctas' },
-                                        { id: 'proposedDatesApproved', label: 'Fechas propuestas validadas' },
-                                        { id: 'amountsApproved', label: 'Montos de pago correctos' },
-                                        { id: 'proposedAmountApproved', label: 'Monto propuesto validado' },
-                                        { id: 'observationsApproved', label: 'Observaciones revisadas y aprobadas' }
-                                    ].map((item) => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => handleCheckItem(item.id as keyof typeof checklist)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                                                checklist[item.id as keyof typeof checklist]
-                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
-                                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-200'
-                                            }`}
-                                        >
-                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
-                                                checklist[item.id as keyof typeof checklist]
-                                                ? 'bg-blue-600 border-blue-600 text-white'
-                                                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
-                                            }`}>
-                                                {checklist[item.id as keyof typeof checklist] && <CheckCircle2 size={14} />}
-                                            </div>
-                                            <span className="text-sm font-medium">{item.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                                {!isChecklistComplete && (
-                                    <p className="text-[10px] text-orange-500 font-bold mt-3 flex items-center gap-1">
-                                        <AlertCircle size={12} />
-                                        Complete todos los puntos para habilitar la aprobación.
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Notas */}
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Observaciones</label>
-                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                                    {selectedPayment.notes || "Sin observaciones adicionales."}
-                                </p>
-                            </div>
-
-                            {/* --- HISTORIAL DE AUDITORÍA (TIMELINE) --- */}
-                            {selectedPayment.history && selectedPayment.history.length > 0 && (
-                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="flex flex-col">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                                <History size={14} className="text-blue-500" />
-                                                Historial de Auditoría
-                                            </label>
-                                            <p className="text-[10px] text-slate-500 mt-1">Trazabilidad completa del registro</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleDownloadAuditPDF(selectedPayment)}
-                                            disabled={isExporting}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-bold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all border border-blue-100 dark:border-blue-800 uppercase tracking-wider"
-                                        >
-                                            <Download size={14} />
-                                            {isExporting ? 'Generando...' : 'Exportar PDF'}
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="space-y-4">
-                                        {selectedPayment.history.map((log, index) => (
-                                            <div key={index} className="group relative flex gap-4 pb-4 last:pb-0">
-                                                {/* Línea conectora */}
-                                                {index !== selectedPayment.history.length - 1 && (
-                                                    <div className="absolute left-[15px] top-[30px] bottom-0 w-[1px] bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors"></div>
-                                                )}
-                                                
-                                                {/* Icono de Acción */}
-                                                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-2 border-white dark:border-slate-900 shadow-sm ${
-                                                    log.action === 'CREACION' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' :
-                                                    log.action === 'APROBACION' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' :
-                                                    log.action === 'RECHAZO' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' :
-                                                    'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'
-                                                }`}>
-                                                    {log.action === 'CREACION' ? <Plus size={14} /> :
-                                                     log.action === 'APROBACION' ? <ShieldCheck size={14} /> :
-                                                     log.action === 'RECHAZO' ? <XCircle size={14} /> :
-                                                     <RefreshCw size={14} />}
-                                                </div>
-
-                                                {/* Contenido del Log */}
-                                                <div className="flex-1 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50 group-hover:border-blue-100 dark:group-hover:border-blue-900/30 transition-all">
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <span className="text-[10px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400">
-                                                            {log.action}
-                                                        </span>
-                                                        <span className="text-[10px] font-mono text-slate-400">
-                                                            {formatDateTime(log.date)}
-                                                        </span>
+                                                        <button 
+                                                            onClick={() => setIsImageFullscreen(true)}
+                                                            className="p-1.5 bg-black text-white rounded border border-white/20"
+                                                        >
+                                                            <Maximize2 size={14} />
+                                                        </button>
                                                     </div>
                                                     
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center border border-slate-200 dark:border-slate-600">
-                                                            <UserIcon size={10} className="text-slate-400" />
-                                                        </div>
-                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{log.actorName}</span>
-                                                        <span className="text-[9px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium">
-                                                            {log.role}
-                                                        </span>
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        {isPdf(selectedPayment.receiptUrl) ? (
+                                                            <embed
+                                                                src={selectedPayment.receiptUrl}
+                                                                type="application/pdf"
+                                                                className="w-full h-full"
+                                                            />
+                                                        ) : (
+                                                            <img 
+                                                                src={selectedPayment.receiptUrl} 
+                                                                alt="Recibo" 
+                                                                className="max-w-full max-h-full object-contain"
+                                                                onError={() => setImageError(true)}
+                                                            />
+                                                        )}
                                                     </div>
-
-                                                    {log.note && (
-                                                        <div className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 italic leading-relaxed">
-                                                            "{log.note}"
-                                                        </div>
-                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                                    <FileText size={48} strokeWidth={1} />
+                                                    <p className="text-[10px] font-bold uppercase mt-2">Sin Documento</p>
                                                 </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* CHECKLIST: APROBADA */}
+                                    <div className="mt-6">
+                                        <div className="text-[10px] font-black uppercase mb-1">APROBADA</div>
+                                        <div className="border-2 border-black dark:border-white divide-y-2 divide-black dark:divide-white">
+                                            {[
+                                                { id: 'receiptValid', label: 'COMPROBANTES DE PAGOS Y SOPORTES LEGIBLES' },
+                                                { id: 'stampLegible', label: 'SELLOS LEGIBLES' },
+                                                { id: 'storeConceptMatch', label: 'TIENDA Y CONCEPTO COINCIDEN' }
+                                            ].map((item) => (
+                                                <div key={item.id} className="flex">
+                                                    <button 
+                                                        onClick={() => handleCheckItem(item.id as keyof typeof checklist)}
+                                                        className={`w-10 h-10 border-r-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist[item.id as keyof typeof checklist] ? 'bg-black text-white' : 'bg-white'}`}
+                                                    >
+                                                        {checklist[item.id as keyof typeof checklist] && <Check size={24} strokeWidth={4} />}
+                                                    </button>
+                                                    <div className="flex-1 px-3 flex items-center text-[10px] font-black leading-tight uppercase">
+                                                        {item.label}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* RIGHT COLUMN: Tables & Data */}
+                            <div className="space-y-6">
+                                {/* CONCEPTO DE PAGO */}
+                                <div>
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">CONCEPTO DE PAGO</div>
+                                    <h2 className="text-xl font-black uppercase tracking-tight text-black dark:text-white">
+                                        {selectedPayment.id.slice(-6)} - {selectedPayment.specificType}
+                                    </h2>
+                                    <div className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-1 uppercase">
+                                        {selectedPayment.category}
+                                    </div>
+                                </div>
+
+                                {/* TABLE 1: PRESUPUESTO VS ACTUAL */}
+                                <div className="flex gap-0">
+                                    <div className="flex-1 border-2 border-black dark:border-white overflow-hidden">
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white border-b-2 border-black dark:border-white">
+                                            <div className="col-span-2 bg-gray-100 dark:bg-slate-800 text-[10px] font-black text-center py-1 uppercase">PRESUPUESTO</div>
+                                            <div className="bg-gray-100 dark:bg-slate-800 text-[10px] font-black text-center py-1 uppercase">ACTUAL</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white border-b-2 border-black dark:border-white">
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">FECHA DE PAGO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">FECHA DE VENCIMIENTO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">FECHA DE DOCUMENTO</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white font-mono text-xs">
+                                            <div className="text-center py-3">{formatDate(selectedPayment.paymentDate)}</div>
+                                            <div className="text-center py-3">{formatDate(selectedPayment.dueDate)}</div>
+                                            <div className="text-center py-3">{selectedPayment.documentDate ? formatDate(selectedPayment.documentDate) : '-'}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4 self-center shrink-0">
+                                        <button 
+                                            onClick={() => handleCheckItem('datesApproved')}
+                                            className={`w-8 h-8 border-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist.datesApproved ? 'bg-black text-white' : 'bg-white'}`}
+                                        >
+                                            {checklist.datesApproved && <Check size={20} strokeWidth={4} />}
+                                        </button>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">APROBADA</span>
+                                    </div>
+                                </div>
+
+                                {/* TABLE 2: NUEVA PROPUESTA DE FECHAS */}
+                                <div className="flex gap-0">
+                                    <div className="flex-1 border-2 border-black dark:border-white overflow-hidden">
+                                        <div className="bg-gray-100 dark:bg-slate-800 text-[10px] font-black text-center py-1 uppercase border-b-2 border-black dark:border-white">NUEVA PROPUESTA DE FECHAS</div>
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white border-b-2 border-black dark:border-white">
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">FECHA DE PAGO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">DIAS DE VENCIMIENTO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">FECHA DE VENCIMIENTO</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white font-mono text-xs">
+                                            <div className="text-center py-3">{formatDate(selectedPayment.paymentDate)}</div>
+                                            <div className="text-center py-3">{selectedPayment.daysToExpire || '0'}</div>
+                                            <div className="text-center py-3">{formatDate(selectedPayment.dueDate)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4 self-center shrink-0">
+                                        <button 
+                                            onClick={() => handleCheckItem('proposedDatesApproved')}
+                                            className={`w-8 h-8 border-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist.proposedDatesApproved ? 'bg-black text-white' : 'bg-white'}`}
+                                        >
+                                            {checklist.proposedDatesApproved && <Check size={20} strokeWidth={4} />}
+                                        </button>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">APROBADA</span>
+                                    </div>
+                                </div>
+
+                                {/* TABLE 3: MONTOS Y DESVIACION */}
+                                <div className="flex gap-0">
+                                    <div className="flex-1 border-2 border-black dark:border-white overflow-hidden">
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white border-b-2 border-black dark:border-white">
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">MONTO PRESUPUESTO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">MONTO DOCUMENTO</div>
+                                            <div className="text-[9px] font-black text-center py-1 uppercase px-1">DESVIACION</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 divide-x-2 divide-black dark:divide-white font-mono text-xs">
+                                            <div className="text-center py-3">${(selectedPayment.originalBudget || 0).toLocaleString()}</div>
+                                            <div className="text-center py-3">${selectedPayment.amount.toLocaleString()}</div>
+                                            <div className="text-center py-3 font-bold text-red-600">
+                                                {budgetAnalysis ? `+${budgetAnalysis.percent.toFixed(1)}%` : '0%'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4 self-center shrink-0">
+                                        <button 
+                                            onClick={() => handleCheckItem('amountsApproved')}
+                                            className={`w-8 h-8 border-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist.amountsApproved ? 'bg-black text-white' : 'bg-white'}`}
+                                        >
+                                            {checklist.amountsApproved && <Check size={20} strokeWidth={4} />}
+                                        </button>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">APROBADA</span>
+                                    </div>
+                                </div>
+
+                                {/* TABLE 4: MONTO PROPUESTA */}
+                                <div className="flex gap-0">
+                                    <div className="flex-1 border-2 border-black dark:border-white overflow-hidden">
+                                        <div className="bg-gray-100 dark:bg-slate-800 text-[10px] font-black text-center py-1 uppercase border-b-2 border-black dark:border-white">MONTO PROPUESTA</div>
+                                        <div className="text-center py-3 font-mono text-xs">
+                                            ${selectedPayment.amount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4 self-center shrink-0">
+                                        <button 
+                                            onClick={() => handleCheckItem('proposedAmountApproved')}
+                                            className={`w-8 h-8 border-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist.proposedAmountApproved ? 'bg-black text-white' : 'bg-white'}`}
+                                        >
+                                            {checklist.proposedAmountApproved && <Check size={20} strokeWidth={4} />}
+                                        </button>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">APROBADA</span>
+                                    </div>
+                                </div>
+
+                                {/* OBSERVACIONES */}
+                                <div className="flex gap-0">
+                                    <div className="flex-1 border-2 border-black dark:border-white p-3 min-h-[100px]">
+                                        <div className="text-[10px] font-black uppercase mb-2">OBSERVACIONES:</div>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300 italic">
+                                            {selectedPayment.notes || "Sin observaciones adicionales."}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4 self-start mt-2 shrink-0">
+                                        <button 
+                                            onClick={() => handleCheckItem('observationsApproved')}
+                                            className={`w-8 h-8 border-2 border-black dark:border-white flex items-center justify-center transition-colors ${checklist.observationsApproved ? 'bg-black text-white' : 'bg-white'}`}
+                                        >
+                                            {checklist.observationsApproved && <Check size={20} strokeWidth={4} />}
+                                        </button>
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">APROBADA</span>
+                                    </div>
+                                </div>
+
+                                {/* HISTORIAL DE AUDITORIA */}
+                                <div className="border-2 border-black dark:border-white p-3 min-h-[120px]">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="text-[10px] font-black uppercase">HISTORIAL DE AUDITORIA:</div>
+                                        <button 
+                                            onClick={() => handleDownloadAuditPDF(selectedPayment)}
+                                            className="text-[9px] font-black uppercase underline"
+                                        >
+                                            Exportar PDF
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {selectedPayment.history?.slice(-3).map((log, idx) => (
+                                            <div key={idx} className="text-[10px] flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1 last:border-0">
+                                                <span className="font-bold">{log.action} por {log.actorName}</span>
+                                                <span className="text-slate-400 font-mono">{formatDateTime(log.date)}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Botones de Acción */}
-                            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                                {!isRejecting ? (
-                                    <div className="flex gap-4">
-                                        <button 
-                                            onClick={handleRejectClick}
-                                            className="flex-1 py-4 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-2xl transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <RefreshCw size={20} />
-                                            Devolver
-                                        </button>
-                                        <button 
-                                            onClick={handleInitialApproveClick}
-                                            disabled={!isChecklistComplete}
-                                            className={`flex-[2] py-4 font-bold rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
-                                                isChecklistComplete 
-                                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 dark:shadow-blue-900/30' 
-                                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                                            }`}
-                                        >
-                                            <ShieldCheck size={20} />
-                                            Validar y Aprobar
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 animate-in fade-in slide-in-from-bottom-2">
-                                        <h3 className="text-sm font-bold text-red-700 dark:text-red-400 mb-2">Observaciones para el Administrador</h3>
-                                        <textarea 
-                                            value={rejectionNote}
-                                            onChange={(e) => setRejectionNote(e.target.value)}
-                                            placeholder="Indique qué debe corregirse (ej. Comprobante ilegible, monto incorrecto...)"
-                                            className="w-full p-3 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 rounded-xl text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white"
-                                            rows={3}
-                                            autoFocus
-                                        ></textarea>
-                                        <div className="flex gap-3">
-                                            <button 
-                                                onClick={() => setIsRejecting(false)}
-                                                className="flex-1 py-2 text-slate-600 dark:text-slate-400 font-bold text-sm bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"
-                                            >
-                                                Cancelar
-                                            </button>
-                                            <button 
-                                                onClick={handleRejectClick}
-                                                className="flex-1 py-2 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 shadow-md"
-                                            >
-                                                Confirmar Devolución
-                                            </button>
+                                {/* BOTONES DE ACCIÓN */}
+                                <div className="pt-6 flex flex-col items-end gap-4">
+                                    <div className="flex flex-col items-end gap-2 w-full max-w-md">
+                                        <div className="flex gap-4 w-full">
+                                            <div className="flex-1 flex flex-col gap-1">
+                                                <button 
+                                                    onClick={handleRejectClick}
+                                                    className="w-full py-4 border-2 border-black dark:border-white text-black dark:text-white font-black uppercase tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all"
+                                                >
+                                                    DEVOLVER
+                                                </button>
+                                                <p className="text-[8px] font-bold text-slate-500 leading-tight">
+                                                    CON UNA QUE NO SE ENCUENTRE APROBADA AUTOMATICAMENTE SE ACTIVARA DEVOLVER Y SE INICIA VENTANA DE CONVERSACION
+                                                </p>
+                                            </div>
+                                            <div className="flex-1 flex flex-col gap-1">
+                                                <button 
+                                                    onClick={handleInitialApproveClick}
+                                                    disabled={!isChecklistComplete}
+                                                    className={`w-full py-4 border-2 border-black dark:border-white font-black uppercase tracking-widest transition-all ${
+                                                        isChecklistComplete 
+                                                        ? 'bg-black text-white dark:bg-white dark:text-black hover:opacity-80' 
+                                                        : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    VALIDAR Y APROBAR
+                                                </button>
+                                                <p className="text-[8px] font-bold text-slate-500 leading-tight">
+                                                    PARA QUE SE PUEDA ACTIVAR LA OPCION DE VALIDAR ES NECESARIO QUE ESTEN APROBADOS LAS 8 ACTIVIDADES.
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* Rejection Note Area (Inline) */}
+                                    {isRejecting && (
+                                        <div className="w-full mt-4 p-4 border-2 border-red-600 bg-red-50 dark:bg-red-900/10 animate-in fade-in slide-in-from-top-2">
+                                            <div className="text-[10px] font-black text-red-600 uppercase mb-2">OBSERVACIONES PARA EL ADMINISTRADOR:</div>
+                                            <textarea 
+                                                value={rejectionNote}
+                                                onChange={(e) => setRejectionNote(e.target.value)}
+                                                placeholder="Indique qué debe corregirse..."
+                                                className="w-full p-3 bg-white dark:bg-slate-900 border border-red-300 rounded-none text-xs mb-3 focus:ring-1 focus:ring-red-500 outline-none"
+                                                rows={3}
+                                                autoFocus
+                                            ></textarea>
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    onClick={() => setIsRejecting(false)}
+                                                    className="flex-1 py-2 border border-slate-300 text-[10px] font-bold uppercase"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button 
+                                                    onClick={handleRejectClick}
+                                                    className="flex-1 py-2 bg-red-600 text-white text-[10px] font-bold uppercase"
+                                                >
+                                                    Confirmar Devolución
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
