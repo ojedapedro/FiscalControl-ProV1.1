@@ -179,7 +179,16 @@ export const api = {
       method: 'POST',
       body: payload
     });
-    return await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    if (result.status === 'error') {
+      throw new Error(result.message || 'Error creating payment');
+    }
+    return result;
   },
 
   // Actualizar Pago (Update)
@@ -194,7 +203,16 @@ export const api = {
       method: 'POST',
       body: payload
     });
-    return await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    if (result.status === 'error') {
+      throw new Error(result.message || 'Error updating payment');
+    }
+    return result;
   },
 
   // Borrar Pago (Delete)
@@ -208,7 +226,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ id })
     });
-    return await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    if (result.status === 'error') {
+      throw new Error(result.message || 'Error deleting payment');
+    }
+    return result;
   },
 
   // --- EMPLEADOS (NÓMINA) ---

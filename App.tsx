@@ -672,6 +672,7 @@ function App({ isDemoMode = false }: AppProps) {
             // Notificar al creador del pago
             notificationService.notifyPaymentApproved(updatedPayment, users, settings);
         } catch (error) {
+            console.error('Error en handleApprove:', error);
             setNotification('❌ Error sincronizando aprobación.');
         } finally {
             setIsLoading(false);
@@ -756,7 +757,7 @@ function App({ isDemoMode = false }: AppProps) {
             notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
 
             // Enviar Notificación Push
-            if (pushPermission === 'granted') {
+            if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
               const title = `⚠️ Pago Devuelto para Corrección`;
               const options = {
                 body: `El pago ${id} (${paymentToUpdate.storeName}) fue devuelto por el auditor. Razón: ${reason}`,
@@ -766,11 +767,14 @@ function App({ isDemoMode = false }: AppProps) {
                 tag: `payment-rejected-${id}`,
               };
               navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, options);
-              });
+                if (registration && registration.showNotification) {
+                  registration.showNotification(title, options);
+                }
+              }).catch(err => console.error('Error showing push notification:', err));
             }
 
           } catch (error) {
+             console.error('Error en handleReject:', error);
              setNotification('❌ Error sincronizando rechazo.');
           } finally {
              setIsLoading(false);
