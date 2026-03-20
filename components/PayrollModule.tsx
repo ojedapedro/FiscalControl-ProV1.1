@@ -973,7 +973,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Carga Manual
               </button>
             </>
-          ) : (
+          ) : activeTab === 'employees' ? (
             <button 
               onClick={() => {
                 const nextCode = (() => {
@@ -1038,6 +1038,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             >
               <UserPlus size={20} />
               Nuevo Expediente
+            </button>
+          ) : (
+            <button 
+              onClick={() => {
+                setActiveTab('employees');
+                setNotification('Seleccione un trabajador para realizar una entrega de EPP');
+              }}
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-amber-900/20 active:scale-95"
+            >
+              <ShieldCheck size={20} />
+              Nueva Entrega de EPP
             </button>
           )}
         </div>
