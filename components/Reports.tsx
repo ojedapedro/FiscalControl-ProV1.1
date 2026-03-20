@@ -216,6 +216,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   const [selectedMunicipality, setSelectedMunicipality] = React.useState('all');
   const [selectedLiabilityType, setSelectedLiabilityType] = React.useState('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState('all');
+  const [auditSearchTerm, setAuditSearchTerm] = React.useState('');
+  const [auditUserFilter, setAuditUserFilter] = React.useState('all');
+  const [auditDateFilter, setAuditDateFilter] = React.useState('');
   const { exchangeRate } = useExchangeRate();
 
   const filteredPayrollEntries = React.useMemo(() => {
@@ -444,8 +447,33 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             });
         }
     });
-    return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [filteredPayments]);
+
+    // Apply Bitácora-specific filters
+    return logs
+      .filter(log => {
+        const searchMatch = !auditSearchTerm || 
+          log.specificType.toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
+          log.paymentId.toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
+          log.storeName.toLowerCase().includes(auditSearchTerm.toLowerCase());
+        
+        const userMatch = auditUserFilter === 'all' || log.actorName === auditUserFilter;
+        
+        const dateMatch = !auditDateFilter || log.date.split('T')[0] === auditDateFilter;
+
+        return searchMatch && userMatch && dateMatch;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredPayments, auditSearchTerm, auditUserFilter, auditDateFilter]);
+
+  const uniqueAuditUsers = React.useMemo(() => {
+    const users = new Set<string>();
+    // We use all payments to get all possible users, or just from filtered?
+    // Let's use all payments to have a complete list of users who have ever done something.
+    payments.forEach(p => {
+      p.history?.forEach(h => users.add(h.actorName));
+    });
+    return ['all', ...Array.from(users)].sort();
+  }, [payments]);
 
   const auditorActivity = React.useMemo(() => {
     return allAuditLogs.filter(log => 
@@ -1404,6 +1432,59 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     </span>
                 </div>
             </div>
+
+            {/* Audit Log Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                        <Filter size={14} />
+                    </div>
+                    <input 
+                        type="text"
+                        placeholder="Buscar pago o tienda..."
+                        value={auditSearchTerm}
+                        onChange={(e) => setAuditSearchTerm(e.target.value)}
+                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-600"
+                    />
+                </div>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                        <Users size={14} />
+                    </div>
+                    <select 
+                        value={auditUserFilter}
+                        onChange={(e) => setAuditUserFilter(e.target.value)}
+                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                    >
+                        <option value="all">Todos los usuarios</option>
+                        {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
+                            <option key={user} value={user}>{user}</option>
+                        ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
+                        <ChevronDown size={14} />
+                    </div>
+                </div>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                        <Calendar size={14} />
+                    </div>
+                    <input 
+                        type="date"
+                        value={auditDateFilter}
+                        onChange={(e) => setAuditDateFilter(e.target.value)}
+                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all [color-scheme:dark]"
+                    />
+                    {auditDateFilter && (
+                        <button 
+                            onClick={() => setAuditDateFilter('')}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-red-400 transition-colors"
+                        >
+                            <XCircle size={14} />
+                        </button>
+                    )}
+                </div>
+            </div>
             
             <div className="overflow-y-auto max-h-[400px] pr-2 custom-scrollbar space-y-4">
                 {allAuditLogs.length === 0 ? (
@@ -1661,6 +1742,62 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 {auditorActivity.length} Acciones Registradas
               </div>
             </div>
+
+            {/* Auditor Activity Filters */}
+            <div className="p-8 bg-slate-900/50 border-b border-slate-800/50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
+                            <Filter size={14} />
+                        </div>
+                        <input 
+                            type="text"
+                            placeholder="Buscar pago o tienda..."
+                            value={auditSearchTerm}
+                            onChange={(e) => setAuditSearchTerm(e.target.value)}
+                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600"
+                        />
+                    </div>
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
+                            <Users size={14} />
+                        </div>
+                        <select 
+                            value={auditUserFilter}
+                            onChange={(e) => setAuditUserFilter(e.target.value)}
+                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="all">Todos los auditores</option>
+                            {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
+                                <option key={user} value={user}>{user}</option>
+                            ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
+                            <ChevronDown size={14} />
+                        </div>
+                    </div>
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
+                            <Calendar size={14} />
+                        </div>
+                        <input 
+                            type="date"
+                            value={auditDateFilter}
+                            onChange={(e) => setAuditDateFilter(e.target.value)}
+                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all [color-scheme:dark]"
+                        />
+                        {auditDateFilter && (
+                            <button 
+                                onClick={() => setAuditDateFilter('')}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-red-400 transition-colors"
+                            >
+                                <XCircle size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
