@@ -892,7 +892,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             // Soporte Data
             documentDate: docDate,
             documentAmount: docAmount ? parseFloat(docAmount) : undefined,
-            documentName: docName
+            documentName: docName,
+            // Proposed Data
+            proposedAmount,
+            proposedPaymentDate,
+            proposedDueDate,
+            proposedDaysToExpire,
+            proposedJustification,
+            proposedStatus: proposedAmount || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
         });
         resetForm();
     } catch (error) {

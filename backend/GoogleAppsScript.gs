@@ -385,7 +385,7 @@ function setupDatabase(ss) {
   if (!ss) ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   const schema = {
-    'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl', 'originalBudget', 'isOverBudget', 'justification', 'justificationFileUrl'],
+    'Payments': ['id', 'storeId', 'storeName', 'userId', 'category', 'specificType', 'amount', 'dueDate', 'paymentDate', 'status', 'notes', 'rejectionReason', 'submittedDate', 'history', 'receiptUrl', 'originalBudget', 'isOverBudget', 'justification', 'justificationFileUrl', 'proposedAmount', 'proposedPaymentDate', 'proposedDueDate', 'proposedDaysToExpire', 'proposedStatus', 'proposedJustification'],
     'Stores': ['id', 'name', 'location', 'status', 'nextDeadline', 'matrixId'],
     'Users': ['id', 'username', 'role', 'email', 'password'],
     'Settings': ['Enabled', 'Phone', 'GatewayURL', 'WarningDays', 'CriticalDays', 'EmailEnabled'],

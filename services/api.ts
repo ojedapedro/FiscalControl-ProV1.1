@@ -4,7 +4,7 @@ import { INITIAL_PAYMENTS } from '../constants';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
-const API_URL = 'https://script.google.com/macros/s/AKfycbxzNoTJRrK1s737IS9M4CATrTSL4dYIxlyFFpXgFuhAlRNhN8bqaSAi-FKdL0bKQ4HCLg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzDMt_lL2jQSMprCJ4EGWDG1RnLV8MVxYt-jPITf1TmIBVHSBvRiCm_bQh-XhxrRbQKnA/exec';
 
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
@@ -157,6 +157,8 @@ export const api = {
       return json.data.map((p: any) => ({
         ...p,
         amount: Number(p.amount),
+        proposedAmount: p.proposedAmount ? Number(p.proposedAmount) : undefined,
+        proposedDaysToExpire: p.proposedDaysToExpire ? Number(p.proposedDaysToExpire) : undefined,
         // Manejo robusto del historial (puede venir como string JSON o array)
         history: safeJSONParse(p.history)
       }));

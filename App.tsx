@@ -631,7 +631,14 @@ function App({ isDemoMode = false }: AppProps) {
       // Soporte Data
       documentDate: paymentData.documentDate,
       documentAmount: paymentData.documentAmount,
-      documentName: paymentData.documentName
+      documentName: paymentData.documentName,
+      // Proposed Data
+      proposedAmount: paymentData.proposedAmount,
+      proposedPaymentDate: paymentData.proposedPaymentDate,
+      proposedDueDate: paymentData.proposedDueDate,
+      proposedDaysToExpire: paymentData.proposedDaysToExpire,
+      proposedJustification: paymentData.proposedJustification,
+      proposedStatus: paymentData.proposedStatus
     };
     
     if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;

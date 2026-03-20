@@ -99,6 +99,7 @@ export interface Payment {
   proposedDueDate?: string;
   proposedDaysToExpire?: number;
   proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  proposedJustification?: string;
 }
 
 export interface ChartData {
