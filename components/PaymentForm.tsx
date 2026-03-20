@@ -22,8 +22,7 @@ import {
   AlertTriangle,
   Clock,
   FileWarning,
-  Users,
-  HelpCircle
+  Users
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User } from '../types';
 import { formatDate } from '../src/utils';
@@ -464,7 +463,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   
   // Estados de carga
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [showConfirmSubmitModal, setShowConfirmSubmitModal] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState('');
   const [isFileScanning, setIsFileScanning] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
@@ -664,6 +662,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setTaxGroup('');
       setTaxItem('');
       setExpectedBudget(null);
+      setIsManualOverride(false);
     }
   }, [category, initialData]);
 
@@ -859,11 +858,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         return;
     }
 
-    setShowConfirmSubmitModal(true);
+    processSubmit();
   };
 
   const processSubmit = async () => {
-    setShowConfirmSubmitModal(false);
     setIsSubmitting(true);
     setLoadingText('Digitalizando...');
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -930,42 +928,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   return (
     <div className="p-6 lg:p-10 w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
-      {/* --- CONFIRMATION MODAL --- */}
-      {showConfirmSubmitModal && (
-          <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-900 animate-in zoom-in-95 duration-200">
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-blue-50 dark:bg-blue-900/20 rounded-t-2xl">
-                      <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                          <HelpCircle className="text-blue-500" />
-                          Confirmación de Envío
-                      </h3>
-                      <p className="text-sm text-blue-600/80 dark:text-blue-400/80 mt-1">
-                          ¿Desea cambiar los datos del pago cargado antes de enviar a auditoría?
-                      </p>
-                  </div>
-                  
-                  <div className="p-6 flex flex-col gap-3">
-                      <button
-                          onClick={() => {
-                              setIsManualOverride(true);
-                              setShowConfirmSubmitModal(false);
-                          }}
-                          className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
-                      >
-                          Sí, deseo cambiar datos
-                      </button>
-                      <button
-                          onClick={processSubmit}
-                          className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all flex items-center justify-center gap-2"
-                      >
-                          No, enviar ahora
-                          <CheckCircle2 size={18} />
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
-
       {/* --- JUSTIFICATION MODAL --- */}
       {showJustificationModal && (
           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1366,10 +1328,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 {/* Section 2: Detalles Financieros */}
                 <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
-                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Detalles Financieros
-                    </h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                            Detalles Financieros
+                        </h2>
+                        {!!getTaxConfig(category) && !isManualOverride && (
+                            <button
+                                type="button"
+                                onClick={() => setIsManualOverride(true)}
+                                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase flex items-center gap-1 transition-colors"
+                            >
+                                <RefreshCw size={12} />
+                                Editar manualmente
+                            </button>
+                        )}
+                    </div>
 
                     {/* Store Location Info (Auto-filled) */}
                     {store && (
