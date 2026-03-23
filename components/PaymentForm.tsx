@@ -22,8 +22,7 @@ import {
   AlertTriangle,
   Clock,
   FileWarning,
-  Users,
-  HelpCircle
+  Users
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User } from '../types';
 import { formatDate } from '../src/utils';
@@ -399,6 +398,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [justificationConfirmed, setJustificationConfirmed] = React.useState(!!initialData?.justification);
   const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
+  // --- Proposed Changes State ---
+  const [showProposedChangesModal, setShowProposedChangesModal] = React.useState(false);
+  const [proposedAmount, setProposedAmount] = React.useState<number | undefined>(initialData?.proposedAmount);
+  const [proposedPaymentDate, setProposedPaymentDate] = React.useState<string | undefined>(initialData?.proposedPaymentDate);
+  const [proposedDueDate, setProposedDueDate] = React.useState<string | undefined>(initialData?.proposedDueDate);
+  const [proposedDaysToExpire, setProposedDaysToExpire] = React.useState<number | undefined>(initialData?.proposedDaysToExpire);
+  const [proposedJustification, setProposedJustification] = React.useState('');
+
+
   // Campos del Soporte
   const [docDate, setDocDate] = React.useState(initialData?.documentDate || '');
   const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount?.toString() || '');
@@ -455,7 +463,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   
   // Estados de carga
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [showConfirmSubmitModal, setShowConfirmSubmitModal] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState('');
   const [isFileScanning, setIsFileScanning] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
@@ -543,6 +550,52 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [category, taxGroup, taxItem]);
 
+  // Sync daysToExpire when paymentDate changes
+  const handlePaymentDateChange = React.useCallback((val: string) => {
+    setPaymentDate(val);
+    if (val && dueDate) {
+      const d1 = new Date(val);
+      const d2 = new Date(dueDate);
+      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [dueDate]);
+
+  // Sync paymentDate or daysToExpire when dueDate changes
+  const handleDueDateChange = React.useCallback((val: string) => {
+    setDueDate(val);
+    if (val && daysToExpire) {
+      const days = parseInt(daysToExpire);
+      if (!isNaN(days)) {
+        const d = new Date(val);
+        d.setDate(d.getDate() + days); // Add days instead of subtract
+        const formatted = d.toISOString().split('T')[0];
+        setPaymentDate(formatted);
+      }
+    } else if (val && paymentDate) {
+      const d1 = new Date(paymentDate);
+      const d2 = new Date(val);
+      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [daysToExpire, paymentDate]);
+
+  // Sync paymentDate when daysToExpire changes manually
+  const handleDaysToExpireChange = React.useCallback((val: string) => {
+    setDaysToExpire(val);
+    if (val && dueDate) {
+      const days = parseInt(val);
+      if (!isNaN(days)) {
+        const d = new Date(dueDate);
+        d.setDate(d.getDate() + days); // Add days instead of subtract
+        const formatted = d.toISOString().split('T')[0];
+        setPaymentDate(formatted);
+      }
+    }
+  }, [dueDate]);
+
   // Auto-fill Due Date based on Tax Group Configuration
   React.useEffect(() => {
     const configMap = getTaxConfig(category);
@@ -561,39 +614,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             
             // Formatear a YYYY-MM-DD
             const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
-            setDueDate(formattedDate);
+            handleDueDateChange(formattedDate);
         }
     }
-  }, [category, taxGroup, initialData]);
-
-  // Sync daysToExpire when dueDate or paymentDate changes
-  React.useEffect(() => {
-    if (dueDate && paymentDate) {
-      const d1 = new Date(paymentDate);
-      const d2 = new Date(dueDate);
-      const diffTime = d2.getTime() - d1.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (daysToExpire !== diffDays.toString()) {
-        setDaysToExpire(diffDays.toString());
-      }
-    }
-  }, [dueDate, paymentDate]);
-
-  // Sync dueDate when daysToExpire changes manually
-  const handleDaysToExpireChange = (val: string) => {
-    setDaysToExpire(val);
-    if (val && paymentDate) {
-      const days = parseInt(val);
-      if (!isNaN(days)) {
-        const d = new Date(paymentDate);
-        d.setDate(d.getDate() + days);
-        const formatted = d.toISOString().split('T')[0];
-        if (dueDate !== formatted) {
-          setDueDate(formatted);
-        }
-      }
-    }
-  };
+  }, [category, taxGroup, initialData, handleDueDateChange]);
 
   const isCurrentTaxItemVariable = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -638,6 +662,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setTaxGroup('');
       setTaxItem('');
       setExpectedBudget(null);
+      setIsManualOverride(false);
     }
   }, [category, initialData]);
 
@@ -833,11 +858,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         return;
     }
 
-    setShowConfirmSubmitModal(true);
+    processSubmit();
   };
 
   const processSubmit = async () => {
-    setShowConfirmSubmitModal(false);
     setIsSubmitting(true);
     setLoadingText('Digitalizando...');
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -866,7 +890,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             // Soporte Data
             documentDate: docDate,
             documentAmount: docAmount ? parseFloat(docAmount) : undefined,
-            documentName: docName
+            documentName: docName,
+            // Proposed Data
+            proposedAmount,
+            proposedPaymentDate,
+            proposedDueDate,
+            proposedDaysToExpire,
+            proposedJustification,
+            proposedStatus: proposedAmount || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
         });
         resetForm();
     } catch (error) {
@@ -897,42 +928,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   return (
     <div className="p-6 lg:p-10 w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
-      {/* --- CONFIRMATION MODAL --- */}
-      {showConfirmSubmitModal && (
-          <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-900 animate-in zoom-in-95 duration-200">
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-blue-50 dark:bg-blue-900/20 rounded-t-2xl">
-                      <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                          <HelpCircle className="text-blue-500" />
-                          Confirmación de Envío
-                      </h3>
-                      <p className="text-sm text-blue-600/80 dark:text-blue-400/80 mt-1">
-                          ¿Desea cambiar los datos del pago cargado antes de enviar a auditoría?
-                      </p>
-                  </div>
-                  
-                  <div className="p-6 flex flex-col gap-3">
-                      <button
-                          onClick={() => {
-                              setIsManualOverride(true);
-                              setShowConfirmSubmitModal(false);
-                          }}
-                          className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
-                      >
-                          Sí, deseo cambiar datos
-                      </button>
-                      <button
-                          onClick={processSubmit}
-                          className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all flex items-center justify-center gap-2"
-                      >
-                          No, enviar ahora
-                          <CheckCircle2 size={18} />
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
-
       {/* --- JUSTIFICATION MODAL --- */}
       {showJustificationModal && (
           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1333,10 +1328,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 {/* Section 2: Detalles Financieros */}
                 <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
-                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Detalles Financieros
-                    </h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                            Detalles Financieros
+                        </h2>
+                        {!!getTaxConfig(category) && !isManualOverride && (
+                            <button
+                                type="button"
+                                onClick={() => setIsManualOverride(true)}
+                                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase flex items-center gap-1 transition-colors"
+                            >
+                                <RefreshCw size={12} />
+                                Editar manualmente
+                            </button>
+                        )}
+                    </div>
 
                     {/* Store Location Info (Auto-filled) */}
                     {store && (
@@ -1439,7 +1446,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={paymentDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => setPaymentDate(e.target.value)}
+                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
                                         className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
@@ -1472,7 +1479,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={dueDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => setDueDate(e.target.value)}
+                                        onChange={(e) => handleDueDateChange(e.target.value)}
                                         className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
@@ -1631,12 +1638,78 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         placeholder="Añada notas adicionales para el auditor..."
                                         className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
                                      ></textarea>
+                                     <button
+                                        type="button"
+                                        onClick={() => setShowProposedChangesModal(true)}
+                                        className="mt-4 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all"
+                                     >
+                                        Proponer Cambios
+                                     </button>
                                  </div>
                              </div>
                         </div>
                     </div>
                 </section>
             </div>
+
+            {/* Proposed Changes Modal */}
+            {showProposedChangesModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Proponer Cambios</h3>
+                            <button onClick={() => setShowProposedChangesModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nuevo Monto</label>
+                                <input
+                                    type="number"
+                                    value={proposedAmount || ''}
+                                    onChange={(e) => setProposedAmount(Number(e.target.value))}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nueva Fecha de Pago</label>
+                                <input
+                                    type="date"
+                                    value={proposedPaymentDate || ''}
+                                    onChange={(e) => setProposedPaymentDate(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nueva Fecha Vencimiento</label>
+                                <input
+                                    type="date"
+                                    value={proposedDueDate || ''}
+                                    onChange={(e) => setProposedDueDate(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Justificación</label>
+                                <textarea
+                                    value={proposedJustification}
+                                    onChange={(e) => setProposedJustification(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                    rows={4}
+                                />
+                            </div>
+                            <button
+                                onClick={() => setShowProposedChangesModal(false)}
+                                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all"
+                            >
+                                Guardar Propuesta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* Right Column: Map (Sticky) */}
             <div className="lg:col-span-5 hidden lg:block">

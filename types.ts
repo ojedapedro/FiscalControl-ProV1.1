@@ -11,7 +11,8 @@ export enum PaymentStatus {
   APPROVED = 'Aprobado',
   REJECTED = 'Rechazado',
   OVERDUE = 'Vencido',
-  UPLOADED = 'Cargado'
+  UPLOADED = 'Cargado',
+  PAID = 'Pagado'
 }
 
 export enum Category {
@@ -92,6 +93,14 @@ export interface Payment {
   documentDate?: string;
   documentAmount?: number;
   documentName?: string;
+
+  // Campos de Propuesta Financiera
+  proposedAmount?: number;
+  proposedPaymentDate?: string;
+  proposedDueDate?: string;
+  proposedDaysToExpire?: number;
+  proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  proposedJustification?: string;
 }
 
 export interface ChartData {
