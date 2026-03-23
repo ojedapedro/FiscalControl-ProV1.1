@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
-import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
 import { Approvals } from './components/Approvals';
@@ -916,31 +915,17 @@ function App({ isDemoMode = false }: AppProps) {
                 </div>
               </div>
             )}
-            {!isFormOpen && !editingPayment ? (
-              <Dashboard 
-                payments={filteredPayments}
-                payrollEntries={filteredPayrollEntries}
-                onNewPayment={() => setIsFormOpen(true)}
-                onEditPayment={(payment) => {
-                  setEditingPayment(payment);
-                  setIsFormOpen(true);
-                }}
-                onPaymentSuccess={handlePaymentSuccess}
-                currentUser={currentUser}
-              />
-            ) : (
-              <PaymentForm 
-                initialData={editingPayment}
-                payments={filteredPayments}
-                onSubmit={handleNewPayment} 
-                onCancel={() => {
-                  setEditingPayment(null);
-                  setIsFormOpen(false);
-                }} 
-                isEmbedded={true}
-                currentUser={currentUser}
-              />
-            )}
+            <PaymentForm 
+              initialData={editingPayment}
+              payments={filteredPayments}
+              onSubmit={handleNewPayment} 
+              onCancel={() => {
+                setEditingPayment(null);
+                setIsFormOpen(false);
+              }} 
+              isEmbedded={true}
+              currentUser={currentUser}
+            />
             
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
