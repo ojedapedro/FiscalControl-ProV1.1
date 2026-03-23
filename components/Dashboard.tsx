@@ -19,30 +19,19 @@ import {
   RefreshCw,
   Download
 } from 'lucide-react';
-import { Payment, PaymentStatus, PayrollEntry, Role, User } from '../types';
+import { Payment, PaymentStatus, PayrollEntry } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
-import { StripePaymentModal } from './StripePaymentModal';
 
 interface DashboardProps {
   payments: Payment[];
   payrollEntries: PayrollEntry[];
   onNewPayment: () => void;
   onEditPayment: (payment: Payment) => void;
-  onPaymentSuccess: (paymentId: string) => void;
-  currentUser?: User | null;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ 
-  payments, 
-  payrollEntries, 
-  onNewPayment, 
-  onEditPayment,
-  onPaymentSuccess,
-  currentUser
-}) => {
+export const Dashboard: React.FC<DashboardProps> = ({ payments, payrollEntries, onNewPayment, onEditPayment }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
-  const [paymentToPay, setPaymentToPay] = React.useState<Payment | null>(null);
   const { exchangeRate } = useExchangeRate();
 
   const handleDownloadFiscalCategoryPDF = () => {
@@ -536,15 +525,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           Corregir Ahora
                         </button>
                       )}
-                      {payment.status === PaymentStatus.APPROVED && (
-                        <button 
-                          onClick={() => setPaymentToPay(payment)}
-                          className="mt-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
-                        >
-                          <Wallet size={10} />
-                          Pagar Ahora
-                        </button>
-                      )}
                     </div>
                   </div>
               </div>
@@ -552,16 +532,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       </div>
-
-      <StripePaymentModal 
-        payment={paymentToPay}
-        isOpen={!!paymentToPay}
-        onClose={() => setPaymentToPay(null)}
-        onPaymentSuccess={(id) => {
-          onPaymentSuccess(id);
-          setPaymentToPay(null);
-        }}
-      />
     </div>
   );
 };

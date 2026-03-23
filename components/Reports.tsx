@@ -20,9 +20,9 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry, PayrollEntry, Employee } from '../types';
+import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator, ShieldCheck } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { STORES, APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -30,8 +30,6 @@ import { useExchangeRate } from '../contexts/ExchangeRateContext';
 interface ReportsProps {
   payments: Payment[];
   budgets: BudgetEntry[];
-  payrollEntries: PayrollEntry[];
-  employees: Employee[];
   currentUser: User | null;
 }
 
@@ -154,8 +152,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
   return null;
 };
 
-export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntries, employees, currentUser }) => {
-  const [activeReport, setActiveReport] = React.useState<'financial' | 'labor' | 'auditor'>('financial');
+export const Reports: React.FC<ReportsProps> = ({ payments, budgets, currentUser }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
 
@@ -214,67 +211,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   // Store and Municipality Filter States
   const [selectedStore, setSelectedStore] = React.useState('all');
   const [selectedMunicipality, setSelectedMunicipality] = React.useState('all');
-  const [selectedLiabilityType, setSelectedLiabilityType] = React.useState('all');
-  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState('all');
-  const [auditSearchTerm, setAuditSearchTerm] = React.useState('');
-  const [auditUserFilter, setAuditUserFilter] = React.useState('all');
-  const [auditDateFilter, setAuditDateFilter] = React.useState('');
   const { exchangeRate } = useExchangeRate();
-
-  const filteredPayrollEntries = React.useMemo(() => {
-    return payrollEntries.filter(entry => {
-      const entryDate = entry.month + '-01';
-      const isDateInRange = entryDate >= startDate && entryDate <= endDate;
-      const employeeMatch = selectedEmployeeId === 'all' || entry.employeeId === selectedEmployeeId;
-      const storeMatch = selectedStore === 'all' || entry.storeId === selectedStore;
-      
-      return isDateInRange && employeeMatch && storeMatch;
-    });
-  }, [payrollEntries, startDate, endDate, selectedEmployeeId, selectedStore]);
-
-  const liabilityTypes = React.useMemo(() => {
-    const types = new Set<string>();
-    payrollEntries.forEach(entry => {
-      entry.employerLiabilities.forEach(l => types.add(l.name));
-    });
-    return ['all', ...Array.from(types)];
-  }, [payrollEntries]);
-
-  const laborLiabilitiesData = React.useMemo(() => {
-    const data: { name: string; amount: number; worker: string; date: string; type: string; storeId: string }[] = [];
-    
-    filteredPayrollEntries.forEach(entry => {
-      entry.employerLiabilities.forEach(liability => {
-        if (selectedLiabilityType === 'all' || liability.name === selectedLiabilityType) {
-          data.push({
-            name: liability.name,
-            amount: liability.amount,
-            worker: entry.employeeName,
-            date: entry.month,
-            type: liability.name,
-            storeId: entry.storeId
-          });
-        }
-      });
-    });
-    
-    return data;
-  }, [filteredPayrollEntries, selectedLiabilityType]);
-
-  const laborIndicators = React.useMemo(() => {
-    const totalAmount = laborLiabilitiesData.reduce((sum, item) => sum + item.amount, 0);
-    const byType = liabilityTypes.filter(t => t !== 'all').map(type => {
-      const amount = laborLiabilitiesData.filter(d => d.type === type).reduce((sum, d) => sum + d.amount, 0);
-      return { name: type, value: amount };
-    }).filter(t => t.value > 0);
-
-    const byWorker = Array.from(new Set(laborLiabilitiesData.map(d => d.worker))).map(worker => {
-      const amount = laborLiabilitiesData.filter(d => d.worker === worker).reduce((sum, d) => sum + d.amount, 0);
-      return { name: worker, value: amount };
-    }).sort((a, b) => b.value - a.value).slice(0, 10);
-
-    return { totalAmount, byType, byWorker };
-  }, [laborLiabilitiesData, liabilityTypes]);
 
   const municipalities = React.useMemo(() => {
     const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
@@ -447,41 +384,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             });
         }
     });
-
-    // Apply Bitácora-specific filters
-    return logs
-      .filter(log => {
-        const searchMatch = !auditSearchTerm || 
-          log.specificType.toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
-          log.paymentId.toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
-          log.storeName.toLowerCase().includes(auditSearchTerm.toLowerCase());
-        
-        const userMatch = auditUserFilter === 'all' || log.actorName === auditUserFilter;
-        
-        const dateMatch = !auditDateFilter || log.date.split('T')[0] === auditDateFilter;
-
-        return searchMatch && userMatch && dateMatch;
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [filteredPayments, auditSearchTerm, auditUserFilter, auditDateFilter]);
-
-  const uniqueAuditUsers = React.useMemo(() => {
-    const users = new Set<string>();
-    // We use all payments to get all possible users, or just from filtered?
-    // Let's use all payments to have a complete list of users who have ever done something.
-    payments.forEach(p => {
-      p.history?.forEach(h => users.add(h.actorName));
-    });
-    return ['all', ...Array.from(users)].sort();
-  }, [payments]);
-
-  const auditorActivity = React.useMemo(() => {
-    return allAuditLogs.filter(log => 
-      log.action === 'APROBACION' || 
-      log.action === 'RECHAZO' || 
-      log.action === 'APROBACION_MASIVA'
-    );
-  }, [allAuditLogs]);
+    return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredPayments]);
 
   const handleDownloadAuditPDF = async () => {
     setIsGeneratingPdf(true);
@@ -552,105 +456,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
     } finally {
         setIsGeneratingPdf(false);
     }
-  };
-
-  const handleDownloadAuditorActivityPDF = async () => {
-    setIsGeneratingPdf(true);
-    await new Promise(r => setTimeout(r, 100));
-
-    try {
-        const logoData = await getDataUrl(APP_LOGO_URL);
-        const doc = new jsPDF();
-        
-        if (logoData) {
-            try {
-                doc.addImage(logoData, 'PNG', 14, 10, 15, 15);
-            } catch (e) {
-                console.warn("Error adding image to PDF:", e);
-            }
-        }
-
-        doc.setFontSize(20);
-        doc.text("Reporte de Actividad de Auditores", logoData ? 35 : 14, 20); 
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
-        doc.text(`Acciones Registradas: ${auditorActivity.length}`, 14, 35);
-
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, 40, 196, 40);
-        
-        const tableData = auditorActivity.map(log => [
-            formatDateTime(log.date),
-            log.action,
-            log.actorName,
-            log.role,
-            `${log.storeName} - ${log.specificType} ($${log.amount.toLocaleString()})`,
-            log.note || '-'
-        ]);
-
-        autoTable(doc, {
-            startY: 45,
-            head: [['Fecha/Hora', 'Acción', 'Auditor', 'Rol', 'Referencia', 'Nota']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [147, 51, 234] }, // Purple for auditor activity
-            styles: { fontSize: 7 },
-            columnStyles: {
-                0: { cellWidth: 30 },
-                1: { cellWidth: 25 },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 40 },
-                5: { cellWidth: 'auto' }
-            }
-        });
-
-        const pageCount = doc.getNumberOfPages();
-        for(let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text(`FiscalCtl Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
-        }
-
-        doc.save(`Actividad_Auditores_${new Date().toISOString().split('T')[0]}.pdf`);
-
-    } catch (error) {
-        console.error("Error generando PDF de actividad de auditores:", error);
-        alert("Ocurrió un error al generar el PDF. Revise la consola.");
-    } finally {
-        setIsGeneratingPdf(false);
-    }
-  };
-
-  const handleDownloadAuditorActivityCSV = () => {
-    const headers = ['Fecha/Hora', 'Accion', 'Usuario', 'Rol', 'Referencia', 'Monto ($)', 'Nota'];
-    const rows = auditorActivity.map(log => [
-      formatDateTime(log.date),
-      log.action,
-      log.actorName,
-      log.role,
-      `${log.storeName} - ${log.specificType}`,
-      log.amount,
-      log.note || ''
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Actividad_Auditores_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
@@ -803,61 +608,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
     }
   };
 
-  const handleDownloadLaborPDF = async () => {
-    setIsGeneratingPdf(true);
-    try {
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Reporte de Pasivos Laborales", 14, 20);
-        doc.setFontSize(10);
-        doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
-        doc.text(`Período: ${formatDate(startDate)} - ${formatDate(endDate)}`, 14, 35);
-
-        const tableData = laborLiabilitiesData.map(d => [
-            d.date,
-            d.worker,
-            d.type,
-            `$${d.amount.toLocaleString()}`,
-            `Bs. ${(d.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
-        ]);
-
-        autoTable(doc, {
-            head: [['Fecha', 'Trabajador', 'Tipo de Pasivo', 'Monto ($)', 'Monto (Bs.)']],
-            body: tableData,
-            startY: 45,
-            theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] },
-        });
-
-        doc.save(`Reporte_Pasivos_Laborales_${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-        console.error("Error generating PDF:", error);
-    } finally {
-        setIsGeneratingPdf(false);
-    }
-  };
-
-  const handleDownloadLaborCSV = () => {
-    const headers = ['Fecha', 'Trabajador', 'Tipo de Pasivo', 'Monto ($)', 'Monto (Bs.)'];
-    const rows = laborLiabilitiesData.map(d => [
-        d.date,
-        `"${d.worker}"`,
-        `"${d.type}"`,
-        d.amount.toFixed(2),
-        (d.amount * exchangeRate).toFixed(2)
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Reporte_Pasivos_Laborales_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 lg:p-8 font-sans">
       {/* Header */}
@@ -882,28 +632,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
-            {/* Report specific filters */}
-            {activeReport === 'labor' && (
-              <div className="flex items-center bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
-                <select 
-                    value={selectedLiabilityType} 
-                    onChange={e => setSelectedLiabilityType(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer hover:bg-slate-800"
-                >
-                    <option value="all">Todos los Pasivos</option>
-                    {liabilityTypes.filter(t => t !== 'all').map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select 
-                    value={selectedEmployeeId} 
-                    onChange={e => setSelectedEmployeeId(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 ml-1.5 transition-all cursor-pointer hover:bg-slate-800"
-                >
-                    <option value="all">Todos los Trabajadores</option>
-                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} {emp.lastName}</option>)}
-                </select>
-              </div>
-            )}
-
             {/* Store and Municipality Filters */}
             <div className="flex items-center bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
                 <select 
@@ -970,19 +698,19 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         >
                             <div className="p-1">
                                 <button 
-                                    onClick={activeReport === 'financial' ? handleDownloadPDF : activeReport === 'labor' ? handleDownloadLaborPDF : handleDownloadAuditorActivityPDF}
+                                    onClick={handleDownloadPDF}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
                                 >
-                                    <div className={`p-1.5 ${activeReport === 'financial' ? 'bg-red-500/10 text-red-400' : activeReport === 'labor' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-purple-500/10 text-purple-400'} rounded-lg`}>
+                                    <div className="p-1.5 bg-red-500/10 text-red-400 rounded-lg">
                                         <FileText size={16} />
                                     </div>
                                     Exportar como PDF
                                 </button>
                                 <button 
-                                    onClick={activeReport === 'financial' ? handleDownloadCSV : activeReport === 'labor' ? handleDownloadLaborCSV : handleDownloadAuditorActivityCSV}
+                                    onClick={handleDownloadCSV}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700/50 rounded-xl transition-colors text-left"
                                 >
-                                    <div className={`p-1.5 ${activeReport === 'financial' ? 'bg-emerald-500/10 text-emerald-400' : activeReport === 'labor' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'} rounded-lg`}>
+                                    <div className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
                                         <FileSpreadsheet size={16} />
                                     </div>
                                     Exportar como CSV
@@ -995,46 +723,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         </div>
       </motion.header>
 
-      {/* Report Type Toggle */}
-      <div className="flex gap-4 mb-8">
-        <button
-          onClick={() => setActiveReport('financial')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
-            activeReport === 'financial'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
-          }`}
-        >
-          <TrendingUp size={18} />
-          <span>Reporte Financiero</span>
-        </button>
-        <button
-          onClick={() => setActiveReport('labor')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
-            activeReport === 'labor'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
-          }`}
-        >
-          <Users size={18} />
-          <span>Pasivos Laborales</span>
-        </button>
-        <button
-          onClick={() => setActiveReport('auditor')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
-            activeReport === 'auditor'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
-          }`}
-        >
-          <ShieldCheck size={18} />
-          <span>Actividad de Auditores</span>
-        </button>
-      </div>
-
-      {activeReport === 'financial' ? (
-        <>
-          {/* KPI Cards Grid */}
+      {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { label: 'Monto Aprobado', value: `$${totalApproved.toLocaleString()}`, bsValue: `Bs. ${(totalApproved * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CheckCircle2, color: 'emerald', sub: 'En selección' },
@@ -1432,59 +1121,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     </span>
                 </div>
             </div>
-
-            {/* Audit Log Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
-                        <Filter size={14} />
-                    </div>
-                    <input 
-                        type="text"
-                        placeholder="Buscar pago o tienda..."
-                        value={auditSearchTerm}
-                        onChange={(e) => setAuditSearchTerm(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-600"
-                    />
-                </div>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
-                        <Users size={14} />
-                    </div>
-                    <select 
-                        value={auditUserFilter}
-                        onChange={(e) => setAuditUserFilter(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
-                    >
-                        <option value="all">Todos los usuarios</option>
-                        {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
-                            <option key={user} value={user}>{user}</option>
-                        ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
-                        <ChevronDown size={14} />
-                    </div>
-                </div>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-500 transition-colors">
-                        <Calendar size={14} />
-                    </div>
-                    <input 
-                        type="date"
-                        value={auditDateFilter}
-                        onChange={(e) => setAuditDateFilter(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all [color-scheme:dark]"
-                    />
-                    {auditDateFilter && (
-                        <button 
-                            onClick={() => setAuditDateFilter('')}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-red-400 transition-colors"
-                        >
-                            <XCircle size={14} />
-                        </button>
-                    )}
-                </div>
-            </div>
             
             <div className="overflow-y-auto max-h-[400px] pr-2 custom-scrollbar space-y-4">
                 {allAuditLogs.length === 0 ? (
@@ -1556,300 +1192,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             </div>
           </motion.div>
       </div>
-        </>
-      ) : activeReport === 'labor' ? (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          {/* Labor KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
-                  <Calculator size={24} />
-                </div>
-              </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Total Pasivos Acumulados</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">${laborIndicators.totalAmount.toLocaleString()}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Bs. {(laborIndicators.totalAmount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500">
-                  <Users size={24} />
-                </div>
-              </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Trabajadores en Reporte</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">{new Set(laborLiabilitiesData.map(d => d.worker)).size}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Personal Activo / Histórico</div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-500">
-                  <Briefcase size={24} />
-                </div>
-              </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Tipos de Pasivos</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">{laborIndicators.byType.length}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Categorías de Ley</div>
-            </motion.div>
-          </div>
-
-          {/* Labor Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
-            >
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-                Distribución por Tipo de Pasivo
-              </h3>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={laborIndicators.byType}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {laborIndicators.byType.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'][index % 5]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                      itemStyle={{ color: '#fff' }}
-                    />
-                    <Legend verticalAlign="bottom" height={36}/>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}
-              className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
-            >
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-                Top 10 Trabajadores por Pasivo
-              </h3>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={laborIndicators.byWorker} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                    <XAxis type="number" stroke="#64748b" fontSize={10} tickFormatter={(value) => `$${value}`} />
-                    <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} width={100} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                      itemStyle={{ color: '#fff' }}
-                    />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Detailed Labor Table */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
-          >
-            <div className="p-8 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
-                Detalle de Pasivos Laborales
-              </h3>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                {laborLiabilitiesData.length} Registros Encontrados
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/50">
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Trabajador</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo de Pasivo</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto (Bs.)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {laborLiabilitiesData.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="p-4 text-sm font-medium text-slate-300">{item.date}</td>
-                      <td className="p-4 text-sm font-bold text-white">{item.worker}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-slate-700">
-                          {item.type}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm font-bold text-white text-right font-mono">${item.amount.toLocaleString()}</td>
-                      <td className="p-4 text-sm font-medium text-slate-400 text-right font-mono">Bs. {(item.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                  ))}
-                  {laborLiabilitiesData.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-20 text-center text-slate-500 italic">
-                        No se encontraron registros de pasivos laborales para los filtros seleccionados.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {/* Auditor Activity Table */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
-          >
-            <div className="p-8 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
-                Actividad de Auditores (Aprobaciones y Rechazos)
-              </h3>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                {auditorActivity.length} Acciones Registradas
-              </div>
-            </div>
-
-            {/* Auditor Activity Filters */}
-            <div className="p-8 bg-slate-900/50 border-b border-slate-800/50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
-                            <Filter size={14} />
-                        </div>
-                        <input 
-                            type="text"
-                            placeholder="Buscar pago o tienda..."
-                            value={auditSearchTerm}
-                            onChange={(e) => setAuditSearchTerm(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600"
-                        />
-                    </div>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
-                            <Users size={14} />
-                        </div>
-                        <select 
-                            value={auditUserFilter}
-                            onChange={(e) => setAuditUserFilter(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all appearance-none cursor-pointer"
-                        >
-                            <option value="all">Todos los auditores</option>
-                            {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
-                                <option key={user} value={user}>{user}</option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
-                            <ChevronDown size={14} />
-                        </div>
-                    </div>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
-                            <Calendar size={14} />
-                        </div>
-                        <input 
-                            type="date"
-                            value={auditDateFilter}
-                            onChange={(e) => setAuditDateFilter(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all [color-scheme:dark]"
-                        />
-                        {auditDateFilter && (
-                            <button 
-                                onClick={() => setAuditDateFilter('')}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-red-400 transition-colors"
-                            >
-                                <XCircle size={14} />
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/50">
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha y Hora</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Auditor</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Acción</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pago / Tienda</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nota</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {auditorActivity.map((log, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="p-4 text-sm font-medium text-slate-300">{formatDateTime(log.date)}</td>
-                      <td className="p-4">
-                        <div className="font-bold text-white">{log.actorName}</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">{log.role}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
-                          log.action === 'RECHAZO' 
-                            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm font-bold text-white">{log.specificType}</div>
-                        <div className="text-xs text-slate-500">{log.storeName} ({log.paymentId})</div>
-                      </td>
-                      <td className="p-4 text-sm font-bold text-white text-right font-mono">${log.amount.toLocaleString()}</td>
-                      <td className="p-4 text-xs text-slate-400 italic max-w-xs truncate" title={log.note}>
-                        {log.note || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                  {auditorActivity.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="p-20 text-center text-slate-500 italic">
-                        No se encontraron acciones de auditoría para los filtros seleccionados.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

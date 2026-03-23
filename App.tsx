@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
-import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
 import { Approvals } from './components/Approvals';
@@ -15,7 +14,7 @@ import { PayrollModule } from './components/PayrollModule';
 import { CloudSync } from './components/CloudSync.tsx';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from './services/api';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
@@ -71,41 +70,12 @@ function App({ isDemoMode = false }: AppProps) {
   const handleGoogleLogin = async () => {
     try {
       const urlRes = await fetch('/api/auth/google/url');
-      const data = await urlRes.json();
-      
-      if (!urlRes.ok) {
-        setNotification(`❌ Error: ${data.error || 'No se pudo generar la URL de autenticación'}`);
-        return;
-      }
-
-      const authWindow = window.open(
-        data.url,
-        'oauth_popup',
-        'width=600,height=700'
-      );
-
-      if (!authWindow) {
-        setNotification('⚠️ Por favor permite las ventanas emergentes (popups) para iniciar sesión con Google.');
-      }
+      const { url } = await urlRes.json();
+      window.location.href = url;
     } catch (e) {
       setNotification('❌ Error al conectar con Google');
     }
   };
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
-        return;
-      }
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        setIsGoogleAuthenticated(true);
-        setNotification('✅ Autenticación con Google exitosa');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   const handlePushSync = async () => {
     if (!isGoogleAuthenticated) return;
@@ -163,7 +133,6 @@ function App({ isDemoMode = false }: AppProps) {
   // --- MOBILE & PWA STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(true);
 
   // PWA Install Prompt Listener
   useEffect(() => {
@@ -522,53 +491,9 @@ function App({ isDemoMode = false }: AppProps) {
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      if (!file.type.startsWith('image/')) {
-        if (file.size > 35000) {
-          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 35KB. Por favor, suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
-          return;
-        }
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-        return;
-      }
-
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Compress to JPEG with 0.7 quality to keep size small
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
+      reader.onload = () => resolve(reader.result as string);
       reader.onerror = error => reject(error);
     });
   };
@@ -591,9 +516,6 @@ function App({ isDemoMode = false }: AppProps) {
             receiptUrl = await fileToBase64(paymentData.file);
         } catch (e) {
             console.error("Error converting file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
-            setIsLoading(false);
-            return;
         }
     }
 
@@ -603,9 +525,6 @@ function App({ isDemoMode = false }: AppProps) {
             justificationFileUrl = await fileToBase64(paymentData.justificationFile);
         } catch (e) {
             console.error("Error converting justification file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el archivo de justificación.");
-            setIsLoading(false);
-            return;
         }
     }
 
@@ -621,7 +540,6 @@ function App({ isDemoMode = false }: AppProps) {
       paymentDate: paymentData.paymentDate,
       daysToExpire: paymentData.daysToExpire,
       status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
-      rejectionReason: '', // Clear rejection reason on correction
       submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       notes: paymentData.notes,
       history: isUpdate 
@@ -632,14 +550,7 @@ function App({ isDemoMode = false }: AppProps) {
       // Soporte Data
       documentDate: paymentData.documentDate,
       documentAmount: paymentData.documentAmount,
-      documentName: paymentData.documentName,
-      // Proposed Data
-      proposedAmount: paymentData.proposedAmount,
-      proposedPaymentDate: paymentData.proposedPaymentDate,
-      proposedDueDate: paymentData.proposedDueDate,
-      proposedDaysToExpire: paymentData.proposedDaysToExpire,
-      proposedJustification: paymentData.proposedJustification,
-      proposedStatus: paymentData.proposedStatus
+      documentName: paymentData.documentName
     };
     
     if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
@@ -662,7 +573,6 @@ function App({ isDemoMode = false }: AppProps) {
         setIsFormOpen(false);
         setEditingPayment(null);
     } catch (error) {
-        console.error('Error en handleSavePayment:', error);
         setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
     } finally {
         setIsLoading(false);
@@ -732,7 +642,6 @@ function App({ isDemoMode = false }: AppProps) {
             // Notificar al creador del pago
             notificationService.notifyPaymentApproved(updatedPayment, users, settings);
         } catch (error) {
-            console.error('Error en handleApprove:', error);
             setNotification('❌ Error sincronizando aprobación.');
         } finally {
             setIsLoading(false);
@@ -817,7 +726,7 @@ function App({ isDemoMode = false }: AppProps) {
             notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
 
             // Enviar Notificación Push
-            if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
+            if (pushPermission === 'granted') {
               const title = `⚠️ Pago Devuelto para Corrección`;
               const options = {
                 body: `El pago ${id} (${paymentToUpdate.storeName}) fue devuelto por el auditor. Razón: ${reason}`,
@@ -827,14 +736,11 @@ function App({ isDemoMode = false }: AppProps) {
                 tag: `payment-rejected-${id}`,
               };
               navigator.serviceWorker.ready.then(registration => {
-                if (registration && registration.showNotification) {
-                  registration.showNotification(title, options);
-                }
-              }).catch(err => console.error('Error showing push notification:', err));
+                registration.showNotification(title, options);
+              });
             }
 
           } catch (error) {
-             console.error('Error en handleReject:', error);
              setNotification('❌ Error sincronizando rechazo.');
           } finally {
              setIsLoading(false);
@@ -851,25 +757,6 @@ function App({ isDemoMode = false }: AppProps) {
     }
     setNotification(`Gestionando pago ${paymentId}...`);
     setTimeout(() => setNotification(null), 2000);
-  };
-
-  const handlePaymentSuccess = async (paymentId: string) => {
-    setIsLoading(true);
-    try {
-      const payment = payments.find(p => p.id === paymentId);
-      if (payment) {
-        const updatedPayment = { ...payment, status: PaymentStatus.PAID };
-        await api.updatePayment(updatedPayment);
-        setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
-        setNotification('✅ Pago procesado exitosamente');
-      }
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      setNotification('❌ Error al actualizar el estado del pago');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
   };
 
   // Filter data based on user's assigned store
@@ -916,31 +803,16 @@ function App({ isDemoMode = false }: AppProps) {
                 </div>
               </div>
             )}
-            {!isFormOpen && !editingPayment ? (
-              <Dashboard 
-                payments={filteredPayments}
-                payrollEntries={filteredPayrollEntries}
-                onNewPayment={() => setIsFormOpen(true)}
-                onEditPayment={(payment) => {
-                  setEditingPayment(payment);
-                  setIsFormOpen(true);
-                }}
-                onPaymentSuccess={handlePaymentSuccess}
-                currentUser={currentUser}
-              />
-            ) : (
-              <PaymentForm 
-                initialData={editingPayment}
-                payments={filteredPayments}
-                onSubmit={handleNewPayment} 
-                onCancel={() => {
-                  setEditingPayment(null);
-                  setIsFormOpen(false);
-                }} 
-                isEmbedded={true}
-                currentUser={currentUser}
-              />
-            )}
+            <PaymentForm 
+              initialData={editingPayment}
+              payments={filteredPayments}
+              onSubmit={handleNewPayment} 
+              onCancel={() => {
+                setEditingPayment(null);
+              }} 
+              isEmbedded={true}
+              currentUser={currentUser}
+            />
             
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
@@ -1033,7 +905,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'approvals':
         return <Approvals payments={filteredPayments} onApprove={handleApprove} onReject={handleReject} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} />;
       case 'presidency':
         return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} />;
       case 'network':
@@ -1214,35 +1086,6 @@ function App({ isDemoMode = false }: AppProps) {
         {/* Contenedor Principal */}
         <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
           
-          {/* PWA Install Banner */}
-          {installPrompt && showInstallBanner && (
-            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Download size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
-                  <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleInstallClick}
-                  className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                >
-                  Instalar
-                </button>
-                <button 
-                  onClick={() => setShowInstallBanner(false)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Header Móvil */}
           <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
              <div className="flex items-center gap-3">

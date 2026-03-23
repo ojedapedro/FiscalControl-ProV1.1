@@ -12,18 +12,19 @@ interface PPEModalProps {
   onSave: (employee: Employee) => Promise<void>;
 }
 
-type PPEItemKey = 'pantalon' | 'camisa' | 'braga' | 'delantal' | 'botas' | 'casco' | 'guantes';
+type PPEItemKey = 'pantalon' | 'camisa' | 'braga' | 'delantal' | 'botas' | 'casco' | 'guantes' | 'lentes';
 
 export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Record<PPEItemKey, PPEItemData>>({
-    pantalon: { name: 'Pantalón', talla: '', cantidad: 0, precio: 0, frecuencia: '2 Pantalones cada 6 meses' },
-    camisa: { name: 'Camisa', talla: '', cantidad: 0, precio: 0, frecuencia: '2 Camisas cada 6 meses' },
-    braga: { name: 'Braga', talla: '', cantidad: 0, precio: 0, frecuencia: '2 Bragas cada 6 meses' },
-    delantal: { name: 'Delantal', talla: '', cantidad: 0, precio: 0, frecuencia: '1 Delantal cada 6 meses' },
-    botas: { name: 'Botas de Seguridad', talla: '', cantidad: 0, precio: 0, frecuencia: '1 Par de botas cada 6 meses' },
-    casco: { name: 'Casco de Seguridad', talla: '', cantidad: 0, precio: 0, frecuencia: '1 Casco cada 6 meses' },
-    guantes: { name: 'Guantes', talla: '', cantidad: 0, precio: 0, frecuencia: '1 Par semanal (Reposición)' },
+    pantalon: { name: 'Pantalón', talla: '', cantidad: 0, precio: 0, frecuencia: '2 cada 6 meses' },
+    camisa: { name: 'Camisa', talla: '', cantidad: 0, precio: 0, frecuencia: '2 cada 6 meses' },
+    braga: { name: 'Braga', talla: '', cantidad: 0, precio: 0, frecuencia: '2 cada 6 meses' },
+    delantal: { name: 'Delantal', talla: '', cantidad: 0, precio: 0, frecuencia: '1 cada 6 meses' },
+    botas: { name: 'Botas de Seguridad', talla: '', cantidad: 0, precio: 0, frecuencia: '1 par cada 6 meses' },
+    casco: { name: 'Casco de Seguridad', talla: '', cantidad: 0, precio: 0, frecuencia: '1 cada 6 meses' },
+    guantes: { name: 'Guantes', talla: '', cantidad: 0, precio: 0, frecuencia: 'Reposición est. 6 pares' },
+    lentes: { name: 'Lentes de Seguridad', talla: '', cantidad: 0, precio: 0, frecuencia: '1 cada 4 meses' },
   });
 
   const handleInputChange = (item: PPEItemKey, field: keyof PPEItemData, value: string | number) => {
@@ -249,7 +250,7 @@ export const PPEModal: React.FC<PPEModalProps> = ({ employee, onClose, onSave })
     doc.save(`Acta_Entrega_EPP_${employee.id}_${new Date().getTime()}.pdf`);
   };
 
-  const items: PPEItemKey[] = ['pantalon', 'camisa', 'braga', 'delantal', 'botas', 'casco', 'guantes'];
+  const items: PPEItemKey[] = ['pantalon', 'camisa', 'braga', 'delantal', 'botas', 'casco', 'guantes', 'lentes'];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
