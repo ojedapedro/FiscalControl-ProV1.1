@@ -11,7 +11,8 @@ export enum PaymentStatus {
   APPROVED = 'Aprobado',
   REJECTED = 'Rechazado',
   OVERDUE = 'Vencido',
-  UPLOADED = 'Cargado'
+  UPLOADED = 'Cargado',
+  PAID = 'Pagado'
 }
 
 export enum Category {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import Stripe from 'stripe';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,44 @@ async function startServer() {
   };
 
   const SPREADSHEET_ID = '1EaYm-kbgFciU2ZFIJk5B8rLb9y07hZEDbGKIiElLbd8';
+
+  // Stripe Initialization
+  let stripe: Stripe | null = null;
+  const getStripe = () => {
+    if (!stripe) {
+      const key = process.env.STRIPE_SECRET_KEY;
+      if (!key) {
+        console.warn('STRIPE_SECRET_KEY no está configurada. Los pagos no funcionarán.');
+        return null;
+      }
+      stripe = new Stripe(key);
+    }
+    return stripe;
+  };
+
+  // Stripe Payment Intent Route
+  app.post('/api/create-payment-intent', async (req, res) => {
+    const { amount, currency = 'usd', paymentId } = req.body;
+    
+    const stripeClient = getStripe();
+    if (!stripeClient) {
+      return res.status(500).json({ error: 'Stripe no está configurado en el servidor.' });
+    }
+
+    try {
+      const paymentIntent = await stripeClient.paymentIntents.create({
+        amount: Math.round(amount * 100), // Stripe expects amount in cents
+        currency,
+        metadata: { paymentId },
+        automatic_payment_methods: { enabled: true },
+      });
+
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Auth Routes
   app.get('/api/auth/google/url', (req, res) => {
