@@ -59,6 +59,10 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
     .filter(p => p.status === PaymentStatus.APPROVED)
     .reduce((sum, p) => sum + p.amount, 0);
 
+  const totalPaid = filteredPayments
+    .filter(p => p.status === PaymentStatus.PAID)
+    .reduce((sum, p) => sum + p.amount, 0);
+
   const totalPending = filteredPayments
     .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -178,6 +182,15 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
             <div>
               <p className="text-slate-400 text-sm">Pagos Aprobados</p>
               <p className="text-2xl font-bold">${totalApproved.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400"><CheckCircle2 /></div>
+            <div>
+              <p className="text-slate-400 text-sm">Pagos Realizados</p>
+              <p className="text-2xl font-bold">${totalPaid.toLocaleString()}</p>
             </div>
           </div>
         </div>

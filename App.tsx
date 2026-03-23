@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
+import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
 import { Approvals } from './components/Approvals';
@@ -852,6 +853,25 @@ function App({ isDemoMode = false }: AppProps) {
     setTimeout(() => setNotification(null), 2000);
   };
 
+  const handlePaymentSuccess = async (paymentId: string) => {
+    setIsLoading(true);
+    try {
+      const payment = payments.find(p => p.id === paymentId);
+      if (payment) {
+        const updatedPayment = { ...payment, status: PaymentStatus.PAID };
+        await api.updatePayment(updatedPayment);
+        setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
+        setNotification('✅ Pago procesado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      setNotification('❌ Error al actualizar el estado del pago');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   // Filter data based on user's assigned store
   const userStoreId = currentUser?.storeId;
   const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
@@ -896,16 +916,31 @@ function App({ isDemoMode = false }: AppProps) {
                 </div>
               </div>
             )}
-            <PaymentForm 
-              initialData={editingPayment}
-              payments={filteredPayments}
-              onSubmit={handleNewPayment} 
-              onCancel={() => {
-                setEditingPayment(null);
-              }} 
-              isEmbedded={true}
-              currentUser={currentUser}
-            />
+            {!isFormOpen && !editingPayment ? (
+              <Dashboard 
+                payments={filteredPayments}
+                payrollEntries={filteredPayrollEntries}
+                onNewPayment={() => setIsFormOpen(true)}
+                onEditPayment={(payment) => {
+                  setEditingPayment(payment);
+                  setIsFormOpen(true);
+                }}
+                onPaymentSuccess={handlePaymentSuccess}
+                currentUser={currentUser}
+              />
+            ) : (
+              <PaymentForm 
+                initialData={editingPayment}
+                payments={filteredPayments}
+                onSubmit={handleNewPayment} 
+                onCancel={() => {
+                  setEditingPayment(null);
+                  setIsFormOpen(false);
+                }} 
+                isEmbedded={true}
+                currentUser={currentUser}
+              />
+            )}
             
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
