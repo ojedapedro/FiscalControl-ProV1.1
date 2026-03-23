@@ -799,8 +799,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-        if (selectedFile.size > 5 * 1024 * 1024) {
-            setErrors(prev => ({...prev, file: 'El archivo excede el límite de 5MB.'}));
+        const isImage = selectedFile.type.startsWith('image/');
+        const maxSize = isImage ? 5 * 1024 * 1024 : 800 * 1024;
+        if (selectedFile.size > maxSize) {
+            setErrors(prev => ({...prev, file: `El archivo excede el límite de ${isImage ? '5MB' : '800KB'}.`}));
             return;
         }
         setIsFileScanning(true);

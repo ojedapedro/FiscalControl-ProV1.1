@@ -522,8 +522,8 @@ function App({ isDemoMode = false }: AppProps) {
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
-        if (file.size > 35000) {
-          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 35KB. Por favor, suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
+        if (file.size > 800000) {
+          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 800KB. Por favor, intente con un archivo más pequeño o suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
           return;
         }
         const reader = new FileReader();
