@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
-import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
 import { Approvals } from './components/Approvals';
@@ -523,8 +522,8 @@ function App({ isDemoMode = false }: AppProps) {
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
-        if (file.size > 35000) {
-          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 35KB. Por favor, suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
+        if (file.size > 800000) {
+          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 800KB. Por favor, intente con un archivo más pequeño o suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
           return;
         }
         const reader = new FileReader();
@@ -916,31 +915,17 @@ function App({ isDemoMode = false }: AppProps) {
                 </div>
               </div>
             )}
-            {!isFormOpen && !editingPayment ? (
-              <Dashboard 
-                payments={filteredPayments}
-                payrollEntries={filteredPayrollEntries}
-                onNewPayment={() => setIsFormOpen(true)}
-                onEditPayment={(payment) => {
-                  setEditingPayment(payment);
-                  setIsFormOpen(true);
-                }}
-                onPaymentSuccess={handlePaymentSuccess}
-                currentUser={currentUser}
-              />
-            ) : (
-              <PaymentForm 
-                initialData={editingPayment}
-                payments={filteredPayments}
-                onSubmit={handleNewPayment} 
-                onCancel={() => {
-                  setEditingPayment(null);
-                  setIsFormOpen(false);
-                }} 
-                isEmbedded={true}
-                currentUser={currentUser}
-              />
-            )}
+            <PaymentForm 
+              initialData={editingPayment}
+              payments={filteredPayments}
+              onSubmit={handleNewPayment} 
+              onCancel={() => {
+                setEditingPayment(null);
+                setIsFormOpen(false);
+              }} 
+              isEmbedded={true}
+              currentUser={currentUser}
+            />
             
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
@@ -1306,4 +1291,3 @@ function App({ isDemoMode = false }: AppProps) {
 }
 
 export default App;
-  
