@@ -1492,7 +1492,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                 {/* Section 3: Soportes y Notas */}
                 <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-200 dark:border-red-800 shadow-lg shadow-red-50 dark:shadow-red-900/5' : 'border-slate-100 dark:border-slate-800'}`}>
-                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
                         Soportes y Notas
                     </h2>
@@ -1500,7 +1500,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* File Upload */}
                         <div className="space-y-4">
-                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Comprobante / Recibo</label>
+                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Comprobante / Recibo</label>
                              <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
                                  isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
                              } ${
@@ -1556,7 +1556,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                         {file?.name || 'Archivo previo'}
                                                     </p>
                                                     {file && (
-                                                      <p className="text-xs text-slate-500 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                                                           {(file.size / (1024 * 1024)).toFixed(2)} MB
                                                       </p>
                                                     )}
@@ -1575,7 +1575,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <div className={`p-4 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
                                                 <Upload size={24} />
                                             </div>
-                                            <p className="mb-1 text-sm text-slate-700 dark:text-slate-300 font-medium">Click para subir comprobante</p>
+                                            <p className="mb-1 text-sm text-slate-700 dark:text-slate-200 font-medium">Click para subir comprobante</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-500">Soporta: PDF, JPG, PNG (Max 5MB)</p>
                                         </>
                                     )}
@@ -1598,44 +1598,44 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 </div>
                                 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nuevo Monto</label>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nuevo Monto</label>
                                     <input
                                         type="number"
                                         value={proposedAmount || ''}
                                         onChange={(e) => setProposedAmount(Number(e.target.value))}
                                         placeholder="0.00"
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nueva Fecha Pago</label>
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nueva Fecha Pago</label>
                                         <input
                                             type="date"
                                             value={proposedPaymentDate || ''}
                                             onChange={(e) => setProposedPaymentDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nueva Fecha Venc.</label>
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nueva Fecha Venc.</label>
                                         <input
                                             type="date"
                                             value={proposedDueDate || ''}
                                             onChange={(e) => setProposedDueDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Justificación de la Propuesta</label>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Justificación de la Propuesta</label>
                                     <textarea
                                         value={proposedJustification}
                                         onChange={(e) => setProposedJustification(e.target.value)}
                                         placeholder="Explique por qué propone estos cambios..."
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
                                     />
                                 </div>
                              </div>
@@ -1646,40 +1646,40 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              {/* Campos adicionales del soporte */}
                              <div className="grid grid-cols-1 gap-4">
                                  <div>
-                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre del Documento</label>
+                                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nombre del Documento</label>
                                      <input
                                          type="text"
                                          value={docName}
                                          onChange={(e) => setDocName(e.target.value)}
                                          placeholder="Ej: Factura #123"
-                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                      />
                                  </div>
                                  <div className="grid grid-cols-2 gap-4">
                                      <div>
-                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Doc.</label>
+                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Fecha Doc.</label>
                                          <input
                                              type="date"
                                              value={docDate}
                                              onChange={(e) => setDocDate(e.target.value)}
-                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
                                          />
                                      </div>
                                      <div>
-                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monto Doc.</label>
+                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Monto Doc.</label>
                                          <input
                                              type="number"
                                              value={docAmount}
                                              onChange={(e) => setDocAmount(e.target.value)}
                                              placeholder="0.00"
-                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                          />
                                      </div>
                                  </div>
                              </div>
 
                              <div className="flex flex-col">
-                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Observaciones</label>
+                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Observaciones</label>
                                  <div className="relative h-full">
                                      <textarea
                                         value={notes}
