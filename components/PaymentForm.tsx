@@ -1398,9 +1398,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
                                         } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
                                     />
-                                    <div className="mt-2 text-sm font-bold text-slate-600 dark:text-slate-400">
-                                        Equivalente: Bs. {(parseFloat(amount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
+                                    {exchangeRate !== undefined && (
+                                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-600 text-white rounded-xl shadow-sm group-hover/conv:scale-110 transition-transform">
+                                                    <Calculator size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-1">Equivalente en Bs.</p>
+                                                    <p className="text-base font-black text-blue-700 dark:text-blue-300 tabular-nums">
+                                                        Bs. {(parseFloat(amount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-[10px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
+                                                Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                            </div>
+                                        </div>
+                                    )}
                                     {isOverBudget && (
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
                                             <AlertTriangle size={20} />
@@ -1410,10 +1425,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
                                 
                                 {isOverBudget && (
-                                    <p className="text-amber-600 dark:text-amber-400 text-xs mt-1.5 font-bold flex items-center gap-1">
-                                        <AlertTriangle size={12} />
-                                        Excede presupuesto (${expectedBudget?.toLocaleString()})
-                                    </p>
+                                    <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                                        <div className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                                            <p className="font-bold mb-1 uppercase tracking-wider">⚠️ Excedente de Presupuesto</p>
+                                            Este monto excede el presupuesto asignado por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Equivalente: Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
+                                        </div>
+                                    </div>
                                 )}
 
                                 {justificationConfirmed && (
@@ -1595,10 +1613,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <div className="flex items-center gap-2 mb-2">
                                     <RefreshCw size={18} className="text-blue-500" />
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Proponer Cambios</h3>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nuevo Monto</label>
+                                         <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nuevo Monto ($/Bs.)</label>
                                     <input
                                         type="number"
                                         value={proposedAmount || ''}
@@ -1606,6 +1622,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         placeholder="0.00"
                                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                     />
+                                    {exchangeRate !== undefined && (
+                                        <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
+                                                    <Calculator size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
+                                                    <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
+                                                        Bs. {(parseFloat(proposedAmount?.toString() || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
+                                                Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                      )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -1663,10 +1699,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              value={docDate}
                                              onChange={(e) => setDocDate(e.target.value)}
                                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                         />
-                                     </div>
-                                     <div>
-                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Monto Doc.</label>
+                                                            <div>
+                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Monto Doc. ($/Bs.)</label>
                                          <input
                                              type="number"
                                              value={docAmount}
@@ -1674,6 +1708,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              placeholder="0.00"
                                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                          />
+                                         {exchangeRate !== undefined && (
+                                             <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                                 <div className="flex items-center gap-2">
+                                                     <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
+                                                         <Calculator size={14} />
+                                                     </div>
+                                                     <div>
+                                                         <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
+                                                         <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
+                                                             Bs. {(parseFloat(docAmount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                         </p>
+                                                     </div>
+                                                 </div>
+                                                 <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
+                                                     Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                                 </div>
+                                             </div>
+                                         )}
+                                     </div>
+                   )}
                                      </div>
                                  </div>
                              </div>
