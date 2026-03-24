@@ -17,6 +17,7 @@ import {
   Loader2,
   Trash2,
   Scan,
+  X,
   RefreshCw,
   AlertTriangle,
   Clock,
@@ -398,6 +399,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
   // --- Proposed Changes State ---
+  const [showProposedChangesModal, setShowProposedChangesModal] = React.useState(false);
   const [proposedAmount, setProposedAmount] = React.useState<number | undefined>(initialData?.proposedAmount);
   const [proposedPaymentDate, setProposedPaymentDate] = React.useState<string | undefined>(initialData?.proposedPaymentDate);
   const [proposedDueDate, setProposedDueDate] = React.useState<string | undefined>(initialData?.proposedDueDate);
@@ -1589,56 +1591,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 />
                              </label>
                              {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
-
-                             {/* Proposed Changes Section (Moved from Modal) */}
-                             <div className="mt-6 p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl space-y-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <RefreshCw size={18} className="text-blue-500" />
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Proponer Cambios</h3>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nuevo Monto</label>
-                                    <input
-                                        type="number"
-                                        value={proposedAmount || ''}
-                                        onChange={(e) => setProposedAmount(Number(e.target.value))}
-                                        placeholder="0.00"
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nueva Fecha Pago</label>
-                                        <input
-                                            type="date"
-                                            value={proposedPaymentDate || ''}
-                                            onChange={(e) => setProposedPaymentDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nueva Fecha Venc.</label>
-                                        <input
-                                            type="date"
-                                            value={proposedDueDate || ''}
-                                            onChange={(e) => setProposedDueDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Justificación de la Propuesta</label>
-                                    <textarea
-                                        value={proposedJustification}
-                                        onChange={(e) => setProposedJustification(e.target.value)}
-                                        placeholder="Explique por qué propone estos cambios..."
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
-                                    />
-                                </div>
-                             </div>
                         </div>
 
                         {/* Notes and Support Details */}
@@ -1651,7 +1603,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                          type="text"
                                          value={docName}
                                          onChange={(e) => setDocName(e.target.value)}
-                                         placeholder="Ej: Factura rgb(237, 241, 245)"
+                                         placeholder="Ej: Factura #123"
                                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                                      />
                                  </div>
@@ -1688,12 +1640,78 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         placeholder="Añada notas adicionales para el auditor..."
                                         className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
                                      ></textarea>
+                                     <button
+                                        type="button"
+                                        onClick={() => setShowProposedChangesModal(true)}
+                                        className="mt-4 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all"
+                                     >
+                                        Proponer Cambios
+                                     </button>
                                  </div>
                              </div>
                         </div>
                     </div>
                 </section>
             </div>
+
+            {/* Proposed Changes Modal */}
+            {showProposedChangesModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Proponer Cambios</h3>
+                            <button onClick={() => setShowProposedChangesModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nuevo Monto</label>
+                                <input
+                                    type="number"
+                                    value={proposedAmount || ''}
+                                    onChange={(e) => setProposedAmount(Number(e.target.value))}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nueva Fecha de Pago</label>
+                                <input
+                                    type="date"
+                                    value={proposedPaymentDate || ''}
+                                    onChange={(e) => setProposedPaymentDate(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nueva Fecha Vencimiento</label>
+                                <input
+                                    type="date"
+                                    value={proposedDueDate || ''}
+                                    onChange={(e) => setProposedDueDate(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Justificación</label>
+                                <textarea
+                                    value={proposedJustification}
+                                    onChange={(e) => setProposedJustification(e.target.value)}
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                    rows={4}
+                                />
+                            </div>
+                            <button
+                                onClick={() => setShowProposedChangesModal(false)}
+                                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all"
+                            >
+                                Guardar Propuesta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* Right Column: Map (Sticky) */}
             <div className="lg:col-span-5 hidden lg:block">
