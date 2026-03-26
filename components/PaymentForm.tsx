@@ -18,6 +18,7 @@ import {
   Trash2,
   Scan,
   RefreshCw,
+  MessageSquare,
   AlertTriangle,
   Clock,
   FileWarning,
@@ -1087,34 +1088,32 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
       {/* Auditor Feedback for Rejected Payments - Refined UI */}
       {initialData?.status === PaymentStatus.REJECTED && initialData.rejectionReason && (
-        <div className="mb-10 overflow-hidden bg-white dark:bg-slate-900 border-2 border-red-500 rounded-3xl shadow-xl shadow-red-100 dark:shadow-red-900/10 animate-in zoom-in-95 duration-500">
-          <div className="flex flex-col md:flex-row">
-            <div className="md:w-1/4 bg-red-500 p-6 flex flex-col items-center justify-center text-white text-center gap-2">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                <AlertCircle size={28} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest mt-2">Auditoría</span>
-              <span className="text-xs font-bold opacity-80">Feedback</span>
-            </div>
-            <div className="flex-1 p-6 md:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Motivo de la Devolución</h3>
-                <span className="text-[10px] text-slate-400 font-mono">{formatDate(new Date())}</span>
+        <div className="mb-10 animate-in slide-in-from-top-4 duration-500">
+          <div className="glass-card border-red-500/30 bg-red-500/5 overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-500/20 text-red-500 rounded-lg">
+                    <AlertCircle size={20} />
+                  </div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Motivo de la Devolución</h3>
+                </div>
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{formatDate(new Date())}</span>
               </div>
               <div className="relative">
-                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-red-500 rounded-full opacity-20"></div>
-                <p className="text-slate-700 dark:text-slate-300 text-lg font-serif italic leading-relaxed pl-2">
+                <p className="text-slate-300 text-lg font-serif italic leading-relaxed pl-4 border-l-2 border-slate-800">
                   "{initialData.rejectionReason}"
                 </p>
               </div>
-              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <p className="text-xs text-slate-500 flex items-center gap-2">
+              <div className="mt-8 pt-6 border-t border-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <p className="text-xs text-slate-500 font-medium flex items-center gap-2">
                   <RefreshCw size={14} className="text-red-500 animate-spin-slow" /> 
-                  Ajuste los campos marcados o reemplace los documentos.
+                  Ajuste los campos marcados o reemplace los documentos para reenviar.
                 </p>
                 <div className="flex -space-x-2">
                   {[1,2,3].map(i => (
-                    <div key={i} className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800"></div>
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-950 bg-slate-800 shadow-lg"></div>
                   ))}
                 </div>
               </div>
@@ -1126,50 +1125,77 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Section 1: Origen y Clasificación */}
-        <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                Ubicación y Tipo
+        <section className={`glass-card p-8 transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
+            <h2 className="label-caps mb-8 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]"></div>
+                Ubicación y Clasificación Fiscal
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="relative">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Sucursal / Tienda</label>
-                    <div className="relative group">
-                        <select 
-                            value={store}
-                            onChange={(e) => setStore(e.target.value)}
-                            disabled={isSubmitting}
-                            className={`w-full appearance-none bg-slate-50 dark:bg-slate-800 border ${errors.store ? 'border-red-300 ring-1 ring-red-100' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-4 pl-12 transition-all outline-none disabled:bg-slate-100 disabled:dark:bg-slate-900/50 disabled:text-slate-500`}
-                        >
-                            <option value="">Seleccionar ubicación...</option>
-                            {category === Category.PAYROLL && !currentUser?.storeId && (
-                                <option value="NATIONAL">Nacional (Cobertura Nacional)</option>
-                            )}
-                            {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div className="lg:col-span-4 space-y-6">
+                    <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Sucursal / Tienda</label>
+                        <div className="relative group">
+                            <select 
+                                value={store}
+                                onChange={(e) => setStore(e.target.value)}
+                                disabled={isSubmitting}
+                                className={`w-full appearance-none bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-50 cursor-pointer`}
+                            >
+                                <option value="" className="bg-slate-900">Seleccionar ubicación...</option>
+                                {category === Category.PAYROLL && !currentUser?.storeId && (
+                                    <option value="NATIONAL" className="bg-slate-900">Nacional (Cobertura Nacional)</option>
+                                )}
+                                {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
+                                    <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>
+                                ))}
+                            </select>
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} />
+                        </div>
+                        {errors.store && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.store}</p>}
                     </div>
-                    {errors.store && <p className="text-red-500 text-xs mt-1 ml-1">{errors.store}</p>}
+
+                    {category && (
+                        <div className="p-5 bg-brand-500/5 border border-brand-500/20 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-left-2">
+                            <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                <AlertCircle size={18} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Guía de Categoría</p>
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                                    {[
+                                        { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
+                                        { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
+                                        { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
+                                        { id: Category.INSTITUTIONS, desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
+                                        { id: Category.TRANSPORT, desc: 'Documentos de chofer, vehículo y mantenimiento.' },
+                                        { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
+                                        { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
+                                        { id: Category.SYSTEMS, desc: 'Sistemas, Marketing y Oficinas.' },
+                                        { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
+                                        { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
+                                    ].find(c => c.id === category)?.desc}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Categoría Fiscal</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="lg:col-span-8">
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">Categoría Fiscal</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                         {[
-                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark, color: 'blue', desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
-                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2, color: 'indigo', desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
-                            { id: Category.OBJECT, label: 'Objeto', icon: FileText, color: 'emerald', desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
-                            { id: Category.INSTITUTIONS, label: 'Instituciones', icon: Landmark, color: 'purple', desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
-                            { id: Category.TRANSPORT, label: 'Transporte', icon: FileText, color: 'orange', desc: 'Documentos de chofer, vehículo y mantenimiento.' },
-                            { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText, color: 'teal', desc: 'Declaraciones y Contabilidad SENIAT.' },
-                            { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText, color: 'cyan', desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
-                            { id: Category.SYSTEMS, label: 'Sistemas', icon: FileText, color: 'rose', desc: 'Sistemas, Marketing y Oficinas.' },
-                            { id: Category.PAYROLL, label: 'Recursos Humanos', icon: Users, color: 'amber', desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
-                            { id: Category.UTILITY, label: 'Servicio', icon: Zap, color: 'yellow', desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
+                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark },
+                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2 },
+                            { id: Category.OBJECT, label: 'Objeto', icon: FileText },
+                            { id: Category.INSTITUTIONS, label: 'Instituciones', icon: Landmark },
+                            { id: Category.TRANSPORT, label: 'Transporte', icon: FileText },
+                            { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText },
+                            { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText },
+                            { id: Category.SYSTEMS, label: 'Sistemas', icon: FileText },
+                            { id: Category.PAYROLL, label: 'RRHH', icon: Users },
+                            { id: Category.UTILITY, label: 'Servicio', icon: Zap },
                         ].map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
@@ -1179,41 +1205,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     type="button"
                                     disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
-                                    className={`relative overflow-hidden flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 group ${
+                                    className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group ${
                                         isSelected 
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md' 
-                                        : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-blue-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                        ? 'border-brand-500 bg-brand-500/10 text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
+                                        : 'border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800'
                                     } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    <div className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-blue-200 dark:bg-blue-800' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
-                                        <Icon size={18} className={isSelected ? 'text-blue-700 dark:text-blue-200' : 'text-slate-400 dark:text-slate-500'} />
+                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${isSelected ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 scale-110' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}`}>
+                                        <Icon size={20} />
                                     </div>
-                                    <span className="text-xs font-bold text-center">{cat.label}</span>
-                                    {isSelected && <div className="absolute top-1 right-1 text-blue-500"><CheckCircle2 size={12} /></div>}
+                                    <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${isSelected ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{cat.label}</span>
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 text-brand-400 animate-in zoom-in duration-300">
+                                            <CheckCircle2 size={14} />
+                                        </div>
+                                    )}
                                 </button>
                             )
                         })}
                     </div>
-                    {category && (
-                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                            <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                                {[
-                                    { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
-                                    { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
-                                    { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
-                                    { id: Category.INSTITUTIONS, desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
-                                    { id: Category.TRANSPORT, desc: 'Documentos de chofer, vehículo y mantenimiento.' },
-                                    { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
-                                    { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
-                                    { id: Category.SYSTEMS, desc: 'Sistemas, Marketing y Oficinas.' },
-                                    { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
-                                    { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
-                                ].find(c => c.id === category)?.desc}
-                            </p>
-                        </div>
-                    )}
-                    {errors.category && <p className="text-red-500 text-xs mt-1 ml-1">{errors.category}</p>}
+                    {errors.category && <p className="text-red-400 text-[10px] font-black uppercase mt-3 ml-1 tracking-tighter">{errors.category}</p>}
                 </div>
             </div>
         </section>
@@ -1351,19 +1362,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 )}
 
                 {/* Section 2: Detalles Financieros */}
-                <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-100 dark:border-red-900/30' : 'border-slate-100 dark:border-slate-800'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                <section className={`glass-card p-8 transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="label-caps flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                             Detalles Financieros
                         </h2>
                         {!!getTaxConfig(category) && !isManualOverride && (
                             <button
                                 type="button"
                                 onClick={() => setIsManualOverride(true)}
-                                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase flex items-center gap-1 transition-colors"
+                                className="text-[10px] font-black text-brand-400 hover:text-brand-300 uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105"
                             >
-                                <RefreshCw size={12} />
+                                <RefreshCw size={12} className="animate-spin-slow" />
                                 Editar manualmente
                             </button>
                         )}
@@ -1371,24 +1382,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                     {/* Store Location Info (Auto-filled) */}
                     {store && (
-                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-start gap-3 animate-in fade-in slide-in-from-left-2">
-                            <MapPin className="text-blue-500 shrink-0 mt-0.5" size={18} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div className="mb-8 p-5 bg-brand-500/5 border border-brand-500/20 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-left-2">
+                            <MapPin className="text-brand-400 shrink-0 mt-0.5" size={20} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                                 <div>
-                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Municipio / Alcaldía</span>
-                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
+                                    <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Municipio / Alcaldía</span>
+                                    <p className="text-sm font-bold text-white">{storeMunicipality || 'No especificado'}</p>
                                 </div>
                                 <div>
-                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block mb-0.5">Dirección de Sucursal</span>
-                                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">{storeAddress || 'No especificada'}</p>
+                                    <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Dirección de Sucursal</span>
+                                    <p className="text-xs text-slate-400 italic leading-relaxed">{storeAddress || 'No especificada'}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Descripción del Pago</label>
+                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Descripción del Pago</label>
                             <div className="relative group">
                                 <input
                                     type="text"
@@ -1396,19 +1407,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     value={specificType}
                                     readOnly={(!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`bg-slate-50 dark:bg-slate-800 border ${errors.specificType ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`w-full bg-slate-950/50 border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
-                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                             </div>
-                            {errors.specificType && <p className="text-red-500 text-xs mt-1 ml-1">{errors.specificType}</p>}
+                            {errors.specificType && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.specificType}</p>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                             {/* Amount */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monto Total</label>
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Total ($)</label>
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-blue-500 font-bold transition-colors">$</div>
+                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -1416,65 +1427,67 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={amount}
                                         readOnly={!isManualOverride}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className={`${!isManualOverride ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-800'} border ${
+                                        className={`w-full ${!isManualOverride ? 'bg-slate-900/50 cursor-not-allowed' : 'bg-slate-950/50'} border ${
                                             isOverBudget 
-                                                ? 'border-amber-400 ring-2 ring-amber-200 dark:ring-amber-900/30' 
-                                                : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
-                                        } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
+                                                ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
+                                                : errors.amount ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'
+                                        } text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-10 p-4 outline-none font-mono transition-all`}
                                     />
-                                    {effectiveExchangeRate !== undefined && (
-                                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-blue-600 text-white rounded-xl shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                    <Calculator size={16} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-1">Equivalente en Bs.</p>
-                                                    <p className="text-base font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                                                        Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-[10px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
-                                            </div>
-                                        </div>
-                                    )}
                                     {isOverBudget && (
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
                                             <AlertTriangle size={20} />
                                         </div>
                                     )}
                                 </div>
-                                {errors.amount && <p className="text-red-500 text-xs mt-1 ml-1">{errors.amount}</p>}
+                                {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 
+                                {effectiveExchangeRate !== undefined && (
+                                    <div className="mt-4 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-emerald-500/10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl shadow-sm group-hover/conv:scale-110 transition-transform">
+                                                <Calculator size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest leading-none mb-1">Equivalente en Bs.</p>
+                                                <p className="text-base font-black text-emerald-400 tabular-nums">
+                                                    Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right">
+                                            Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
+                                            {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {isOverBudget && (
-                                    <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="mt-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
-                                        <div className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-                                            <p className="font-bold mb-1 uppercase tracking-wider">⚠️ Excedente de Presupuesto</p>
-                                            Este monto excede el presupuesto asignado por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Equivalente: Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
+                                        <div className="text-[11px] text-amber-200/80 font-medium leading-relaxed">
+                                            <p className="font-black mb-1 uppercase tracking-widest text-amber-400">Excedente de Presupuesto</p>
+                                            Excede por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
                                         </div>
                                     </div>
                                 )}
 
                                 {justificationConfirmed && (
-                                    <p className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 flex items-center gap-1 font-semibold">
+                                    <p className="text-emerald-400 text-[10px] font-black uppercase mt-2 flex items-center gap-1 ml-1">
                                         <CheckCircle2 size={12} /> Justificación añadida
                                     </p>
                                 )}
 
                                 {isCurrentTaxItemVariable && (
-                                    <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg flex items-center gap-3 border border-slate-200 dark:border-slate-700">
+                                    <div className="mt-4 p-4 bg-slate-900/50 rounded-2xl flex items-center gap-4 border border-slate-800 transition-colors hover:border-slate-700">
                                         <input
                                             type="checkbox"
                                             id="manualOverBudget"
                                             checked={manualOverBudget}
                                             onChange={(e) => setManualOverBudget(e.target.checked)}
-                                            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                            className="h-5 w-5 rounded border-slate-700 bg-slate-950 text-brand-500 focus:ring-brand-500/50 shrink-0 cursor-pointer"
                                         />
-                                        <label htmlFor="manualOverBudget" className="block text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                            Marcar este pago como un <strong>excedente presupuestario</strong> para solicitar justificación.
+                                        <label htmlFor="manualOverBudget" className="block text-[10px] text-slate-400 font-bold uppercase tracking-tight cursor-pointer leading-tight">
+                                            Marcar como <span className="text-amber-400">excedente presupuestario</span> para solicitar justificación.
                                         </label>
                                     </div>
                                 )}
@@ -1482,23 +1495,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                             {/* Payment Date */}
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha de Pago</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha de Pago</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
                                         value={paymentDate}
                                         disabled={isSubmitting}
                                         onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.paymentDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                        className={`w-full bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
-                                {errors.paymentDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.paymentDate}</p>}
+                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
                             </div>
 
                             {/* Days to Expire */}
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Días a Vencer</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Días a Vencer</label>
                                 <div className="relative group">
                                     <input
                                         type="number"
@@ -1506,64 +1519,64 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={daysToExpire}
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all"
+                                        className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
                                     />
-                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-1 ml-1">Lapsos de vencimiento</p>
+                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mt-2 ml-1">Lapsos de vencimiento</p>
                             </div>
 
                             {/* Due Date */}
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Fecha Vencimiento</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Vencimiento</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
                                         value={dueDate}
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDueDateChange(e.target.value)}
-                                        className={`bg-slate-50 dark:bg-slate-800 border ${errors.dueDate ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-4 pl-12 shadow-sm outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                        className={`w-full bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
                                     />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
-                                {errors.dueDate && <p className="text-red-500 text-xs mt-1 ml-1">{errors.dueDate}</p>}
+                                {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Section 3: Soportes y Notas */}
-                <section className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-200 dark:border-red-800 shadow-lg shadow-red-50 dark:shadow-red-900/5' : 'border-slate-100 dark:border-slate-800'}`}>
-                    <h2 className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                <section className={`glass-card p-8 transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
+                    <h2 className="label-caps mb-8 flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
                         Soportes y Notas
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         {/* File Upload */}
-                        <div className="space-y-4">
-                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Comprobante / Recibo</label>
-                             <label className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
-                                 isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        <div className="space-y-6">
+                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo</label>
+                             <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
+                                 isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
                              } ${
-                                 file || previewUrl ? 'border-green-400 bg-white dark:bg-slate-900' : 
-                                 initialData?.status === PaymentStatus.REJECTED ? 'border-red-300 dark:border-red-700 bg-red-50/30 dark:bg-red-900/5 hover:border-red-500' :
-                                 errors.file ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                                 file || previewUrl ? 'border-emerald-500/50 bg-emerald-500/5' : 
+                                 initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/50 bg-red-500/5 hover:border-red-500' :
+                                 errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'
                              }`}>
                                 
                                 {/* Overlay de Carga de Archivo */}
                                 {isFileScanning && (
-                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 flex flex-col items-center justify-center backdrop-blur-sm p-4">
-                                        <Scan className="w-8 h-8 text-blue-500 animate-pulse mb-3" />
-                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2">Analizando y subiendo archivo...</span>
-                                        <div className="w-full max-w-[200px] bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                                            <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                                    <div className="absolute inset-0 z-20 bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
+                                        <Scan className="w-10 h-10 text-brand-400 animate-pulse mb-4" />
+                                        <span className="text-sm font-black text-brand-400 uppercase tracking-widest mb-3">Analizando Documento...</span>
+                                        <div className="w-full max-w-[240px] bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                                            <div className="bg-brand-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: `${uploadProgress}%` }}></div>
                                         </div>
-                                        <span className="text-xs text-slate-500 mt-1">{uploadProgress}% Completado</span>
+                                        <span className="text-[10px] font-black text-slate-500 mt-2 uppercase tracking-tighter">{uploadProgress}% Procesado</span>
                                     </div>
                                 )}
 
-                                <div className="flex flex-col items-center justify-center w-full h-full">
+                                <div className="flex flex-col items-center justify-center w-full h-full p-4">
                                     {file || previewUrl ? (
                                         <div className="w-full h-full relative group/file">
                                             {previewUrl ? (
@@ -1572,53 +1585,53 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                     <img
                                                         src={previewUrl}
                                                         alt="Preview"
-                                                        className="w-full h-full object-contain rounded-xl shadow-sm bg-slate-100 dark:bg-slate-950/50"
+                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-950/50"
                                                     />
-                                                    <div className="absolute inset-0 m-2 rounded-xl bg-black/40 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                                    <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
                                                          <button
                                                             onClick={clearFile}
                                                             type="button"
-                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transform hover:scale-105 transition-all"
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
                                                          >
-                                                            <Trash2 size={18} />
-                                                            <span>Eliminar Imagen</span>
+                                                            <Trash2 size={16} />
+                                                            <span>Eliminar</span>
                                                          </button>
                                                     </div>
-                                                    <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1 rounded-full shadow-md z-10 pointer-events-none">
-                                                        <CheckCircle2 size={16} />
+                                                    <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg z-10 pointer-events-none animate-in zoom-in duration-300">
+                                                        <CheckCircle2 size={18} />
                                                     </div>
                                                 </div>
                                             ) : (
                                                 // PDF/File Preview
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
-                                                    <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-2xl mb-3 ring-4 ring-red-50 dark:ring-red-900/10">
-                                                        <FileText size={32} className="text-red-500 dark:text-red-400" />
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/30 rounded-2xl border border-slate-800">
+                                                    <div className="bg-red-500/20 p-5 rounded-2xl mb-4 ring-4 ring-red-500/5 group-hover/file:scale-110 transition-transform duration-300">
+                                                        <FileText size={40} className="text-red-400" />
                                                     </div>
-                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px] mb-1">
-                                                        {file?.name || 'Archivo previo'}
+                                                    <p className="text-sm font-black text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
+                                                        {file?.name || 'Documento Adjunto'}
                                                     </p>
                                                     {file && (
-                                                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
                                                           {(file.size / (1024 * 1024)).toFixed(2)} MB
                                                       </p>
                                                     )}
                                                     <button
                                                         onClick={clearFile}
                                                         type="button"
-                                                        className="text-red-500 hover:text-red-600 text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors"
+                                                        className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-all"
                                                     >
-                                                        <Trash2 size={14} /> Eliminar adjunto
+                                                        <Trash2 size={14} /> Eliminar Adjunto
                                                     </button>
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
                                         <>
-                                            <div className={`p-4 rounded-full mb-3 transition-colors ${errors.file ? 'bg-red-100 text-red-500' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400'}`}>
-                                                <Upload size={24} />
+                                            <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                                                <Upload size={32} />
                                             </div>
-                                            <p className="mb-1 text-sm text-slate-700 dark:text-slate-200 font-medium">Click para subir comprobante</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-500">Soporta: PDF, JPG, PNG (Max 5MB)</p>
+                                            <p className="mb-1 text-sm text-white font-black uppercase tracking-tight">Subir Comprobante</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">PDF, JPG, PNG (Max 5MB)</p>
                                         </>
                                     )}
                                 </div>
@@ -1630,124 +1643,145 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     disabled={isSubmitting || isFileScanning}
                                 />
                              </label>
-                             {errors.file && <p className="text-red-500 text-xs mt-1 ml-1">{errors.file}</p>}
+                             {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
 
-                             {/* Proposed Changes Section (Moved from Modal) */}
-                             <div className="mt-6 p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl space-y-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <RefreshCw size={18} className="text-blue-500" />
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Proponer Cambios</h3>
+                             {/* Proposed Changes Section */}
+                             <div className="mt-8 p-6 bg-slate-950/50 border border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/prop:opacity-20 transition-opacity">
+                                    <RefreshCw size={40} className="text-brand-500" />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nuevo Monto ($/Bs.)</label>
-                                    <input
-                                        type="number"
-                                        value={proposedAmount || ''}
-                                        onChange={(e) => setProposedAmount(Number(e.target.value))}
-                                        placeholder="0.00"
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    {effectiveExchangeRate !== undefined && (
-                                        <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
-                                            <div className="flex items-center gap-2">
-                                                <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                    <Calculator size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
-                                                    <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                                                        Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                        <RefreshCw size={18} />
+                                    </div>
+                                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Proponer Cambios</h3>
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nueva Fecha Pago</label>
-                                        <input
-                                            type="date"
-                                            value={proposedPaymentDate || ''}
-                                            onChange={(e) => setProposedPaymentDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                        />
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nuevo Monto ($)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={proposedAmount || ''}
+                                                onChange={(e) => setProposedAmount(Number(e.target.value))}
+                                                placeholder="0.00"
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                            />
+                                            {effectiveExchangeRate !== undefined && (
+                                                <div className="mt-3 p-3 bg-brand-500/5 border border-brand-500/20 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-brand-500/10">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg">
+                                                            <Calculator size={14} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-brand-500/60 uppercase tracking-widest leading-none mb-0.5">Equivalente en Bs.</p>
+                                                            <p className="text-sm font-black text-brand-400 tabular-nums">
+                                                                Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right leading-tight">
+                                                        Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
+                                                        {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nueva Fecha Venc.</label>
-                                        <input
-                                            type="date"
-                                            value={proposedDueDate || ''}
-                                            onChange={(e) => setProposedDueDate(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                        />
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nueva Fecha Pago</label>
+                                            <input
+                                                type="date"
+                                                value={proposedPaymentDate || ''}
+                                                onChange={(e) => setProposedPaymentDate(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nueva Fecha Venc.</label>
+                                            <input
+                                                type="date"
+                                                value={proposedDueDate || ''}
+                                                onChange={(e) => setProposedDueDate(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Justificación de la Propuesta</label>
-                                    <textarea
-                                        value={proposedJustification}
-                                        onChange={(e) => setProposedJustification(e.target.value)}
-                                        placeholder="Explique por qué propone estos cambios..."
-                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
-                                    />
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Justificación de la Propuesta</label>
+                                        <textarea
+                                            value={proposedJustification}
+                                            onChange={(e) => setProposedJustification(e.target.value)}
+                                            placeholder="Explique por qué propone estos cambios..."
+                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-medium text-slate-300 outline-none focus:ring-4 focus:ring-brand-500/10 h-28 resize-none transition-all leading-relaxed"
+                                        />
+                                    </div>
                                 </div>
                              </div>
                         </div>
 
                         {/* Notes and Support Details */}
-                        <div className="flex flex-col space-y-6">
+                        <div className="flex flex-col space-y-8">
                              {/* Campos adicionales del soporte */}
-                             <div className="grid grid-cols-1 gap-4">
+                             <div className="grid grid-cols-1 gap-6">
                                  <div>
-                                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nombre del Documento</label>
-                                     <input
-                                         type="text"
-                                         value={docName}
-                                         onChange={(e) => setDocName(e.target.value)}
-                                         placeholder="Ej: Factura #123"
-                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                                     />
-                                 </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                     <div>
-                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Fecha Doc.</label>
+                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Nombre del Documento</label>
+                                     <div className="relative group">
                                          <input
-                                             type="date"
-                                             value={docDate}
-                                             onChange={(e) => setDocDate(e.target.value)}
-                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                                             type="text"
+                                             value={docName}
+                                             onChange={(e) => setDocName(e.target.value)}
+                                             placeholder="Ej: Factura #123"
+                                             className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                          />
+                                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                     </div>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-6">
+                                     <div>
+                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Doc.</label>
+                                         <div className="relative group">
+                                             <input
+                                                 type="date"
+                                                 value={docDate}
+                                                 onChange={(e) => setDocDate(e.target.value)}
+                                                 className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                             />
+                                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                         </div>
                                      </div>
                                      <div>
-                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Monto Doc. ($/Bs.)</label>
-                                         <input
-                                             type="number"
-                                             value={docAmount}
-                                             onChange={(e) => setDocAmount(e.target.value)}
-                                             placeholder="0.00"
-                                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                                         />
+                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Doc. ($)</label>
+                                         <div className="relative group">
+                                             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
+                                             <input
+                                                 type="number"
+                                                 value={docAmount}
+                                                 onChange={(e) => setDocAmount(e.target.value)}
+                                                 placeholder="0.00"
+                                                 className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
+                                             />
+                                         </div>
                                          {effectiveExchangeRate !== undefined && (
-                                             <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
-                                                 <div className="flex items-center gap-2">
-                                                     <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                         <Calculator size={14} />
+                                             <div className="mt-4 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-emerald-500/10">
+                                                 <div className="flex items-center gap-3">
+                                                     <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl shadow-sm group-hover/conv:scale-110 transition-transform">
+                                                         <Calculator size={16} />
                                                      </div>
                                                      <div>
-                                                         <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
-                                                         <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
+                                                         <p className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest leading-none mb-1">Equivalente en Bs.</p>
+                                                         <p className="text-base font-black text-emerald-400 tabular-nums">
                                                              Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                          </p>
                                                      </div>
                                                  </div>
-                                                 <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                     Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
+                                                 <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right leading-tight">
+                                                     Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
+                                                     {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
                                                  </div>
                                              </div>
                                          )}
@@ -1755,16 +1789,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                  </div>
                              </div>
 
-                             <div className="flex flex-col">
-                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Observaciones</label>
-                                 <div className="relative h-full">
+                             <div className="flex flex-col flex-1">
+                                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Observaciones / Notas</label>
+                                 <div className="relative h-full group">
                                      <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isSubmitting}
                                         placeholder="Añada notas adicionales para el auditor..."
-                                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full h-48 p-4 shadow-sm outline-none resize-none transition-all disabled:opacity-50"
+                                        className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[240px] resize-none transition-all disabled:opacity-50 leading-relaxed"
                                      ></textarea>
+                                     <div className="absolute bottom-4 right-4 text-slate-600 group-focus-within:text-brand-500/50 transition-colors">
+                                         <MessageSquare size={20} />
+                                     </div>
                                  </div>
                              </div>
                         </div>
@@ -1775,29 +1812,33 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             {/* Right Column: Map (Sticky) */}
             <div className="lg:col-span-5 hidden lg:block">
                 <div className="sticky top-8">
-                    <VenezuelaMap 
-                        stores={dynamicStores} 
-                        selectedStoreIds={store && store !== 'NATIONAL' ? [store] : []} 
-                        onStoreClick={(id) => setStore(id)}
-                    />
+                    <div className="glass-card p-4 border-brand-500/20">
+                        <VenezuelaMap 
+                            stores={dynamicStores} 
+                            selectedStoreIds={store && store !== 'NATIONAL' ? [store] : []} 
+                            onStoreClick={(id) => setStore(id)}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
 
         {Object.keys(errors).length > 0 && (
-            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-bottom-2">
-                <AlertCircle size={20} className="shrink-0" />
-                <span className="text-sm font-medium">Hay campos requeridos incompletos o errores. Por favor revise el formulario.</span>
+            <div className="flex items-center gap-4 p-5 bg-red-500/5 text-red-400 rounded-2xl border border-red-500/20 animate-in slide-in-from-bottom-2">
+                <div className="p-2 bg-red-500/20 rounded-lg">
+                    <AlertCircle size={20} className="shrink-0" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest">Hay campos requeridos incompletos o errores. Por favor revise el formulario.</span>
             </div>
         )}
 
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse md:flex-row gap-4">
+        <div className="pt-8 border-t border-slate-800/50 flex flex-col-reverse md:flex-row gap-6">
             {!isEmbedded && (
                 <button 
                     type="button"
                     onClick={onCancel}
                     disabled={isSubmitting}
-                    className="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="w-full md:w-auto px-10 py-4 bg-slate-900 text-slate-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-800 hover:text-white transition-all active:scale-95 disabled:opacity-50"
                 >
                     Cancelar
                 </button>
@@ -1805,12 +1846,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             <button 
                 type="submit"
                 disabled={isSubmitting || isFileScanning}
-                className={`w-full md:flex-1 ${
+                className={`w-full md:flex-1 relative overflow-hidden group/submit ${
                     isOverBudget && !justificationConfirmed 
-                    ? 'bg-amber-500 hover:bg-amber-600' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' 
+                    : 'bg-brand-600 hover:bg-brand-500 shadow-brand-500/20'
+                } text-white font-black uppercase tracking-widest text-sm py-5 rounded-xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover/submit:translate-x-full transition-transform duration-1000"></div>
+                
                 {isSubmitting ? (
                     <>
                         <Loader2 size={20} className="animate-spin" />
@@ -1819,17 +1862,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 ) : isFileScanning ? (
                     <>
                          <Loader2 size={20} className="animate-spin" />
-                         <span>Escaneando archivo...</span>
+                         <span>Escaneando...</span>
                     </>
                 ) : isOverBudget && !justificationConfirmed ? (
                     <>
-                         <span>Continuar (Justificar Exceso)</span>
-                         <AlertTriangle size={20} />
+                         <span>Justificar Exceso</span>
+                         <AlertTriangle size={20} className="animate-pulse" />
                     </>
                 ) : (
                     <>
                         <span>{initialData?.status === PaymentStatus.REJECTED ? 'Reenviar Corrección' : 'Enviar a Auditoría'}</span>
-                        <CheckCircle2 size={20} />
+                        <CheckCircle2 size={20} className="group-hover/submit:scale-110 transition-transform" />
                     </>
                 )}
             </button>

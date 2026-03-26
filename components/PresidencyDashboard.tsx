@@ -2,10 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell, Legend
+  AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, Legend
 } from 'recharts';
 import { Payment, PaymentStatus, PayrollEntry, Category, User, Role } from '../types';
-import { DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, AlertOctagon, Clock, XCircle, Building2, Filter, Users } from 'lucide-react';
+import { 
+  DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, 
+  AlertOctagon, Clock, XCircle, Building2, Filter, Users, 
+  AlertCircle, PieChart as PieChartIcon 
+} from 'lucide-react';
 
 interface PresidencyDashboardProps {
   payments: Payment[];
@@ -130,185 +134,166 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
   const pendingPaymentsCount = filteredPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE).length;
 
   return (
-    <div className="p-6 lg:p-10 text-white space-y-8 pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Panel de Presidencia</h1>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-xl border border-slate-700">
-            <Filter size={18} className="text-slate-400" />
+    <div className="p-6 lg:p-10 text-slate-200 space-y-10 pb-24 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-black text-white tracking-tight mb-2">Panel de Presidencia</h1>
+          <p className="text-slate-500 font-medium">Visualización estratégica y control financiero consolidado.</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-900/50 backdrop-blur-sm p-1.5 rounded-xl border border-slate-800/50 shadow-inner">
+            <div className="p-1.5 bg-slate-800 rounded-lg text-slate-400">
+              <Filter size={16} />
+            </div>
             <select
               value={selectedStore}
               onChange={(e) => setSelectedStore(e.target.value)}
-              className="bg-transparent text-white text-sm focus:outline-none"
+              className="bg-transparent text-white text-sm font-semibold focus:outline-none pr-4 cursor-pointer"
             >
               <option value="all">Todas las Tiendas</option>
               {stores.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-xl border border-slate-700">
+          
+          <div className="flex items-center gap-2 bg-slate-900/50 backdrop-blur-sm p-1.5 rounded-xl border border-slate-800/50 shadow-inner">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-transparent text-white text-sm focus:outline-none"
+              className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer px-2"
             />
-            <span className="text-slate-500">-</span>
+            <span className="text-slate-700 font-black">/</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-transparent text-white text-sm focus:outline-none"
+              className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer px-2"
             />
           </div>
+
           {(currentUser?.role === Role.PRESIDENT || currentUser?.role === Role.SUPER_ADMIN) && pendingPaymentsCount > 0 && onApproveAll && (
             <button 
               onClick={onApproveAll}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-emerald-900/20"
+              className="btn-primary flex items-center gap-2 px-6 py-2.5"
             >
-              <CheckCircle2 size={20} />
-              Aprobar Todo ({pendingPaymentsCount})
+              <CheckCircle2 size={18} />
+              <span>Aprobar Todo ({pendingPaymentsCount})</span>
             </button>
           )}
         </div>
       </div>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400"><DollarSign /></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        {[
+          { label: 'Pagos Aprobados', value: totalApproved, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Pagos Realizados', value: totalPaid, icon: CheckCircle2, color: 'text-brand-400', bg: 'bg-brand-500/10' },
+          { label: 'Pagos Pendientes', value: totalPending, icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { label: 'Pagos Vencidos', value: totalOverdue, icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/10', sub: `${overduePayments.length} pagos` },
+          { label: 'Próximos (7d)', value: totalDueSoon, icon: Clock, color: 'text-orange-400', bg: 'bg-orange-500/10', sub: `${dueSoonPayments.length} pagos` },
+          { label: 'Costo Nómina', value: totalPayrollCost, icon: FileText, color: 'text-brand-400', bg: 'bg-brand-500/10' },
+          { label: 'Pasivos Laborales', value: totalLaborLiabilities, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+          { label: 'Sobre Presupuesto', value: overBudgetCount, icon: AlertTriangle, color: 'text-pink-400', bg: 'bg-pink-500/10', isCount: true },
+          { label: 'Tasa de Rechazo', value: rejectionRate, icon: XCircle, color: 'text-purple-400', bg: 'bg-purple-500/10', isPercent: true, sub: `${rejectedCount} devueltos` },
+        ].map((card, idx) => (
+          <div key={idx} className="glass-card glass-card-hover p-5 flex flex-col justify-between min-h-[120px]">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`p-2.5 ${card.bg} ${card.color} rounded-xl shadow-inner`}>
+                <card.icon size={20} />
+              </div>
+              {card.sub && <span className={`text-[10px] font-black uppercase tracking-widest ${card.color} opacity-80`}>{card.sub}</span>}
+            </div>
             <div>
-              <p className="text-slate-400 text-sm">Pagos Aprobados</p>
-              <p className="text-2xl font-bold">${totalApproved.toLocaleString()}</p>
+              <p className="label-caps mb-1">{card.label}</p>
+              <p className="text-2xl font-black text-white tabular-nums">
+                {card.isCount ? card.value : card.isPercent ? `${card.value}%` : `$${card.value.toLocaleString()}`}
+              </p>
             </div>
           </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400"><CheckCircle2 /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Pagos Realizados</p>
-              <p className="text-2xl font-bold">${totalPaid.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400"><TrendingUp /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Pagos Pendientes</p>
-              <p className="text-2xl font-bold">${totalPending.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-red-500/20 rounded-xl text-red-400"><AlertOctagon /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Pagos Vencidos</p>
-              <p className="text-2xl font-bold">${totalOverdue.toLocaleString()}</p>
-              <p className="text-xs text-red-400 mt-1">{overduePayments.length} pagos</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-orange-500/20 rounded-xl text-orange-400"><Clock /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Próximos a Vencer (7d)</p>
-              <p className="text-2xl font-bold">${totalDueSoon.toLocaleString()}</p>
-              <p className="text-xs text-orange-400 mt-1">{dueSoonPayments.length} pagos</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400"><FileText /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Costo Nómina</p>
-              <p className="text-2xl font-bold">${totalPayrollCost.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400"><Users /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Pasivos Laborales</p>
-              <p className="text-2xl font-bold">${totalLaborLiabilities.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-pink-500/20 rounded-xl text-pink-400"><AlertTriangle /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Pagos Sobre Presupuesto</p>
-              <p className="text-2xl font-bold">{overBudgetCount}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400"><XCircle /></div>
-            <div>
-              <p className="text-slate-400 text-sm">Tasa de Rechazo</p>
-              <p className="text-2xl font-bold">{rejectionRate}%</p>
-              <p className="text-xs text-purple-400 mt-1">{rejectedCount} pagos devueltos</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Evolución de Gastos */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 lg:col-span-2">
-          <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><TrendingUp size={20} className="text-emerald-400" /> Evolución de Gastos (Aprobados)</h2>
-          <div className="h-[300px]">
+        <div className="glass-card p-8 lg:col-span-2">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-bold flex items-center gap-3">
+              <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                <TrendingUp size={20} />
+              </div>
+              Evolución de Gastos (Aprobados)
+            </h2>
+          </div>
+          <div className="h-[350px] w-full">
             {trendData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `$${value}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#475569" 
+                    fontSize={11} 
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis 
+                    stroke="#475569" 
+                    fontSize={11} 
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `$${value}`} 
+                  />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
                     formatter={(value: number) => [`$${value.toLocaleString()}`, 'Gasto']}
                   />
-                  <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorValue)" />
+                  <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500">No hay datos suficientes</div>
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <AlertCircle size={40} className="opacity-20" />
+                <p className="font-medium">No hay datos suficientes para generar la tendencia</p>
+              </div>
             )}
           </div>
         </div>
 
         {/* Top Tiendas */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><Building2 size={20} className="text-blue-400" /> Top 5 Tiendas (Gasto Aprobado)</h2>
-          <div className="h-[300px]">
+        <div className="glass-card p-8">
+          <h2 className="text-xl font-bold mb-8 flex items-center gap-3">
+            <div className="p-2 bg-brand-500/10 text-brand-400 rounded-lg">
+              <Building2 size={20} />
+            </div>
+            Top 5 Tiendas (Gasto Aprobado)
+          </h2>
+          <div className="h-[350px]">
             {topStores.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topStores} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={true} vertical={false} />
-                  <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} width={100} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} fontWeight={600} width={100} axisLine={false} tickLine={false} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
                     formatter={(value: number) => [`$${value.toLocaleString()}`, 'Gasto']}
                   />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="value" fill="#0ea5e9" radius={[0, 6, 6, 0]} barSize={30}>
                     {topStores.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -316,31 +301,53 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500">No hay datos suficientes</div>
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <Building2 size={40} className="opacity-20" />
+                <p className="font-medium">Sin datos de tiendas</p>
+              </div>
             )}
           </div>
         </div>
 
         {/* Distribución por Categoría */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-          <h2 className="text-lg font-bold mb-6">Distribución de Pagos por Categoría</h2>
-          <div className="h-[300px]">
+        <div className="glass-card p-8">
+          <h2 className="text-xl font-bold mb-8 flex items-center gap-3">
+            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+              <PieChartIcon size={20} />
+            </div>
+            Distribución por Categoría
+          </h2>
+          <div className="h-[350px]">
             {paymentsByCategory.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={paymentsByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                <RechartsPieChart>
+                  <Pie 
+                    data={paymentsByCategory} 
+                    dataKey="value" 
+                    nameKey="name" 
+                    cx="50%" 
+                    cy="50%" 
+                    innerRadius={60}
+                    outerRadius={100} 
+                    paddingAngle={5}
+                    label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
                     {paymentsByCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0.2)" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
                     formatter={(value: number) => [`$${value.toLocaleString()}`, 'Monto']}
                   />
-                </PieChart>
+                  <Legend verticalAlign="bottom" height={36}/>
+                </RechartsPieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500">No hay datos suficientes</div>
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <PieChartIcon size={40} className="opacity-20" />
+                <p className="font-medium">Sin datos de categorías</p>
+              </div>
             )}
           </div>
         </div>
