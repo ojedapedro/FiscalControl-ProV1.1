@@ -1442,21 +1442,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 
                                 {effectiveExchangeRate !== undefined && (
-                                    <div className="mt-3 p-3 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-slate-900/80">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                <Calculator size={14} />
+                                    <div className="mt-3 p-2.5 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
+                                        <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                            <Calculator size={14} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                <p className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
+                                                <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest leading-none mb-0.5">Equivalente en Bs.</p>
-                                                <p className="text-sm font-black text-emerald-400 tabular-nums">
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <p className="text-sm font-black text-emerald-400 tabular-nums truncate">
                                                     Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </p>
+                                                <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
-                                        </div>
-                                        <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right leading-tight">
-                                            Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
-                                            {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
                                         </div>
                                     </div>
                                 )}
@@ -1669,21 +1669,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                             />
                                             {effectiveExchangeRate !== undefined && (
-                                                <div className="mt-3 p-3 bg-slate-900/50 border border-brand-500/20 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-slate-900/80">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                            <Calculator size={14} />
+                                                <div className="mt-3 p-2.5 bg-slate-900/50 border border-brand-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
+                                                    <div className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg shrink-0">
+                                                        <Calculator size={14} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                            <p className="text-[8px] font-black text-brand-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
+                                                            <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-[9px] font-black text-brand-500/60 uppercase tracking-widest leading-none mb-0.5">Equivalente en Bs.</p>
-                                                            <p className="text-sm font-black text-brand-400 tabular-nums">
+                                                        <div className="flex items-baseline justify-between gap-2">
+                                                            <p className="text-sm font-black text-brand-400 tabular-nums truncate">
                                                                 Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </p>
+                                                            <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                         </div>
-                                                    </div>
-                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right leading-tight">
-                                                        Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
-                                                        {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
                                                     </div>
                                                 </div>
                                             )}
@@ -1767,21 +1767,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              />
                                          </div>
                                          {effectiveExchangeRate !== undefined && (
-                                             <div className="mt-3 p-3 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-slate-900/80">
-                                                 <div className="flex items-center gap-3">
-                                                     <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
-                                                         <Calculator size={14} />
+                                             <div className="mt-3 p-2.5 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
+                                                 <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                                     <Calculator size={14} />
+                                                 </div>
+                                                 <div className="flex-1 min-w-0">
+                                                     <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                         <p className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
+                                                         <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                      </div>
-                                                     <div>
-                                                         <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest leading-none mb-0.5">Equivalente en Bs.</p>
-                                                         <p className="text-sm font-black text-emerald-400 tabular-nums">
+                                                     <div className="flex items-baseline justify-between gap-2">
+                                                         <p className="text-sm font-black text-emerald-400 tabular-nums truncate">
                                                              Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                          </p>
+                                                         <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                      </div>
-                                                 </div>
-                                                 <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter text-right leading-tight">
-                                                     Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} <br/>
-                                                     {docExchangeRate ? 'HISTÓRICA' : 'ACTUAL'}
                                                  </div>
                                              </div>
                                          )}
