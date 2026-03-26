@@ -598,6 +598,45 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [dueDate]);
 
+  // --- Proposed Changes Handlers ---
+  const handleProposedPaymentDateChange = React.useCallback((val: string) => {
+    setProposedPaymentDate(val);
+    if (val && proposedDueDate) {
+      const d1 = new Date(val);
+      const d2 = new Date(proposedDueDate);
+      const diffTime = d1.getTime() - d2.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setProposedDaysToExpire(diffDays);
+    }
+  }, [proposedDueDate]);
+
+  const handleProposedDueDateChange = React.useCallback((val: string) => {
+    setProposedDueDate(val);
+    if (val && proposedDaysToExpire !== undefined) {
+      const d = new Date(val);
+      d.setDate(d.getDate() + proposedDaysToExpire);
+      const formatted = d.toISOString().split('T')[0];
+      setProposedPaymentDate(formatted);
+    } else if (val && proposedPaymentDate) {
+      const d1 = new Date(proposedPaymentDate);
+      const d2 = new Date(val);
+      const diffTime = d1.getTime() - d2.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setProposedDaysToExpire(diffDays);
+    }
+  }, [proposedDaysToExpire, proposedPaymentDate]);
+
+  const handleProposedDaysToExpireChange = React.useCallback((val: string) => {
+    const days = parseInt(val);
+    setProposedDaysToExpire(isNaN(days) ? undefined : days);
+    if (val && proposedDueDate && !isNaN(days)) {
+      const d = new Date(proposedDueDate);
+      d.setDate(d.getDate() + days);
+      const formatted = d.toISOString().split('T')[0];
+      setProposedPaymentDate(formatted);
+    }
+  }, [proposedDueDate]);
+
   // Auto-fill Due Date based on Tax Group Configuration
   React.useEffect(() => {
     const configMap = getTaxConfig(category);
@@ -1690,14 +1729,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nueva Fecha Pago</label>
                                             <input
                                                 type="date"
                                                 value={proposedPaymentDate || ''}
-                                                onChange={(e) => setProposedPaymentDate(e.target.value)}
+                                                onChange={(e) => handleProposedPaymentDateChange(e.target.value)}
                                                 className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nuevos Días a Vencer</label>
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                value={proposedDaysToExpire ?? ''}
+                                                onChange={(e) => handleProposedDaysToExpireChange(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                             />
                                         </div>
                                         <div>
@@ -1705,7 +1754,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <input
                                                 type="date"
                                                 value={proposedDueDate || ''}
-                                                onChange={(e) => setProposedDueDate(e.target.value)}
+                                                onChange={(e) => handleProposedDueDateChange(e.target.value)}
                                                 className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
                                             />
                                         </div>
