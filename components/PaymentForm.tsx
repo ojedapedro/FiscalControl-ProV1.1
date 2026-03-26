@@ -957,12 +957,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       {showJustificationModal && (
           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-red-50 dark:bg-red-900/20 rounded-t-2xl">
-                      <h3 className="text-xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-                          <AlertTriangle className="animate-pulse" />
+                  <div className="p-6 border-b border-red-200 dark:border-red-800/50 bg-red-100 dark:bg-red-900/40 rounded-t-2xl">
+                      <h3 className="text-2xl font-bold text-red-800 dark:text-red-300 flex items-center gap-3">
+                          <AlertTriangle className="animate-pulse w-7 h-7" />
                           Excedente Presupuestario
                       </h3>
-                      <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+                      <p className="text-base font-medium text-red-700 dark:text-red-200 mt-3 leading-relaxed">
                           {isCurrentTaxItemVariable
                             ? `Se ha marcado el monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) como un excedente que requiere justificación.`
                             : `El monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro ($${expectedBudget?.toLocaleString()}).`
@@ -970,37 +970,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                       </p>
                   </div>
                   
-                  <div className="p-6 space-y-4 overflow-y-auto">
-                      <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Se requiere justificación para auditoría:</p>
+                  <div className="p-6 space-y-6 overflow-y-auto">
+                      <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                          <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-3">Se requiere justificación para auditoría:</p>
                           <textarea
                               value={justificationNote}
                               onChange={(e) => setJustificationNote(e.target.value)}
                               placeholder="Explique la razón del incremento (ej. Multa por retraso, Tasa de cambio ajustada...)"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none h-24 resize-none"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl p-4 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-red-500 outline-none h-32 resize-none shadow-inner"
                           />
                       </div>
 
                       <div>
-                          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                              Soporte del Excedente {isCurrentTaxItemVariable && manualOverBudget && <span className="text-red-500 font-bold"> (Requerido)</span>}
+                          <label className="block text-base font-bold text-slate-800 dark:text-slate-200 mb-3">
+                              Soporte del Excedente {isCurrentTaxItemVariable && manualOverBudget && <span className="text-red-600 dark:text-red-400 font-bold"> (Requerido)</span>}
                           </label>
                           <div className="flex items-center gap-3">
-                              <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                              <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800/80 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-5 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                                   {justificationFile ? (
-                                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-bold text-sm">
-                                          <CheckCircle2 size={16} />
-                                          <span className="truncate max-w-[150px]">{justificationFile.name}</span>
+                                      <div className="flex items-center gap-3 text-green-700 dark:text-green-400 font-bold text-base">
+                                          <CheckCircle2 size={24} />
+                                          <span className="truncate max-w-[200px]">{justificationFile.name}</span>
                                       </div>
                                   ) : justificationPreviewUrl ? (
-                                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
-                                          <FileText size={16} />
-                                          <span className="truncate max-w-[150px]">Documento previo</span>
+                                      <div className="flex items-center gap-3 text-blue-700 dark:text-blue-400 font-bold text-base">
+                                          <FileText size={24} />
+                                          <span className="truncate max-w-[200px]">Documento previo</span>
                                       </div>
                                   ) : (
                                       <>
-                                        <Upload size={20} className="text-slate-400 mb-1" />
-                                        <span className="text-xs text-slate-500">Subir archivo extra</span>
+                                        <Upload size={28} className="text-slate-500 dark:text-slate-400 mb-2 group-hover:scale-110 transition-transform" />
+                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Subir archivo extra</span>
                                       </>
                                   )}
                                   <input 
@@ -1018,30 +1018,30 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                       setJustificationFile(null);
                                       setJustificationPreviewUrl(null);
                                     }} 
-                                    className="p-3 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200"
+                                    className="p-4 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200 transition-colors"
                                   >
-                                      <Trash2 size={20} />
+                                      <Trash2 size={24} />
                                   </button>
                               )}
                           </div>
-                          <p className="text-[10px] text-slate-500 mt-2 ml-1">
+                          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-3 ml-1">
                               * Si posee un documento adicional que justifique el sobrecosto (ej. Gaceta oficial), adjúntelo aquí.
                           </p>
                       </div>
                   </div>
 
-                  <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl flex gap-3">
+                  <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 rounded-b-2xl flex gap-4">
                       <button 
                           onClick={() => setShowJustificationModal(false)}
-                          className="flex-1 py-3 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                          className="flex-1 py-4 text-base text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
                       >
                           Cancelar
                       </button>
                       <button 
                           onClick={handleConfirmJustification}
-                          className="flex-[2] py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
+                          className="flex-[2] py-4 text-base bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
                       >
-                          <FileWarning size={18} />
+                          <FileWarning size={20} />
                           Confirmar Justificación
                       </button>
                   </div>
@@ -1442,20 +1442,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 
                                 {effectiveExchangeRate !== undefined && (
-                                    <div className="mt-3 p-2.5 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
-                                        <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                                            <Calculator size={14} />
+                                    <div className="mt-3 p-3 bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
+                                        <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                            <Calculator size={16} />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                <p className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
-                                                <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
+                                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                             </div>
-                                            <div className="flex items-baseline justify-between gap-2">
-                                                <p className="text-sm font-black text-emerald-400 tabular-nums truncate">
+                                            <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                                                <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
                                                     Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </p>
-                                                <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1669,20 +1669,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                             />
                                             {effectiveExchangeRate !== undefined && (
-                                                <div className="mt-3 p-2.5 bg-slate-900/50 border border-brand-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
-                                                    <div className="p-1.5 bg-brand-500/20 text-brand-400 rounded-lg shrink-0">
-                                                        <Calculator size={14} />
+                                                <div className="mt-3 p-3 bg-slate-800/50 border border-brand-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
+                                                    <div className="p-2 bg-brand-500/20 text-brand-400 rounded-lg shrink-0">
+                                                        <Calculator size={16} />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                            <p className="text-[8px] font-black text-brand-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
-                                                            <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
+                                                            <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                            <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                         </div>
-                                                        <div className="flex items-baseline justify-between gap-2">
-                                                            <p className="text-sm font-black text-brand-400 tabular-nums truncate">
+                                                        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                                                            <p className="text-sm sm:text-base font-black text-brand-300 tabular-nums break-all">
                                                                 Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </p>
-                                                            <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                            <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1712,7 +1712,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Justificación de la Propuesta</label>
+                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Justificación de la Propuesta</label>
                                         <textarea
                                             value={proposedJustification}
                                             onChange={(e) => setProposedJustification(e.target.value)}
@@ -1767,20 +1767,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              />
                                          </div>
                                          {effectiveExchangeRate !== undefined && (
-                                             <div className="mt-3 p-2.5 bg-slate-900/50 border border-emerald-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-900/80 overflow-hidden">
-                                                 <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                                                     <Calculator size={14} />
+                                             <div className="mt-3 p-3 bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
+                                                 <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                                     <Calculator size={16} />
                                                  </div>
                                                  <div className="flex-1 min-w-0">
-                                                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                         <p className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest truncate">Equivalente en Bs.</p>
-                                                         <p className="text-[8px] font-black text-slate-600 uppercase shrink-0">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
+                                                         <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                         <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                      </div>
-                                                     <div className="flex items-baseline justify-between gap-2">
-                                                         <p className="text-sm font-black text-emerald-400 tabular-nums truncate">
+                                                     <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                                                         <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
                                                              Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                          </p>
-                                                         <p className="text-[9px] font-black text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                         <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                      </div>
                                                  </div>
                                              </div>
