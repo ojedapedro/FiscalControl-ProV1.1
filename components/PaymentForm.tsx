@@ -1613,7 +1613,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <div className="flex items-center gap-2 mb-2">
                                     <RefreshCw size={18} className="text-blue-500" />
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Proponer Cambios</h3>
-                                         <div>
+                                </div>
+                                <div>
                                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nuevo Monto ($/Bs.)</label>
                                     <input
                                         type="number"
@@ -1641,9 +1642,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                     )}
                                 </div>
-                      )}
-                                </div>
-
+                                
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Nueva Fecha Pago</label>
@@ -1699,7 +1698,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              value={docDate}
                                              onChange={(e) => setDocDate(e.target.value)}
                                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
-                                                            <div>
+                                         />
+                                     </div>
+                                     <div>
                                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Monto Doc. ($/Bs.)</label>
                                          <input
                                              type="number"
@@ -1726,8 +1727,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                  </div>
                                              </div>
                                          )}
-                                     </div>
-                   )}
                                      </div>
                                  </div>
                              </div>
