@@ -1112,6 +1112,9 @@ function App({ isDemoMode = false }: AppProps) {
                                            exchangeRate: 1
                                        };
                                        await api.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
+                                       if (isGoogleAuthenticated) {
+                                           await api.saveExchangeRate(exchangeRateInput);
+                                       }
                                        setExchangeRate(exchangeRateInput);
                                        localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
                                        setNotification('✅ Tasa de cambio guardada y actualizada');

@@ -482,5 +482,28 @@ export const api = {
   pullSync: async () => {
     const response = await fetch('/api/sync/pull');
     return await response.json();
+  },
+  getExchangeRateByDate: async (date: string) => {
+    try {
+      const response = await fetch(`/api/exchange-rate/${date}`);
+      const json = await response.json();
+      return json.success ? json.rate : null;
+    } catch (e) {
+      console.error('Error fetching exchange rate by date:', e);
+      return null;
+    }
+  },
+  saveExchangeRate: async (rate: number, date?: string) => {
+    try {
+      const response = await fetch('/api/exchange-rate/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rate, date })
+      });
+      return await response.json();
+    } catch (e) {
+      console.error('Error saving exchange rate:', e);
+      return { success: false, error: 'Error de conexión' };
+    }
   }
 };

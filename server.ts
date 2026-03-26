@@ -211,10 +211,162 @@ async function startServer() {
         });
       }
 
+      // 3. Update 'Exchange_Rates' if provided in settings
+      if (data.settings && data.settings.exchangeRate) {
+        if (!sheetNames.includes('Exchange_Rates')) {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: {
+              requests: [{ addSheet: { properties: { title: 'Exchange_Rates' } } }]
+            }
+          });
+          // Add headers if new sheet
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Exchange_Rates!A1',
+            valueInputOption: 'RAW',
+            requestBody: {
+              values: [['Fecha', 'Tasa']]
+            }
+          });
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const rate = data.settings.exchangeRate;
+
+        // Check if rate for today already exists
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Exchange_Rates!A:B',
+        });
+
+        const rows = response.data.values || [];
+        const todayRowIndex = rows.findIndex(row => row[0] === today);
+
+        if (todayRowIndex !== -1) {
+          // Update existing row
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `Exchange_Rates!B${todayRowIndex + 1}`,
+            valueInputOption: 'RAW',
+            requestBody: {
+              values: [[rate]]
+            }
+          });
+        } else {
+          // Append new row
+          await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Exchange_Rates!A:B',
+            valueInputOption: 'RAW',
+            requestBody: {
+              values: [[today, rate]]
+            }
+          });
+        }
+      }
+
       res.json({ success: true });
     } catch (error: any) {
       console.error('Sync push error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/exchange-rate/:date', async (req, res) => {
+    const tokens = (req.session as any).tokens;
+    if (!tokens) return res.status(401).json({ error: 'No autenticado' });
+
+    const { date } = req.params; // YYYY-MM-DD
+
+    try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials(tokens);
+      const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Exchange_Rates!A:B',
+      });
+
+      const rows = response.data.values || [];
+      const rateRow = rows.find(row => row[0] === date);
+
+      if (rateRow) {
+        res.json({ success: true, rate: parseFloat(rateRow[1]) });
+      } else {
+        res.json({ success: true, rate: null });
+      }
+    } catch (error: any) {
+      console.error('Get exchange rate error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/exchange-rate/save', async (req, res) => {
+    const tokens = (req.session as any).tokens;
+    if (!tokens) return res.status(401).json({ error: 'No autenticado' });
+
+    const { rate, date } = req.body;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials(tokens);
+      const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+      const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+      const sheetNames = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
+      
+      if (!sheetNames.includes('Exchange_Rates')) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: {
+            requests: [{ addSheet: { properties: { title: 'Exchange_Rates' } } }]
+          }
+        });
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Exchange_Rates!A1',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [['Fecha', 'Tasa']]
+          }
+        });
+      }
+
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Exchange_Rates!A:B',
+      });
+
+      const rows = response.data.values || [];
+      const rowIndex = rows.findIndex(row => row[0] === targetDate);
+
+      if (rowIndex !== -1) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `Exchange_Rates!B${rowIndex + 1}`,
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [[rate]]
+          }
+        });
+      } else {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Exchange_Rates!A:B',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [[targetDate, rate]]
+          }
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Save exchange rate error:', error);
+      res.status(500).json({ success: false, error: error.message });
     }
   });
 

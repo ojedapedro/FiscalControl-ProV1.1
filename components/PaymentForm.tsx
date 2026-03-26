@@ -28,6 +28,7 @@ import { formatDate } from '../src/utils';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
+import { api } from '../services/api';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
 const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
@@ -407,6 +408,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Campos del Soporte
   const [docDate, setDocDate] = React.useState(initialData?.documentDate || '');
+  const [docExchangeRate, setDocExchangeRate] = React.useState<number | null>(null);
+  const effectiveExchangeRate = docExchangeRate || exchangeRate;
   const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount?.toString() || '');
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
 
@@ -693,6 +696,27 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  React.useEffect(() => {
+    const fetchHistoricalRate = async () => {
+      if (docDate) {
+        try {
+          const result = await api.getExchangeRateByDate(docDate);
+          if (result && result.rate) {
+            setDocExchangeRate(result.rate);
+          } else {
+            setDocExchangeRate(null);
+          }
+        } catch (e) {
+          console.error("Error fetching historical rate:", e);
+          setDocExchangeRate(null);
+        }
+      } else {
+        setDocExchangeRate(null);
+      }
+    };
+    fetchHistoricalRate();
+  }, [docDate]);
 
   // --- LOGICA SEMÁFORO FISCAL ---
   const getTaxStatus = (deadlineDay: number) => {
@@ -1398,7 +1422,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 : errors.amount ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'
                                         } text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-4 shadow-sm outline-none font-mono font-medium transition-all`}
                                     />
-                                    {exchangeRate !== undefined && (
+                                    {effectiveExchangeRate !== undefined && (
                                         <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-2xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-blue-600 text-white rounded-xl shadow-sm group-hover/conv:scale-110 transition-transform">
@@ -1407,12 +1431,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <div>
                                                     <p className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-1">Equivalente en Bs.</p>
                                                     <p className="text-base font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                                                        Bs. {(parseFloat(amount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-[10px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                                Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
                                             </div>
                                         </div>
                                     )}
@@ -1429,7 +1453,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                                         <div className="text-xs text-amber-700 dark:text-amber-400 font-medium">
                                             <p className="font-bold mb-1 uppercase tracking-wider">⚠️ Excedente de Presupuesto</p>
-                                            Este monto excede el presupuesto asignado por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Equivalente: Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
+                                            Este monto excede el presupuesto asignado por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Equivalente: Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
                                         </div>
                                     </div>
                                 )}
@@ -1623,7 +1647,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         placeholder="0.00"
                                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                     />
-                                    {exchangeRate !== undefined && (
+                                    {effectiveExchangeRate !== undefined && (
                                         <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
@@ -1632,12 +1656,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <div>
                                                     <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
                                                     <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                                                        Bs. {(parseFloat(proposedAmount?.toString() || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                                Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
                                             </div>
                                         </div>
                                     )}
@@ -1709,7 +1733,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              placeholder="0.00"
                                              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                                          />
-                                         {exchangeRate !== undefined && (
+                                         {effectiveExchangeRate !== undefined && (
                                              <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-center justify-between group/conv transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
                                                  <div className="flex items-center gap-2">
                                                      <div className="p-1.5 bg-blue-600 text-white rounded-lg shadow-sm group-hover/conv:scale-110 transition-transform">
@@ -1718,12 +1742,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                      <div>
                                                          <p className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-wider leading-none mb-0.5">Equivalente en Bs.</p>
                                                          <p className="text-sm font-black text-blue-700 dark:text-blue-300 tabular-nums">
-                                                             Bs. {(parseFloat(docAmount || '0') * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                             Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                          </p>
                                                      </div>
                                                  </div>
                                                  <div className="text-[9px] font-bold text-blue-600/40 dark:text-blue-400/40 italic text-right">
-                                                     Tasa: {exchangeRate.toLocaleString('es-VE')}
+                                                     Tasa: {effectiveExchangeRate.toLocaleString('es-VE')} {docExchangeRate ? '(Histórica)' : '(Actual)'}
                                                  </div>
                                              </div>
                                          )}
