@@ -990,12 +990,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   };
 
   return (
-    <div className="p-6 lg:p-10 w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+    <div className="p-6 lg:p-10 xl:p-12 w-full max-w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
       {/* --- JUSTIFICATION MODAL --- */}
       {showJustificationModal && (
           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                   <div className="p-6 border-b border-red-200 dark:border-red-800/50 bg-red-100 dark:bg-red-900/40 rounded-t-2xl">
                       <h3 className="text-2xl font-bold text-red-800 dark:text-red-300 flex items-center gap-3">
                           <AlertTriangle className="animate-pulse w-7 h-7" />
