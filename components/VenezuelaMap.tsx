@@ -88,7 +88,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl min-h-[500px]"
+        className="glass-card p-8 flex flex-col items-center justify-center relative group min-h-[500px]"
       >
         <div className="flex items-center gap-3 mb-6">
             <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
@@ -121,7 +121,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="absolute inset-x-8 bottom-8 z-50 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 p-6 rounded-3xl shadow-2xl"
+                className="absolute inset-x-8 bottom-8 z-50 glass-card p-6"
               >
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3">
@@ -157,7 +157,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl"
+      className="glass-card p-8 flex flex-col items-center justify-center relative group"
     >
       <div className="flex justify-between items-center w-full mb-6 z-10">
         <div className="flex items-center gap-3">
@@ -183,7 +183,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-6 left-6 z-50 bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[220px]"
+                className="absolute bottom-6 left-6 z-50 glass-card p-5 min-w-[240px]"
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="flex items-center gap-2">

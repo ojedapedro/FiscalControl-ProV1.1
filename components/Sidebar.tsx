@@ -78,8 +78,8 @@ export const Sidebar: FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <div className={`
         fixed top-0 bottom-0 left-0 z-50
-        w-64 bg-slate-950 text-white border-r border-slate-900
-        flex flex-col transition-transform duration-300 ease-in-out
+        w-64 bg-slate-950/80 backdrop-blur-3xl text-white border-r border-white/5
+        flex flex-col transition-transform duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.2)]
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         
@@ -128,15 +128,16 @@ export const Sidebar: FC<SidebarProps> = ({
                   }
                   closeMobileMenu();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                   isActive 
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' 
-                    : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+                    ? 'bg-gradient-to-r from-brand-600/90 to-indigo-600/90 text-white shadow-lg shadow-brand-500/20 ring-1 ring-white/20' 
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-brand-400 transition-colors'} />
-                <span className="font-medium text-sm">{item.label}</span>
-                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
+                <div className={`absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-transparent translate-x-[-100%] transition-transform duration-700 ${isActive ? 'group-hover:translate-x-[100%]' : ''}`} />
+                <Icon size={18} className={`relative z-10 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-brand-400 transition-colors'}`} />
+                <span className="font-medium text-sm relative z-10">{item.label}</span>
+                {isActive && <div className="ml-auto relative z-10 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,1)] animate-pulse" />}
               </button>
             );
           })}
@@ -159,11 +160,11 @@ export const Sidebar: FC<SidebarProps> = ({
           {/* Theme Toggle */}
           <button 
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all border border-slate-800/50"
+            className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-300 hover:text-white transition-all border border-white/5 shadow-inner shadow-black/20"
           >
              <div className="flex items-center gap-3">
                {theme === 'dark' ? <Moon size={18} className="text-brand-400" /> : <Sun size={18} className="text-yellow-400" />}
-               <span className="font-medium text-xs">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+               <span className="font-medium text-xs tracking-wide">TEMA: {theme === 'dark' ? 'OSCURO' : 'CLARO'}</span>
              </div>
           </button>
 

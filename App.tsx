@@ -1180,7 +1180,7 @@ function App({ isDemoMode = false }: AppProps) {
 
   return (
     <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
+      <div className="flex bg-slate-50 dark:bg-slate-950/40 min-h-screen font-sans overflow-hidden">
         
         {/* Sidebar Responsive */}
         <Sidebar 
@@ -1204,9 +1204,9 @@ function App({ isDemoMode = false }: AppProps) {
           
           {/* PWA Install Banner */}
           {installPrompt && showInstallBanner && (
-            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
+            <div className="bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top-10 duration-700 z-40 shrink-0 shadow-lg shadow-brand-500/20">
               <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
+                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                   <Download size={20} />
                 </div>
                 <div>
@@ -1232,11 +1232,11 @@ function App({ isDemoMode = false }: AppProps) {
           )}
 
           {/* Header Móvil */}
-          <div className="lg:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
+          <div className="lg:hidden h-16 glass-card rounded-none border-b border-white/5 flex items-center justify-between px-4 shrink-0 z-30">
              <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 text-white hover:bg-slate-800 rounded-lg"
+                  className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
                 >
                     <Menu size={24} />
                 </button>
@@ -1249,26 +1249,26 @@ function App({ isDemoMode = false }: AppProps) {
 
           {/* Loading Overlay */}
           {isLoading && (
-              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                  <RefreshCw size={12} className="animate-spin" />
-                  Sincronizando...
+              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shadow-xl shadow-brand-500/30 animate-pulse border border-white/20">
+                  <RefreshCw size={14} className="animate-spin" />
+                  Sincronizando Estado...
               </div>
           )}
 
           {/* Notificaciones Toast */}
           {notification && (
-            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-               <div className="bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4">
-                  <span className="font-medium">{notification}</span>
-                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-10 fade-in duration-500">
+               <div className="glass-card px-6 py-4 shadow-2xl border-l-4 border-l-brand-500 flex items-center gap-4">
+                  <span className="font-medium text-white">{notification}</span>
+                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-1 rounded-full"><X size={16} /></button>
                </div>
             </div>
           )}
 
           {/* Modal Formulario */}
           {isFormOpen && currentView !== 'payments' && (
-             <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                <div className="bg-white dark:bg-slate-950 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
+             <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+                <div className="glass-card w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.5)] border border-white/10">
                     <PaymentForm 
                       initialData={editingPayment}
                       payments={filteredPayments}
