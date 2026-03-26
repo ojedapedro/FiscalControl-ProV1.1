@@ -12,9 +12,12 @@ import {
   CheckCircle2, 
   TrendingUp, 
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { APP_LOGO_URL } from '../constants';
+import { useTheme } from './ThemeContext';
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
@@ -22,6 +25,7 @@ interface LoginProps {
 }
 
 export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) => {
+  const { theme, toggleTheme } = useTheme();
   const [isRecovering, setIsRecovering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,14 +70,14 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 lg:p-0 overflow-hidden font-sans">
-      <div className="w-full max-w-7xl h-full lg:h-[85vh] bg-[#1e293b] rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-700/50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 lg:p-0 overflow-hidden font-sans transition-colors duration-500">
+      <div className="w-full max-w-7xl h-full lg:h-[85vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-200 dark:border-slate-800/50 transition-all duration-500">
         
         {/* Left Side: Visuals & 3D Illustration */}
-        <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-indigo-900 via-[#0f172a] to-slate-900 items-center justify-center overflow-hidden">
+        <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-brand-900 via-slate-900 to-slate-950 items-center justify-center overflow-hidden">
             
             {/* Background Effects */}
-            <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px]"></div>
+            <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-brand-600/20 rounded-full blur-[100px]"></div>
             <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px]"></div>
 
             {/* Floating Elements Container */}
@@ -88,32 +92,32 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                 />
                 
                 {/* Floating Card: Profit */}
-                <div className="absolute top-10 -left-12 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-xl w-40 animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="absolute top-10 -left-12 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-40 animate-bounce" style={{ animationDuration: '3s' }}>
                     <div className="flex justify-between items-start mb-2">
-                        <div className="text-xs text-slate-300">Presupuesto</div>
-                        <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded">+12%</span>
+                        <div className="text-xs text-slate-300 dark:text-slate-400">Presupuesto</div>
+                        <span className="text-[10px] bg-green-500/20 text-green-400 dark:text-green-300 px-1.5 py-0.5 rounded">+12%</span>
                     </div>
                     <div className="text-2xl font-bold text-white mb-1">$624k</div>
-                    <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                        <div className="h-full w-3/4 bg-green-400"></div>
+                    <div className="h-1 w-full bg-slate-700 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full w-3/4 bg-green-500 dark:bg-green-400"></div>
                     </div>
                 </div>
 
                 {/* Floating Card: Orders */}
-                <div className="absolute bottom-20 -right-8 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-xl w-44 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+                <div className="absolute bottom-20 -right-8 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-44 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
                      <div className="flex justify-between items-start mb-2">
-                        <div className="text-xs text-slate-300">Pagos Auditados</div>
-                        <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">Esta semana</span>
+                        <div className="text-xs text-slate-300 dark:text-slate-400">Pagos Auditados</div>
+                        <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded">Esta semana</span>
                     </div>
                     <div className="flex items-end gap-2 h-10 mt-2">
-                         <div className="w-1/5 bg-indigo-500/50 h-[40%] rounded-t-sm"></div>
-                         <div className="w-1/5 bg-indigo-500/70 h-[70%] rounded-t-sm"></div>
-                         <div className="w-1/5 bg-indigo-500 h-[100%] rounded-t-sm shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                         <div className="w-1/5 bg-indigo-500/60 h-[50%] rounded-t-sm"></div>
-                         <div className="w-1/5 bg-indigo-500/40 h-[30%] rounded-t-sm"></div>
+                         <div className="w-1/5 bg-brand-500/50 h-[40%] rounded-t-sm"></div>
+                         <div className="w-1/5 bg-brand-500/70 h-[70%] rounded-t-sm"></div>
+                         <div className="w-1/5 bg-brand-500 h-[100%] rounded-t-sm shadow-[0_0_15px_rgba(14,165,233,0.5)]"></div>
+                         <div className="w-1/5 bg-brand-500/60 h-[50%] rounded-t-sm"></div>
+                         <div className="w-1/5 bg-brand-500/40 h-[30%] rounded-t-sm"></div>
                     </div>
-                    <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-300 bg-black/20 p-2 rounded-lg">
-                        <CheckCircle2 size={12} className="text-green-400" />
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-300 dark:text-slate-400 bg-black/20 dark:bg-black/40 p-2 rounded-lg">
+                        <CheckCircle2 size={12} className="text-green-500 dark:text-green-400" />
                         <span>Todo en regla</span>
                     </div>
                 </div>
@@ -127,19 +131,30 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-[#1e293b] relative">
+        <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-white dark:bg-slate-900 relative transition-colors duration-500">
             
+            {/* Theme Toggle (Login Screen) */}
+            <div className="absolute top-6 right-6">
+                <button 
+                    onClick={toggleTheme}
+                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all border border-slate-200 dark:border-slate-700/50 shadow-sm"
+                    title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                >
+                    {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}
+                </button>
+            </div>
+
             {/* Logo */}
             <div className="flex items-center gap-3 mb-10">
                 <img src={APP_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-full shadow-lg" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">FiscalCtl</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">FiscalCtl</span>
             </div>
 
             <div className="max-w-md w-full mx-auto">
-                <h2 className="text-3xl font-bold text-white mb-2">
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
                     {isRecovering ? 'Recuperar Cuenta' : 'Bienvenido de nuevo'}
                 </h2>
-                <p className="text-slate-400 mb-8">
+                <p className="text-slate-500 dark:text-slate-400 mb-8">
                     {isRecovering 
                         ? 'Ingrese su correo para recibir instrucciones.' 
                         : 'Ingrese sus credenciales para acceder al panel.'}
@@ -149,16 +164,16 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                     
                     {/* Email Input */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300 ml-1">Correo Electrónico</label>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Correo Electrónico</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
                             </div>
                             <input 
                                 type="email" 
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-[#0f172a] border border-slate-700 text-white text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" 
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                 placeholder="usuario@fiscal.com"
                                 required
                             />
@@ -169,24 +184,24 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                     {!isRecovering && (
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-medium text-slate-300">Contraseña</label>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
                             </div>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                    <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
                                 </div>
                                 <input 
                                     type={showPassword ? "text" : "password"} 
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-[#0f172a] border border-slate-700 text-white text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" 
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                     placeholder="••••••••"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                                 >
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -200,7 +215,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                             <button 
                                 type="button" 
                                 onClick={() => { setIsRecovering(true); setError(null); }}
-                                className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                                className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:text-brand-500 dark:hover:text-brand-300 transition-colors"
                             >
                                 ¿Olvidó su contraseña?
                             </button>
@@ -209,13 +224,13 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
 
                     {/* Feedback Messages */}
                     {error && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-sm animate-in fade-in">
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 text-sm animate-in fade-in">
                             <ShieldCheck size={16} />
                             {error}
                         </div>
                     )}
                     {successMsg && (
-                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-2 text-green-400 text-sm animate-in fade-in">
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-xl flex items-center gap-2 text-green-600 dark:text-green-400 text-sm animate-in fade-in">
                             <CheckCircle2 size={16} />
                             {successMsg}
                         </div>
@@ -225,7 +240,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                     <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                        className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                         {isLoading ? (
                             <Loader2 className="animate-spin" />
@@ -244,7 +259,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                 {isRecovering && (
                     <button 
                         onClick={() => { setIsRecovering(false); setError(null); setSuccessMsg(null); }}
-                        className="mt-6 w-full text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                        className="mt-6 w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-colors"
                     >
                         ← Volver al inicio de sesión
                     </button>
@@ -252,12 +267,12 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                 
                 {/* Demo Roles Shortcut (Solo para demostración) */}
                 {!isRecovering && isDemoMode && (
-                    <div className="mt-10 pt-6 border-t border-slate-700">
-                        <p className="text-xs text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
+                    <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
                         <div className="flex gap-2 justify-center">
-                            <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300 border border-slate-700 transition-colors">Admin</button>
-                            <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300 border border-slate-700 transition-colors">Auditor</button>
-                            <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300 border border-slate-700 transition-colors">Presidente</button>
+                            <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Admin</button>
+                            <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Auditor</button>
+                            <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Presidente</button>
                         </div>
                     </div>
                 )}

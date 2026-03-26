@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -19,52 +21,39 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-200 antialiased min-h-screen selection:bg-brand-500/30 selection:text-brand-200;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-200 antialiased transition-colors duration-300;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.08), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08), transparent 25%);
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans font-semibold tracking-tight text-white;
+    @apply font-sans font-semibold tracking-tight text-slate-900 dark:text-white transition-colors duration-300;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative overflow-hidden;
-  }
-  
-  .glass-card::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-brand-500/5 dark:from-white/5 to-transparent opacity-0 transition-opacity duration-500 pointer-events-none;
+    @apply bg-white/80 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 transition-colors duration-300;
   }
   
   .glass-card-hover {
-    @apply transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(14,165,233,0.1)] dark:hover:shadow-[0_20px_40px_rgba(14,165,233,0.15)] hover:border-brand-500/30;
-  }
-  
-  .glass-card-hover:hover::before {
-    @apply opacity-100;
+    @apply transition-all duration-300 hover:bg-white dark:hover:bg-slate-900/80 hover:border-slate-300/50 dark:hover:border-slate-700/50 hover:shadow-2xl hover:shadow-brand-500/10;
   }
 
   .btn-primary {
-    @apply px-5 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-medium rounded-xl transition-all duration-300 active:scale-[0.98] shadow-lg shadow-brand-500/25 disabled:opacity-50 disabled:pointer-events-none hover:shadow-brand-500/40;
+    @apply px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-brand-600/20 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply px-5 py-2.5 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-md text-slate-200 font-medium rounded-xl transition-all duration-300 active:scale-[0.98] border border-slate-700/50 hover:border-slate-600 hover:shadow-lg hover:shadow-black/20;
+    @apply px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all duration-300 placeholder:text-slate-600 shadow-inner shadow-black/20;
+    @apply w-full px-4 py-2.5 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600;
   }
 
   .label-caps {
-    @apply text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 block;
+    @apply text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block;
   }
 }
 

@@ -1078,7 +1078,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                       </button>
                       <button 
                           onClick={handleConfirmJustification}
-                          className="flex-[2] py-4 text-base bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
+                          className="flex-[2] py-4 text-base bg-red-600 hover:bg-red-700 text-slate-900 dark:text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
                       >
                           <FileWarning size={20} />
                           Confirmar Justificación
@@ -1089,7 +1089,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       )}
       {/* Top Banner for Rejected Payments */}
       {initialData?.status === PaymentStatus.REJECTED && (
-        <div className="mb-6 -mx-6 -mt-6 p-3 bg-red-600 text-white text-center text-xs font-bold uppercase tracking-[0.2em] rounded-t-2xl flex items-center justify-center gap-2">
+        <div className="mb-6 -mx-6 -mt-6 p-3 bg-red-600 text-slate-900 dark:text-white text-center text-xs font-bold uppercase tracking-[0.2em] rounded-t-2xl flex items-center justify-center gap-2">
           <AlertTriangle size={14} />
           Atención: Este pago requiere correcciones inmediatas
           <AlertTriangle size={14} />
@@ -1136,16 +1136,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                   <div className="p-2 bg-red-500/20 text-red-500 rounded-lg">
                     <AlertCircle size={20} />
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Motivo de la Devolución</h3>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Motivo de la Devolución</h3>
                 </div>
                 <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{formatDate(new Date())}</span>
               </div>
               <div className="relative">
-                <p className="text-slate-300 text-lg font-serif italic leading-relaxed pl-4 border-l-2 border-slate-800">
+                <p className="text-slate-300 text-lg font-serif italic leading-relaxed pl-4 border-l-2 border-slate-200 dark:border-slate-800">
                   "{initialData.rejectionReason}"
                 </p>
               </div>
-              <div className="mt-8 pt-6 border-t border-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <p className="text-xs text-slate-500 font-medium flex items-center gap-2">
                   <RefreshCw size={14} className="text-red-500 animate-spin-slow" /> 
                   Ajuste los campos marcados o reemplace los documentos para reenviar.
@@ -1179,14 +1179,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 value={store}
                                 onChange={(e) => setStore(e.target.value)}
                                 disabled={isSubmitting}
-                                className={`w-full appearance-none bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-50 cursor-pointer`}
+                                className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-50 cursor-pointer`}
                             >
-                                <option value="" className="bg-slate-900">Seleccionar ubicación...</option>
+                                <option value="" className="bg-slate-50 dark:bg-slate-900">Seleccionar ubicación...</option>
                                 {category === Category.PAYROLL && !currentUser?.storeId && (
-                                    <option value="NATIONAL" className="bg-slate-900">Nacional (Cobertura Nacional)</option>
+                                    <option value="NATIONAL" className="bg-slate-50 dark:bg-slate-900">Nacional (Cobertura Nacional)</option>
                                 )}
                                 {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
-                                    <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>
+                                    <option key={s.id} value={s.id} className="bg-slate-50 dark:bg-slate-900">{s.name}</option>
                                 ))}
                             </select>
                             <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
@@ -1202,7 +1202,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Guía de Categoría</p>
-                                <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                     {[
                                         { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
                                         { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
@@ -1246,14 +1246,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     onClick={() => setCategory(cat.id)}
                                     className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group ${
                                         isSelected 
-                                        ? 'border-brand-500 bg-brand-500/10 text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
-                                        : 'border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800'
+                                        ? 'border-brand-500 bg-brand-500/10 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
+                                        : 'border-slate-200 dark:border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800'
                                     } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${isSelected ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 scale-110' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}`}>
+                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${isSelected ? 'bg-brand-500 text-slate-900 dark:text-white shadow-lg shadow-brand-500/20 scale-110' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}`}>
                                         <Icon size={20} />
                                     </div>
-                                    <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${isSelected ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{cat.label}</span>
+                                    <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{cat.label}</span>
                                     {isSelected && (
                                         <div className="absolute top-2 right-2 text-brand-400 animate-in zoom-in duration-300">
                                             <CheckCircle2 size={14} />
@@ -1277,7 +1277,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         {/* Header Dinámico */}
                         <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${globalStatus.color} text-white shadow-sm`}>
+                                <div className={`p-2 rounded-full ${globalStatus.color} text-slate-900 dark:text-white shadow-sm`}>
                                     <Calculator size={20} />
                                 </div>
                                 <div>
@@ -1333,7 +1333,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         {!taxGroup ? (
                                             <div className="p-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center">
                                                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full mb-3">
-                                                    <ChevronDown className="text-slate-400 rotate-90" size={24} />
+                                                    <ChevronDown className="text-slate-500 dark:text-slate-400 rotate-90" size={24} />
                                                 </div>
                                                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                                                     Seleccione un rubro a la izquierda para ver los conceptos específicos
@@ -1358,7 +1358,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                                 <item.icon size={10} />
                                                                 {item.status}
                                                             </span>
-                                                            <span className="text-[10px] font-mono text-slate-400">{item.code}</span>
+                                                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{item.code}</span>
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className={`text-xs font-bold leading-tight mb-1 ${taxItem === item.code ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}`}>
@@ -1426,11 +1426,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                                 <div>
                                     <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Municipio / Alcaldía</span>
-                                    <p className="text-sm font-bold text-white">{storeMunicipality || 'No especificado'}</p>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
                                 </div>
                                 <div>
                                     <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Dirección de Sucursal</span>
-                                    <p className="text-xs text-slate-400 italic leading-relaxed">{storeAddress || 'No especificada'}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed">{storeAddress || 'No especificada'}</p>
                                 </div>
                             </div>
                         </div>
@@ -1446,7 +1446,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     value={specificType}
                                     readOnly={(!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`w-full bg-slate-950/50 border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
                                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                             </div>
@@ -1466,11 +1466,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={amount}
                                         readOnly={!isManualOverride}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className={`w-full ${!isManualOverride ? 'bg-slate-900/50 cursor-not-allowed' : 'bg-slate-950/50'} border ${
+                                        className={`w-full ${!isManualOverride ? 'bg-slate-900/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950/50'} border ${
                                             isOverBudget 
                                                 ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
-                                                : errors.amount ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'
-                                        } text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-10 p-4 outline-none font-mono transition-all`}
+                                                : errors.amount ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'
+                                        } text-slate-900 dark:text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-10 p-4 outline-none font-mono transition-all`}
                                     />
                                     {isOverBudget && (
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
@@ -1488,13 +1488,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <div className="flex-1 min-w-0">
                                             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
                                                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-slate-50 dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                             </div>
                                             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
                                                 <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
                                                     Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </p>
-                                                <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1517,15 +1517,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 )}
 
                                 {isCurrentTaxItemVariable && (
-                                    <div className="mt-4 p-4 bg-slate-900/50 rounded-2xl flex items-center gap-4 border border-slate-800 transition-colors hover:border-slate-700">
+                                    <div className="mt-4 p-4 bg-slate-900/50 rounded-2xl flex items-center gap-4 border border-slate-200 dark:border-slate-800 transition-colors hover:border-slate-700">
                                         <input
                                             type="checkbox"
                                             id="manualOverBudget"
                                             checked={manualOverBudget}
                                             onChange={(e) => setManualOverBudget(e.target.checked)}
-                                            className="h-5 w-5 rounded border-slate-700 bg-slate-950 text-brand-500 focus:ring-brand-500/50 shrink-0 cursor-pointer"
+                                            className="h-5 w-5 rounded border-slate-700 bg-white dark:bg-slate-950 text-brand-500 focus:ring-brand-500/50 shrink-0 cursor-pointer"
                                         />
-                                        <label htmlFor="manualOverBudget" className="block text-[10px] text-slate-400 font-bold uppercase tracking-tight cursor-pointer leading-tight">
+                                        <label htmlFor="manualOverBudget" className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight cursor-pointer leading-tight">
                                             Marcar como <span className="text-amber-400">excedente presupuestario</span> para solicitar justificación.
                                         </label>
                                     </div>
@@ -1541,7 +1541,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={paymentDate}
                                         disabled={isSubmitting}
                                         onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                        className={`w-full bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
@@ -1558,7 +1558,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={daysToExpire}
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                        className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                        className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
                                     />
                                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
@@ -1574,7 +1574,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={dueDate}
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDueDateChange(e.target.value)}
-                                        className={`w-full bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all [color-scheme:dark] disabled:opacity-50`}
+                                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
@@ -1600,15 +1600,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              } ${
                                  file || previewUrl ? 'border-emerald-500/50 bg-emerald-500/5' : 
                                  initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/50 bg-red-500/5 hover:border-red-500' :
-                                 errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'
+                                 errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
                              }`}>
-                                
-                                {/* Overlay de Carga de Archivo */}
+                                 {/* Overlay de Carga de Archivo */}
                                 {isFileScanning && (
-                                    <div className="absolute inset-0 z-20 bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
-                                        <Scan className="w-10 h-10 text-brand-400 animate-pulse mb-4" />
-                                        <span className="text-sm font-black text-brand-400 uppercase tracking-widest mb-3">Analizando Documento...</span>
-                                        <div className="w-full max-w-[240px] bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
+                                        <Scan className="w-10 h-10 text-brand-600 dark:text-brand-400 animate-pulse mb-4" />
+                                        <span className="text-sm font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">Analizando Documento...</span>
+                                        <div className="w-full max-w-[240px] bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
                                             <div className="bg-brand-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: `${uploadProgress}%` }}></div>
                                         </div>
                                         <span className="text-[10px] font-black text-slate-500 mt-2 uppercase tracking-tighter">{uploadProgress}% Procesado</span>
@@ -1624,13 +1623,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                     <img
                                                         src={previewUrl}
                                                         alt="Preview"
-                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-950/50"
+                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
                                                     />
                                                     <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
                                                          <button
                                                             onClick={clearFile}
                                                             type="button"
-                                                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
+                                                            className="bg-red-500 hover:bg-red-600 text-slate-900 dark:text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
                                                          >
                                                             <Trash2 size={16} />
                                                             <span>Eliminar</span>
@@ -1642,15 +1641,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 </div>
                                             ) : (
                                                 // PDF/File Preview
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/30 rounded-2xl border border-slate-800">
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
                                                     <div className="bg-red-500/20 p-5 rounded-2xl mb-4 ring-4 ring-red-500/5 group-hover/file:scale-110 transition-transform duration-300">
-                                                        <FileText size={40} className="text-red-400" />
+                                                        <FileText size={40} className="text-red-500 dark:text-red-400" />
                                                     </div>
-                                                    <p className="text-sm font-black text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
+                                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
                                                         {file?.name || 'Documento Adjunto'}
                                                     </p>
                                                     {file && (
-                                                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                                                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
                                                           {(file.size / (1024 * 1024)).toFixed(2)} MB
                                                       </p>
                                                     )}
@@ -1669,7 +1668,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
                                                 <Upload size={32} />
                                             </div>
-                                            <p className="mb-1 text-sm text-white font-black uppercase tracking-tight">Subir Comprobante</p>
+                                            <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
                                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">PDF, JPG, PNG (Max 5MB)</p>
                                         </>
                                     )}
@@ -1685,7 +1684,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
 
                              {/* Proposed Changes Section */}
-                             <div className="mt-8 p-6 bg-slate-950/50 border border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
+                             <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/prop:opacity-20 transition-opacity">
                                     <RefreshCw size={40} className="text-brand-500" />
                                 </div>
@@ -1693,41 +1692,39 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
                                         <RefreshCw size={18} />
                                     </div>
-                                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Proponer Cambios</h3>
+                                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Proponer Cambios</h3>
                                 </div>
                                 
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nuevo Monto ($)</label>
-                                        <div className="relative">
-                                            <input
+                                               <input
                                                 type="number"
                                                 value={proposedAmount || ''}
                                                 onChange={(e) => setProposedAmount(Number(e.target.value))}
                                                 placeholder="0.00"
-                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
-                                            />
-                                            {effectiveExchangeRate !== undefined && (
-                                                <div className="mt-3 p-3 bg-slate-800/50 border border-brand-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
-                                                    <div className="p-2 bg-brand-500/20 text-brand-400 rounded-lg shrink-0">
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                             />
+                                             {effectiveExchangeRate !== undefined && (
+                                                <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800/50 border border-brand-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-200 dark:hover:bg-slate-800/80 overflow-hidden shadow-inner">
+                                                    <div className="p-2 bg-brand-500/20 text-brand-600 dark:text-brand-400 rounded-lg shrink-0">
                                                         <Calculator size={16} />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                            <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Equivalente en Bs.</p>
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                            <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                            <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                         </div>
                                                         <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                                            <p className="text-sm sm:text-base font-black text-brand-300 tabular-nums break-all">
+                                                            <p className="text-sm sm:text-base font-black text-brand-700 dark:text-brand-300 tabular-nums break-all">
                                                                 Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </p>
-                                                            <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
@@ -1736,7 +1733,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 type="date"
                                                 value={proposedPaymentDate || ''}
                                                 onChange={(e) => handleProposedPaymentDateChange(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
                                             />
                                         </div>
                                         <div>
@@ -1746,7 +1743,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 placeholder="0"
                                                 value={proposedDaysToExpire ?? ''}
                                                 onChange={(e) => handleProposedDaysToExpireChange(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                             />
                                         </div>
                                         <div>
@@ -1755,7 +1752,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 type="date"
                                                 value={proposedDueDate || ''}
                                                 onChange={(e) => handleProposedDueDateChange(e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
                                             />
                                         </div>
                                     </div>
@@ -1766,7 +1763,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             value={proposedJustification}
                                             onChange={(e) => setProposedJustification(e.target.value)}
                                             placeholder="Explique por qué propone estos cambios..."
-                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm font-medium text-slate-300 outline-none focus:ring-4 focus:ring-brand-500/10 h-28 resize-none transition-all leading-relaxed"
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-medium text-slate-300 outline-none focus:ring-4 focus:ring-brand-500/10 h-28 resize-none transition-all leading-relaxed"
                                         />
                                     </div>
                                 </div>
@@ -1785,7 +1782,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                              value={docName}
                                              onChange={(e) => setDocName(e.target.value)}
                                              placeholder="Ej: Factura #123"
-                                             className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                             className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
                                          />
                                          <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                      </div>
@@ -1798,7 +1795,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                  type="date"
                                                  value={docDate}
                                                  onChange={(e) => setDocDate(e.target.value)}
-                                                 className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all [color-scheme:dark]"
+                                                 className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
                                              />
                                              <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                          </div>
@@ -1812,24 +1809,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                  value={docAmount}
                                                  onChange={(e) => setDocAmount(e.target.value)}
                                                  placeholder="0.00"
-                                                 className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
+                                                 className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
                                              />
                                          </div>
                                          {effectiveExchangeRate !== undefined && (
-                                             <div className="mt-3 p-3 bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
-                                                 <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                             <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-200 dark:hover:bg-slate-800/80 overflow-hidden shadow-inner">
+                                                 <div className="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
                                                      <Calculator size={16} />
                                                  </div>
                                                  <div className="flex-1 min-w-0">
                                                      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                         <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
-                                                         <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                         <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                         <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                      </div>
                                                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                                         <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
+                                                         <p className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 tabular-nums break-all">
                                                              Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                          </p>
-                                                         <p className="text-[10px] font-black text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                         <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                      </div>
                                                  </div>
                                              </div>
@@ -1846,7 +1843,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isSubmitting}
                                         placeholder="Añada notas adicionales para el auditor..."
-                                        className="w-full bg-slate-950/50 border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[240px] resize-none transition-all disabled:opacity-50 leading-relaxed"
+                                        className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[240px] resize-none transition-all disabled:opacity-50 leading-relaxed"
                                      ></textarea>
                                      <div className="absolute bottom-4 right-4 text-slate-600 group-focus-within:text-brand-500/50 transition-colors">
                                          <MessageSquare size={20} />
@@ -1881,13 +1878,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </div>
         )}
 
-        <div className="pt-8 border-t border-slate-800/50 flex flex-col-reverse md:flex-row gap-6">
+        <div className="pt-8 border-t border-slate-200 dark:border-slate-800/50 flex flex-col-reverse md:flex-row gap-6">
             {!isEmbedded && (
                 <button 
                     type="button"
                     onClick={onCancel}
                     disabled={isSubmitting}
-                    className="w-full md:w-auto px-10 py-4 bg-slate-900 text-slate-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-800 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                    className="w-full md:w-auto px-10 py-4 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-800 hover:text-slate-900 dark:text-white transition-all active:scale-95 disabled:opacity-50"
                 >
                     Cancelar
                 </button>
@@ -1899,7 +1896,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     isOverBudget && !justificationConfirmed 
                     ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' 
                     : 'bg-brand-600 hover:bg-brand-500 shadow-brand-500/20'
-                } text-white font-black uppercase tracking-widest text-sm py-5 rounded-xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
+                } text-slate-900 dark:text-white font-black uppercase tracking-widest text-sm py-5 rounded-xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover/submit:translate-x-full transition-transform duration-1000"></div>
                 
