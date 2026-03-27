@@ -23,6 +23,7 @@ import {
   Wand2,
   Download,
   FileSignature,
+  FileStack,
   CheckCircle2,
   Clock,
   Landmark,
@@ -762,37 +763,38 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     doc.save(`Historial_EPP_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const generatePaymentReceiptPDF = (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
-    const doc = new jsPDF();
+  const generatePaymentReceiptPDF = (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>, doc?: jsPDF) => {
+    const isBulk = !!doc;
+    const currentDoc = doc || new jsPDF();
     const store = STORES.find(s => s.id === entry.storeId);
     
     // Header
-    doc.setFontSize(20);
-    doc.setTextColor(37, 99, 235);
-    doc.text('RECIBO DE PAGO', 105, 20, { align: 'center' });
+    currentDoc.setFontSize(20);
+    currentDoc.setTextColor(37, 99, 235);
+    currentDoc.text('RECIBO DE PAGO', 105, 20, { align: 'center' });
     
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text('FiscalControl Pro - Gestión de Nómina', 105, 28, { align: 'center' });
+    currentDoc.setFontSize(12);
+    currentDoc.setTextColor(100);
+    currentDoc.text('FiscalControl Pro - Gestión de Nómina', 105, 28, { align: 'center' });
     
     // Employee Info
-    doc.setDrawColor(200);
-    doc.line(14, 35, 196, 35);
+    currentDoc.setDrawColor(200);
+    currentDoc.line(14, 35, 196, 35);
     
-    doc.setFontSize(10);
-    doc.setTextColor(0);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DATOS DEL TRABAJADOR', 14, 45);
+    currentDoc.setFontSize(10);
+    currentDoc.setTextColor(0);
+    currentDoc.setFont('helvetica', 'bold');
+    currentDoc.text('DATOS DEL TRABAJADOR', 14, 45);
     
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Nombre: ${entry.employeeName}`, 14, 52);
-    doc.text(`Cédula/ID: ${entry.employeeId}`, 14, 57);
-    doc.text(`Tienda: ${store?.name || 'N/A'}`, 14, 62);
-    doc.text(`Periodo: ${entry.month}`, 14, 67);
+    currentDoc.setFont('helvetica', 'normal');
+    currentDoc.text(`Nombre: ${entry.employeeName}`, 14, 52);
+    currentDoc.text(`Cédula/ID: ${entry.employeeId}`, 14, 57);
+    currentDoc.text(`Tienda: ${store?.name || 'N/A'}`, 14, 62);
+    currentDoc.text(`Periodo: ${entry.month}`, 14, 67);
     
     // Financial Details
-    doc.setFont('helvetica', 'bold');
-    doc.text('DETALLE DE PAGO', 14, 80);
+    currentDoc.setFont('helvetica', 'bold');
+    currentDoc.text('DETALLE DE PAGO', 14, 80);
     
     const tableData: any[][] = [
       ['Concepto', 'Asignaciones ($)', 'Deducciones ($)']
@@ -808,7 +810,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       tableData.push([d.name, '', `$${d.amount.toLocaleString()}`]);
     });
     
-    autoTable(doc, {
+    autoTable(currentDoc, {
       startY: 85,
       head: [tableData[0]],
       body: tableData.slice(1),
@@ -818,22 +820,34 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
     
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = (currentDoc as any).lastAutoTable.finalY + 10;
     
     // Totals in Local Currency
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total a Pagar: $${entry.totalWorkerNet.toLocaleString()}`, 14, finalY);
-    doc.text(`Equivalente en Bs (Tasa ${exchangeRate}): Bs. ${(entry.totalWorkerNet * exchangeRate).toLocaleString()}`, 14, finalY + 7);
+    currentDoc.setFontSize(11);
+    currentDoc.setFont('helvetica', 'bold');
+    currentDoc.text(`Total a Pagar: $${entry.totalWorkerNet.toLocaleString()}`, 14, finalY);
+    currentDoc.text(`Equivalente en Bs (Tasa ${exchangeRate}): Bs. ${(entry.totalWorkerNet * exchangeRate).toLocaleString()}`, 14, finalY + 7);
     
     // Signature area
-    doc.line(14, finalY + 40, 80, finalY + 40);
-    doc.text('Firma del Trabajador', 14, finalY + 45);
+    currentDoc.line(14, finalY + 40, 80, finalY + 40);
+    currentDoc.text('Firma del Trabajador', 14, finalY + 45);
     
-    doc.line(130, finalY + 40, 196, finalY + 40);
-    doc.text('Sello y Firma Patrono', 130, finalY + 45);
+    currentDoc.line(130, finalY + 40, 196, finalY + 40);
+    currentDoc.text('Sello y Firma Patrono', 130, finalY + 45);
     
-    doc.save(`Recibo_${entry.employeeName.replace(/ /g, '_')}_${entry.month}.pdf`);
+    if (!isBulk) {
+      currentDoc.save(`Recibo_${entry.employeeName.replace(/ /g, '_')}_${entry.month}.pdf`);
+    }
+  };
+
+  const generateBulkPaymentReceiptsPDF = (entries: PayrollEntry[]) => {
+    if (entries.length === 0) return;
+    const doc = new jsPDF();
+    entries.forEach((entry, index) => {
+      if (index > 0) doc.addPage();
+      generatePaymentReceiptPDF(entry, doc);
+    });
+    doc.save(`Recibos_Nomina_Masivo_${entries[0]?.month || 'Reporte'}.pdf`);
   };
 
   const generateAnticipoReceiptPDF = (employee: Employee, amount: number, accumulated: number, reason: string) => {
@@ -995,34 +1009,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Generar Nómina Automática
               </button>
               <button 
-                onClick={() => {
-                  setPayrollFormData({
-                    employeeName: '',
-                    employeeId: '',
-                    storeId: currentUser?.storeId || '',
-                    month: new Date().toISOString().slice(0, 7),
-                    baseSalary: 0,
-                    bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
-                    deductions: [
-                      { name: 'SSO (4%)', amount: 0 }, 
-                      { name: 'RPE (0.5%)', amount: 0 }, 
-                      { name: 'FAOV / LPH (1%)', amount: 0 }, 
-                      { name: 'INCES (0.5%)', amount: 0 }
-                    ],
-                    employerLiabilities: [
-                      { name: 'SSO Patronal (9%)', amount: 0 }, 
-                      { name: 'RPE Patronal (2%)', amount: 0 }, 
-                      { name: 'FAOV Patronal (2%)', amount: 0 }, 
-                      { name: 'INCES Patronal (2%)', amount: 0 },
-                      { name: 'Fondo de Pensiones (9%)', amount: 0 }
-                    ]
-                  });
-                  setIsAddingEntry(true);
-                }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                onClick={() => generateBulkPaymentReceiptsPDF(entries)}
+                disabled={entries.length === 0}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
               >
-                <Plus size={20} />
-                Carga Manual
+                <FileStack size={20} />
+                Generar Recibos Masivos
               </button>
             </>
           ) : activeTab === 'employees' ? (
