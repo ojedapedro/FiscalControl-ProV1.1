@@ -434,19 +434,34 @@ async function startServer() {
     
     for (const entry of entries) {
       try {
-        console.log(`Rendering email for ${entry.employeeName} (${entry.employeeEmail})`);
-        const html = await render(
-          <PayrollEmailTemplate
-            employeeName={entry.employeeName}
-            month={entry.month}
-            baseSalary={entry.baseSalary}
-            totalWorkerNet={entry.totalWorkerNet}
-            bonuses={entry.bonuses || []}
-            deductions={entry.deductions || []}
-          />
-        );
+        console.log(`[Email] Procesando: ${entry.employeeName} <${entry.employeeEmail}>`);
+        
+        if (!entry.employeeEmail) {
+          console.warn(`[Email] Saltando ${entry.employeeName}: Correo no proporcionado.`);
+          results.push({ id: entry.id, success: false, error: 'Correo no proporcionado' });
+          continue;
+        }
 
-        console.log(`Sending email to ${entry.employeeEmail}...`);
+        console.log(`[Email] Renderizando plantilla para ${entry.employeeName}...`);
+        let html;
+        try {
+          html = await render(
+            <PayrollEmailTemplate
+              employeeName={entry.employeeName}
+              month={entry.month}
+              baseSalary={entry.baseSalary}
+              totalWorkerNet={entry.totalWorkerNet}
+              bonuses={entry.bonuses || []}
+              deductions={entry.deductions || []}
+            />
+          );
+        } catch (renderErr: any) {
+          console.error(`[Email] Error renderizando plantilla para ${entry.employeeName}:`, renderErr);
+          results.push({ id: entry.id, success: false, error: `Error de renderizado: ${renderErr.message}` });
+          continue;
+        }
+
+        console.log(`[Email] Enviando correo a ${entry.employeeEmail}...`);
         const { data, error } = await resendClient.emails.send({
           from: 'Nomina <onboarding@resend.dev>', // Should be a verified domain in production
           to: [entry.employeeEmail],
@@ -468,6 +483,15 @@ async function startServer() {
     }
 
     res.json({ success: true, results });
+  });
+
+  // Global Error Handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('💥 Unhandled Server Error:', err);
+    res.status(500).json({ 
+      error: 'Error interno del servidor', 
+      details: err.message
+    });
   });
 
   // Vite middleware

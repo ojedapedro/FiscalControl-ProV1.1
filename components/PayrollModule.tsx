@@ -781,8 +781,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido del servidor' }));
-        setNotification(`❌ Error al enviar correos: ${errorData.error || 'Error de servidor'}`);
+        let errorMsg = 'Error de servidor';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorData.details || errorMsg;
+        } catch (e) {
+          const text = await response.text().catch(() => '');
+          console.error('Server returned non-JSON error:', text);
+          errorMsg = `Error del servidor (no JSON): ${text.substring(0, 100)}`;
+        }
+        setNotification(`❌ Error al enviar correos: ${errorMsg}`);
         return;
       }
 
