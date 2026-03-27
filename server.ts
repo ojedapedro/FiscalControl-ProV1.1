@@ -6,6 +6,9 @@ import { google } from 'googleapis';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import Stripe from 'stripe';
+import { Resend } from 'resend';
+import { render } from '@react-email/render';
+import { PayrollEmailTemplate } from './components/PayrollEmailTemplate.tsx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +55,20 @@ async function startServer() {
       stripe = new Stripe(key);
     }
     return stripe;
+  };
+
+  // Resend Initialization
+  let resend: Resend | null = null;
+  const getResend = () => {
+    if (!resend) {
+      const key = process.env.RESEND_API_KEY;
+      if (!key) {
+        console.warn('RESEND_API_KEY no está configurada. El envío de correos no funcionará.');
+        return null;
+      }
+      resend = new Resend(key);
+    }
+    return resend;
   };
 
   // Stripe Payment Intent Route
@@ -395,6 +412,61 @@ async function startServer() {
       console.error('Sync pull error:', error);
       res.status(500).json({ success: false, error: error.message });
     }
+  });
+
+  // Bulk Email Route for Payroll
+  app.post('/api/payroll/send-emails', async (req, res) => {
+    const { entries } = req.body;
+    
+    const resendClient = getResend();
+    if (!resendClient) {
+      return res.status(500).json({ error: 'Resend no está configurado en el servidor.' });
+    }
+
+    if (!entries || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
+    }
+
+    const results = [];
+    
+    for (const entry of entries) {
+      try {
+        // Find employee email if not provided in entry
+        // Assuming entries have employeeEmail or we need to look it up
+        // For this implementation, we expect entries to have employeeEmail
+        if (!entry.employeeEmail) {
+          results.push({ id: entry.id, success: false, error: 'Correo del empleado no proporcionado' });
+          continue;
+        }
+
+        const html = await render(PayrollEmailTemplate({
+          employeeName: entry.employeeName,
+          month: entry.month,
+          baseSalary: entry.baseSalary,
+          totalWorkerNet: entry.totalWorkerNet,
+          bonuses: entry.bonuses || [],
+          deductions: entry.deductions || [],
+        }));
+
+        const { data, error } = await resendClient.emails.send({
+          from: 'Nomina <onboarding@resend.dev>', // Should be a verified domain in production
+          to: [entry.employeeEmail],
+          subject: `Recibo de Pago - ${entry.month}`,
+          html: html,
+        });
+
+        if (error) {
+          results.push({ id: entry.id, success: false, error: error.message });
+        } else {
+          results.push({ id: entry.id, success: true, messageId: data?.id });
+        }
+      } catch (err: any) {
+        console.error(`Error sending email to ${entry.employeeName}:`, err);
+        results.push({ id: entry.id, success: false, error: err.message });
+      }
+    }
+
+    res.json({ success: true, results });
   });
 
   // Vite middleware

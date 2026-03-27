@@ -34,7 +34,8 @@ import {
   X,
   History,
   HandCoins,
-  RefreshCw
+  RefreshCw,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -88,6 +89,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [notification, setNotification] = React.useState<string | null>(null);
   const [payrollIdFilter, setPayrollIdFilter] = React.useState('');
   const [payrollDateFilter, setPayrollDateFilter] = React.useState('');
+  const [isSendingEmails, setIsSendingEmails] = React.useState(false);
   const { exchangeRate } = useExchangeRate();
 
   React.useEffect(() => {
@@ -753,6 +755,49 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     doc.save(`Recibos_Nomina_Masivo_${entries[0]?.month || 'Reporte'}.pdf`);
   };
 
+  const handleSendBulkEmails = async () => {
+    if (filteredEntries.length === 0) return;
+    
+    setIsSendingEmails(true);
+    try {
+      const entriesWithEmails = filteredEntries.map(entry => {
+        const employee = employees.find(e => e.id === entry.employeeId);
+        return {
+          ...entry,
+          employeeEmail: employee?.email || ''
+        };
+      }).filter(e => e.employeeEmail);
+
+      if (entriesWithEmails.length === 0) {
+        setNotification('⚠️ No se encontraron correos electrónicos para los empleados seleccionados.');
+        setTimeout(() => setNotification(null), 3000);
+        return;
+      }
+
+      const response = await fetch('/api/payroll/send-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries: entriesWithEmails })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        const successCount = result.results.filter((r: any) => r.success).length;
+        const failCount = result.results.filter((r: any) => !r.success).length;
+        setNotification(`✅ Envíos completados: ${successCount} exitosos, ${failCount} fallidos.`);
+      } else {
+        setNotification(`❌ Error al enviar correos: ${result.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      setNotification('❌ Error de conexión al enviar correos.');
+    } finally {
+      setIsSendingEmails(false);
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
   const generateAnticipoReceiptPDF = (employee: Employee, amount: number, accumulated: number, reason: string) => {
     const doc = new jsPDF();
     
@@ -925,12 +970,24 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Generar Nómina Automática
               </button>
               <button 
-                onClick={() => generateBulkPaymentReceiptsPDF(entries)}
-                disabled={entries.length === 0}
+                onClick={() => generateBulkPaymentReceiptsPDF(filteredEntries)}
+                disabled={filteredEntries.length === 0}
                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
               >
                 <FileStack size={20} />
                 Generar Recibos Masivos
+              </button>
+              <button 
+                onClick={handleSendBulkEmails}
+                disabled={filteredEntries.length === 0 || isSendingEmails}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+              >
+                {isSendingEmails ? (
+                  <RefreshCw size={20} className="animate-spin" />
+                ) : (
+                  <Mail size={20} />
+                )}
+                {isSendingEmails ? 'Enviando...' : 'Enviar Recibos por Correo'}
               </button>
             </>
           ) : activeTab === 'employees' ? (
