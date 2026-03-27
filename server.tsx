@@ -7,8 +7,9 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import React from 'react';
 import { render } from '@react-email/render';
-import { PayrollEmailTemplate } from './components/PayrollEmailTemplate.tsx';
+import { PayrollEmailTemplate } from './components/PayrollEmailTemplate';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,9 +64,10 @@ async function startServer() {
     if (!resend) {
       const key = process.env.RESEND_API_KEY;
       if (!key) {
-        console.warn('RESEND_API_KEY no está configurada. El envío de correos no funcionará.');
+        console.warn('⚠️ RESEND_API_KEY no está configurada en el entorno.');
         return null;
       }
+      console.log('✅ Resend inicializado con API Key (longitud: ' + key.length + ')');
       resend = new Resend(key);
     }
     return resend;
@@ -416,11 +418,12 @@ async function startServer() {
 
   // Bulk Email Route for Payroll
   app.post('/api/payroll/send-emails', async (req, res) => {
+    console.log('📧 Petición recibida en /api/payroll/send-emails');
     const { entries } = req.body;
     
     const resendClient = getResend();
     if (!resendClient) {
-      return res.status(500).json({ error: 'Resend no está configurado en el servidor.' });
+      return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
     }
 
     if (!entries || !Array.isArray(entries)) {
@@ -431,38 +434,36 @@ async function startServer() {
     
     for (const entry of entries) {
       try {
-        // Find employee email if not provided in entry
-        // Assuming entries have employeeEmail or we need to look it up
-        // For this implementation, we expect entries to have employeeEmail
-        if (!entry.employeeEmail) {
-          results.push({ id: entry.id, success: false, error: 'Correo del empleado no proporcionado' });
-          continue;
-        }
+        console.log(`Rendering email for ${entry.employeeName} (${entry.employeeEmail})`);
+        const html = await render(
+          <PayrollEmailTemplate
+            employeeName={entry.employeeName}
+            month={entry.month}
+            baseSalary={entry.baseSalary}
+            totalWorkerNet={entry.totalWorkerNet}
+            bonuses={entry.bonuses || []}
+            deductions={entry.deductions || []}
+          />
+        );
 
-        const html = await render(PayrollEmailTemplate({
-          employeeName: entry.employeeName,
-          month: entry.month,
-          baseSalary: entry.baseSalary,
-          totalWorkerNet: entry.totalWorkerNet,
-          bonuses: entry.bonuses || [],
-          deductions: entry.deductions || [],
-        }));
-
+        console.log(`Sending email to ${entry.employeeEmail}...`);
         const { data, error } = await resendClient.emails.send({
           from: 'Nomina <onboarding@resend.dev>', // Should be a verified domain in production
           to: [entry.employeeEmail],
-          subject: `Recibo de Pago - ${entry.month}`,
+          subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
           html: html,
         });
 
         if (error) {
+          console.error(`Error de Resend para ${entry.employeeEmail}:`, error);
           results.push({ id: entry.id, success: false, error: error.message });
         } else {
+          console.log(`✅ Email enviado con éxito a ${entry.employeeEmail}. ID: ${data?.id}`);
           results.push({ id: entry.id, success: true, messageId: data?.id });
         }
       } catch (err: any) {
-        console.error(`Error sending email to ${entry.employeeName}:`, err);
-        results.push({ id: entry.id, success: false, error: err.message });
+        console.error(`❌ Error crítico enviando email a ${entry.employeeName}:`, err);
+        results.push({ id: entry.id, success: false, error: err.message || 'Error interno al renderizar o enviar.' });
       }
     }
 

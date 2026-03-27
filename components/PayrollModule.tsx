@@ -780,18 +780,24 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         body: JSON.stringify({ entries: entriesWithEmails })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido del servidor' }));
+        setNotification(`❌ Error al enviar correos: ${errorData.error || 'Error de servidor'}`);
+        return;
+      }
+
       const result = await response.json();
       
-      if (response.ok) {
-        const successCount = result.results.filter((r: any) => r.success).length;
-        const failCount = result.results.filter((r: any) => !r.success).length;
-        setNotification(`✅ Envíos completados: ${successCount} exitosos, ${failCount} fallidos.`);
-      } else {
-        setNotification(`❌ Error al enviar correos: ${result.error || 'Error desconocido'}`);
+      const successCount = result.results.filter((r: any) => r.success).length;
+      const failCount = result.results.filter((r: any) => !r.success).length;
+      setNotification(`✅ Envíos completados: ${successCount} exitosos, ${failCount} fallidos.`);
+      
+      if (failCount > 0) {
+        console.error('Detalles de fallos:', result.results.filter((r: any) => !r.success));
       }
     } catch (error) {
       console.error('Error sending emails:', error);
-      setNotification('❌ Error de conexión al enviar correos.');
+      setNotification(`❌ Error: ${error instanceof Error ? error.message : 'Error de conexión al servidor'}`);
     } finally {
       setIsSendingEmails(false);
       setTimeout(() => setNotification(null), 5000);
