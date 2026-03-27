@@ -416,73 +416,87 @@ async function startServer() {
     }
   });
 
+  // Health check route
+  app.get('/api/ping', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: { hasResendKey: !!process.env.RESEND_API_KEY } });
+  });
+
   // Bulk Email Route for Payroll
-  app.post('/api/payroll/send-emails', async (req, res) => {
-    console.log('📧 Petición recibida en /api/payroll/send-emails');
-    const { entries } = req.body;
-    
-    const resendClient = getResend();
-    if (!resendClient) {
-      return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
-    }
-
-    if (!entries || !Array.isArray(entries)) {
-      return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
-    }
-
-    const results = [];
-    
-    for (const entry of entries) {
-      try {
-        console.log(`[Email] Procesando: ${entry.employeeName} <${entry.employeeEmail}>`);
-        
-        if (!entry.employeeEmail) {
-          console.warn(`[Email] Saltando ${entry.employeeName}: Correo no proporcionado.`);
-          results.push({ id: entry.id, success: false, error: 'Correo no proporcionado' });
-          continue;
-        }
-
-        console.log(`[Email] Renderizando plantilla para ${entry.employeeName}...`);
-        let html;
-        try {
-          html = await render(
-            <PayrollEmailTemplate
-              employeeName={entry.employeeName}
-              month={entry.month}
-              baseSalary={entry.baseSalary}
-              totalWorkerNet={entry.totalWorkerNet}
-              bonuses={entry.bonuses || []}
-              deductions={entry.deductions || []}
-            />
-          );
-        } catch (renderErr: any) {
-          console.error(`[Email] Error renderizando plantilla para ${entry.employeeName}:`, renderErr);
-          results.push({ id: entry.id, success: false, error: `Error de renderizado: ${renderErr.message}` });
-          continue;
-        }
-
-        console.log(`[Email] Enviando correo a ${entry.employeeEmail}...`);
-        const { data, error } = await resendClient.emails.send({
-          from: 'Nomina <onboarding@resend.dev>', // Should be a verified domain in production
-          to: [entry.employeeEmail],
-          subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
-          html: html,
-        });
-
-        if (error) {
-          console.error(`Error de Resend para ${entry.employeeEmail}:`, error);
-          results.push({ id: entry.id, success: false, error: error.message });
-        } else {
-          console.log(`✅ Email enviado con éxito a ${entry.employeeEmail}. ID: ${data?.id}`);
-          results.push({ id: entry.id, success: true, messageId: data?.id });
-        }
-      } catch (err: any) {
-        console.error(`❌ Error crítico enviando email a ${entry.employeeName}:`, err);
-        results.push({ id: entry.id, success: false, error: err.message || 'Error interno al renderizar o enviar.' });
+  app.post('/api/payroll/send-emails', async (req, res, next) => {
+    console.log('📧 [Server] Petición recibida en /api/payroll/send-emails');
+    try {
+      const { entries } = req.body;
+      
+      const resendClient = getResend();
+      if (!resendClient) {
+        console.error('❌ [Server] Resend no configurado.');
+        return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
       }
-    }
 
-    res.json({ success: true, results });
+      if (!entries || !Array.isArray(entries)) {
+        console.warn('⚠️ [Server] Petición inválida: entries no es un array.');
+        return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
+      }
+
+      console.log(`[Server] Procesando ${entries.length} correos...`);
+      const results = [];
+      
+      for (const entry of entries) {
+        try {
+          console.log(`[Email] Preparando: ${entry.employeeName} <${entry.employeeEmail}>`);
+          
+          if (!entry.employeeEmail) {
+            console.warn(`[Email] Saltando ${entry.employeeName}: Correo no proporcionado.`);
+            results.push({ id: entry.id, success: false, error: 'Correo no proporcionado' });
+            continue;
+          }
+
+          console.log(`[Email] Renderizando plantilla para ${entry.employeeName}...`);
+          let html;
+          try {
+            html = await render(
+              React.createElement(PayrollEmailTemplate, {
+                employeeName: entry.employeeName,
+                month: entry.month,
+                baseSalary: entry.baseSalary,
+                totalWorkerNet: entry.totalWorkerNet,
+                bonuses: entry.bonuses || [],
+                deductions: entry.deductions || []
+              })
+            );
+          } catch (renderErr: any) {
+            console.error(`[Email] Error renderizando plantilla para ${entry.employeeName}:`, renderErr);
+            results.push({ id: entry.id, success: false, error: `Error de renderizado: ${renderErr.message}` });
+            continue;
+          }
+
+          console.log(`[Email] Enviando correo a ${entry.employeeEmail}...`);
+          const { data, error } = await resendClient.emails.send({
+            from: 'Nomina <onboarding@resend.dev>',
+            to: [entry.employeeEmail],
+            subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
+            html: html,
+          });
+
+          if (error) {
+            console.error(`[Email] Error de Resend para ${entry.employeeEmail}:`, error);
+            results.push({ id: entry.id, success: false, error: error.message });
+          } else {
+            console.log(`[Email] ✅ Éxito: ${entry.employeeEmail}. ID: ${data?.id}`);
+            results.push({ id: entry.id, success: true, messageId: data?.id });
+          }
+        } catch (err: any) {
+          console.error(`[Email] ❌ Error crítico para ${entry.employeeName}:`, err);
+          results.push({ id: entry.id, success: false, error: err.message || 'Error interno.' });
+        }
+      }
+
+      console.log('[Server] Proceso de envío finalizado.');
+      res.json({ success: true, results });
+    } catch (err) {
+      console.error('[Server] 💥 Error fatal en la ruta de correos:', err);
+      next(err);
+    }
   });
 
   // Global Error Handler
