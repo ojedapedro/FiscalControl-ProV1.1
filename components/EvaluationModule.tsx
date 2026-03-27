@@ -145,7 +145,7 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
         status: p.status
       } as EvaluationKPIs;
     });
-  }, [payments]);
+  }, [filteredPayments]);
 
   const avgEfficiency = evaluations.length > 0 
     ? evaluations.reduce((acc, curr) => acc + curr.efficiencyScore, 0) / evaluations.length 
