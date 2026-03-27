@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, 
@@ -12,9 +12,12 @@ import {
   ArrowRight,
   User,
   Calendar,
-  BarChart3
+  BarChart3,
+  Filter,
+  Store as StoreIcon,
+  Search
 } from 'lucide-react';
-import { Payment, AuditLog, PaymentStatus } from '../types';
+import { Payment, AuditLog, PaymentStatus, Role } from '../types';
 
 interface EvaluationModuleProps {
   payments: Payment[];
@@ -23,8 +26,10 @@ interface EvaluationModuleProps {
 interface EvaluationKPIs {
   id: string;
   idCompromiso: string;
+  storeName: string;
   fechaVencimiento: string;
   traceability: string[];
+  fullHistory: AuditLog[];
   auditorSpeedHours: number | null;
   adminCorrectionHours: number | null;
   reworkCount: number;
@@ -35,8 +40,39 @@ interface EvaluationKPIs {
 }
 
 export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) => {
+  const [auditorFilter, setAuditorFilter] = useState<string>('all');
+  const [storeFilter, setStoreFilter] = useState<string>('all');
+
+  // Extract unique auditors and stores for filters
+  const filterOptions = useMemo(() => {
+    const auditors = new Set<string>();
+    const stores = new Set<string>();
+
+    payments.forEach(p => {
+      if (p.storeName) stores.add(p.storeName);
+      p.history?.forEach(log => {
+        if (log.role === Role.AUDITOR) {
+          auditors.add(log.actorName);
+        }
+      });
+    });
+
+    return {
+      auditors: Array.from(auditors).sort(),
+      stores: Array.from(stores).sort()
+    };
+  }, [payments]);
+
+  const filteredPayments = useMemo(() => {
+    return payments.filter(p => {
+      const matchesStore = storeFilter === 'all' || p.storeName === storeFilter;
+      const matchesAuditor = auditorFilter === 'all' || p.history?.some(log => log.role === Role.AUDITOR && log.actorName === auditorFilter);
+      return matchesStore && matchesAuditor;
+    });
+  }, [payments, storeFilter, auditorFilter]);
+
   const evaluations = useMemo(() => {
-    return payments.map(p => {
+    return filteredPayments.map(p => {
       const history = p.history || [];
       
       // 1. Trazabilidad Lineal
@@ -96,8 +132,10 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
       return {
         id: p.id,
         idCompromiso: p.id,
+        storeName: p.storeName,
         fechaVencimiento: p.dueDate,
         traceability,
+        fullHistory: history,
         auditorSpeedHours,
         adminCorrectionHours,
         reworkCount,
@@ -166,6 +204,46 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
         </div>
       </div>
 
+      {/* Filters Section */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap gap-6 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <StoreIcon size={12} /> Filtrar por Tienda
+          </label>
+          <select 
+            value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          >
+            <option value="all">Todas las Tiendas</option>
+            {filterOptions.stores.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <Filter size={12} /> Filtrar por Auditor
+          </label>
+          <select 
+            value={auditorFilter}
+            onChange={(e) => setAuditorFilter(e.target.value)}
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          >
+            <option value="all">Todos los Auditores</option>
+            {filterOptions.auditors.map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 text-slate-400 text-xs pb-3">
+          <Search size={14} />
+          <span>Mostrando {filteredPayments.length} de {payments.length} transacciones</span>
+        </div>
+      </div>
+
       {/* Logical Table Recipe 1 */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
         <div className="p-6 border-bottom border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -177,8 +255,8 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800">
-                <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">ID Compromiso</th>
-                <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">Trazabilidad (Manos)</th>
+                <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">ID Compromiso / Tienda</th>
+                <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">Historial de Manos (Actor, Acción, Fecha)</th>
                 <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">Velocidad Auditor</th>
                 <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">Subsanación Admin</th>
                 <th className="p-4 font-mono text-[10px] uppercase tracking-tighter text-slate-400">Rework</th>
@@ -192,20 +270,44 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
                   <td className="p-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-900 dark:text-white">{e.idCompromiso}</span>
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
+                        <StoreIcon size={10} /> {e.storeName}
+                      </span>
+                      <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
                         <Calendar size={10} /> {e.fechaVencimiento}
                       </span>
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex flex-wrap gap-1">
-                      {e.traceability.map((step, idx) => (
-                        <React.Fragment key={idx}>
-                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] text-slate-600 dark:text-slate-400">
-                            {step.split(' ')[0]}
-                          </span>
-                          {idx < e.traceability.length - 1 && <ArrowRight size={10} className="text-slate-300 self-center" />}
-                        </React.Fragment>
+                    <div className="flex flex-col gap-3">
+                      {e.fullHistory.map((log, idx) => (
+                        <div key={idx} className="flex items-start gap-3 group/step">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                              log.action === 'APROBACION' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
+                              log.action === 'RECHAZO' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 
+                              log.action === 'CORRECCION' ? 'bg-blue-500' : 'bg-slate-400'
+                            }`} />
+                            {idx < e.fullHistory.length - 1 && <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 my-1" />}
+                          </div>
+                          <div className="flex flex-col min-w-[140px]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{log.action}</span>
+                              <span className="text-[9px] text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                {new Date(log.date).toLocaleString('es-VE', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <User size={10} className="text-slate-400" />
+                              <span className="text-[10px] text-slate-500 font-medium">{log.actorName}</span>
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </td>
