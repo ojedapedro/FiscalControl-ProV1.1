@@ -39,8 +39,6 @@
         },
         "originalBudget": { "type": "number" },
         "isOverBudget": { "type": "boolean" },
-        "justification": { "type": "string" },
-        "justificationFileUrl": { "type": "string" },
         "documentDate": { "type": "string" },
         "documentAmount": { "type": "number" },
         "documentName": { "type": "string" }

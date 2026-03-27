@@ -596,18 +596,6 @@ function App({ isDemoMode = false }: AppProps) {
         }
     }
 
-    let justificationFileUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.justificationFileUrl : undefined;
-    if (paymentData.justificationFile) {
-        try {
-            justificationFileUrl = await fileToBase64(paymentData.justificationFile);
-        } catch (e) {
-            console.error("Error converting justification file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el archivo de justificación.");
-            setIsLoading(false);
-            return;
-        }
-    }
-
     const paymentToSave: Payment = {
       id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
@@ -627,7 +615,6 @@ function App({ isDemoMode = false }: AppProps) {
         ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
         : [log],
       receiptUrl: receiptUrl,
-      justificationFileUrl: justificationFileUrl,
       // Soporte Data
       documentDate: paymentData.documentDate,
       documentAmount: paymentData.documentAmount,
@@ -643,7 +630,6 @@ function App({ isDemoMode = false }: AppProps) {
     
     if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
     if(paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
-    if(paymentData.justification) paymentToSave.justification = paymentData.justification;
 
     try {
         if (isUpdate) {
@@ -893,7 +879,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'payments':
         const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
         return (
-          <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-950 custom-scrollbar">
+          <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-900 custom-scrollbar">
             {rejectedPayments.length > 0 && (
               <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-b border-pink-100 dark:border-pink-900/30">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -1052,7 +1038,7 @@ function App({ isDemoMode = false }: AppProps) {
         );
       case 'settings':
         return (
-          <div className="p-6 lg:p-10 text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
+          <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
             
             {currentUser?.role === Role.SUPER_ADMIN && (
@@ -1068,7 +1054,7 @@ function App({ isDemoMode = false }: AppProps) {
             )}
             
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
                    <UserManagement currentUser={currentUser} />
                 </div>
@@ -1076,7 +1062,7 @@ function App({ isDemoMode = false }: AppProps) {
             )}
 
             <div className="grid gap-6">
-                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
                        <DollarSign size={20} /> Configuración Financiera
                    </h3>
@@ -1095,7 +1081,7 @@ function App({ isDemoMode = false }: AppProps) {
                                        setExchangeRate(val);
                                        localStorage.setItem('fiscal_exchange_rate', val.toString());
                                    }}
-                                   className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
+                                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
                                />
                            </div>
                            <button 
@@ -1143,10 +1129,10 @@ function App({ isDemoMode = false }: AppProps) {
                     onPull={handlePullSync}
                 />
 
-                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
                    <div className="flex justify-between items-center">
-                      <span className="text-slate-300">Push Notifications: {pushPermission === 'granted' ? 'Activo' : 'Inactivo'}</span>
+                      <span className="text-slate-700 dark:text-slate-300">Push Notifications: {pushPermission === 'granted' ? 'Activo' : 'Inactivo'}</span>
                       {pushPermission !== 'granted' && (
                         <button onClick={requestPermission} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Activar</button>
                       )}
@@ -1180,7 +1166,7 @@ function App({ isDemoMode = false }: AppProps) {
 
   return (
     <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-slate-50 dark:bg-slate-950/40 min-h-screen font-sans overflow-hidden">
+      <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
         
         {/* Sidebar Responsive */}
         <Sidebar 
@@ -1204,9 +1190,9 @@ function App({ isDemoMode = false }: AppProps) {
           
           {/* PWA Install Banner */}
           {installPrompt && showInstallBanner && (
-            <div className="bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top-10 duration-700 z-40 shrink-0 shadow-lg shadow-brand-500/20">
+            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <div className="bg-white/20 p-2 rounded-lg">
                   <Download size={20} />
                 </div>
                 <div>
@@ -1232,11 +1218,11 @@ function App({ isDemoMode = false }: AppProps) {
           )}
 
           {/* Header Móvil */}
-          <div className="lg:hidden h-16 glass-card rounded-none border-b border-white/5 flex items-center justify-between px-4 shrink-0 z-30">
+          <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
              <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="p-2 text-white hover:bg-slate-800 rounded-lg"
                 >
                     <Menu size={24} />
                 </button>
@@ -1249,26 +1235,26 @@ function App({ isDemoMode = false }: AppProps) {
 
           {/* Loading Overlay */}
           {isLoading && (
-              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shadow-xl shadow-brand-500/30 animate-pulse border border-white/20">
-                  <RefreshCw size={14} className="animate-spin" />
-                  Sincronizando Estado...
+              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+                  <RefreshCw size={12} className="animate-spin" />
+                  Sincronizando...
               </div>
           )}
 
           {/* Notificaciones Toast */}
           {notification && (
-            <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-10 fade-in duration-500">
-               <div className="glass-card px-6 py-4 shadow-2xl border-l-4 border-l-brand-500 flex items-center gap-4">
-                  <span className="font-medium text-white">{notification}</span>
-                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-1 rounded-full"><X size={16} /></button>
+            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
+               <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                  <span className="font-medium">{notification}</span>
+                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
                </div>
             </div>
           )}
 
           {/* Modal Formulario */}
           {isFormOpen && currentView !== 'payments' && (
-             <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
-                <div className="glass-card w-full max-w-[95rem] h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.5)] border border-white/10">
+             <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                     <PaymentForm 
                       initialData={editingPayment}
                       payments={filteredPayments}

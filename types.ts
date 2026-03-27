@@ -86,8 +86,6 @@ export interface Payment {
   // Campos para Control de Presupuesto
   originalBudget?: number;
   isOverBudget?: boolean;
-  justification?: string;
-  justificationFileUrl?: string;
 
   // Campos del Soporte
   documentDate?: string;

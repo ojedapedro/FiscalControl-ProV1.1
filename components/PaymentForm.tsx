@@ -392,12 +392,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // --- Justification State ---
   const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
-  const [showJustificationModal, setShowJustificationModal] = React.useState(false);
-  const [justificationNote, setJustificationNote] = React.useState(initialData?.justification || '');
-  const [justificationFile, setJustificationFile] = React.useState<File | null>(null);
-  const [justificationPreviewUrl, setJustificationPreviewUrl] = React.useState<string | null>(initialData?.justificationFileUrl || null);
-  const [justificationConfirmed, setJustificationConfirmed] = React.useState(!!initialData?.justification);
-  const [manualOverBudget, setManualOverBudget] = React.useState(false);
 
   // --- Proposed Changes State ---
   const [proposedAmount, setProposedAmount] = React.useState<number | undefined>(initialData?.proposedAmount);
@@ -429,9 +423,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setSpecificType(initialData.specificType || '');
       setPreviewUrl(initialData.receiptUrl || null);
       setIsOverBudget(initialData.isOverBudget || false);
-      setJustificationNote(initialData.justification || '');
-      setJustificationPreviewUrl(initialData.justificationFileUrl || null);
-      setJustificationConfirmed(!!initialData.justification);
       setDocDate(initialData.documentDate || '');
       setDocAmount(initialData.documentAmount?.toString() || '');
       setDocName(initialData.documentName || '');
@@ -448,9 +439,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setSpecificType('');
       setPreviewUrl(null);
       setIsOverBudget(false);
-      setJustificationNote('');
-      setJustificationPreviewUrl(null);
-      setJustificationConfirmed(false);
       setDocDate('');
       setDocAmount('');
       setDocName('');
@@ -482,10 +470,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setFile(null);
     setPreviewUrl(null);
     setIsOverBudget(false);
-    setJustificationNote('');
-    setJustificationFile(null);
-    setJustificationConfirmed(false);
-    setManualOverBudget(false);
     setDocDate('');
     setDocAmount('');
     setDocName('');
@@ -536,7 +520,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       
       if (itemData) {
         setSpecificType(`${itemData.code} - ${itemData.name}`);
-        setManualOverBudget(false); // Reset manual flag when item changes
         if (itemData.amount !== undefined && !itemData.isVariable) {
           setAmount(itemData.amount.toString());
           setExpectedBudget(itemData.amount); // Set budget baseline
@@ -679,22 +662,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     
     if (isCurrentTaxItemVariable) {
         // For variable items, only manual flag determines over budget
-        setIsOverBudget(manualOverBudget);
-        if (!manualOverBudget) {
-            setJustificationConfirmed(false);
-        }
+        setIsOverBudget(false);
     } else if (expectedBudget !== null && !isNaN(effectiveAmount)) {
         // For fixed items, compare amount to budget
         if (effectiveAmount > expectedBudget) {
             setIsOverBudget(true);
         } else {
             setIsOverBudget(false);
-            setJustificationConfirmed(false); // Reset if back to normal
         }
     } else {
         setIsOverBudget(false);
     }
-  }, [amount, docAmount, expectedBudget, manualOverBudget, isCurrentTaxItemVariable]);
+  }, [amount, docAmount, expectedBudget, isCurrentTaxItemVariable]);
 
 
   // Reset tax selection when category changes to prevent inconsistent state
@@ -916,12 +895,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (!validate()) return;
     if (isFileScanning) return; 
 
-    // ** Budget Check Interception **
-    if (isOverBudget && !justificationConfirmed) {
-        setShowJustificationModal(true);
-        return;
-    }
-
     processSubmit();
   };
 
@@ -949,8 +922,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             // Extra Data
             originalBudget: expectedBudget,
             isOverBudget,
-            justification: justificationNote,
-            justificationFile: justificationFile,
             // Soporte Data
             documentDate: docDate,
             documentAmount: docAmount ? parseFloat(docAmount) : undefined,
@@ -972,121 +943,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   };
 
-  const handleConfirmJustification = () => {
-    if (!justificationNote.trim()) {
-        alert("Debe escribir una razón para el excedente.");
-        return;
-    }
-    if (isCurrentTaxItemVariable && manualOverBudget && !justificationFile && !justificationPreviewUrl) {
-        alert("Debe adjuntar un archivo de soporte para el excedente manual.");
-        return;
-    }
-    setJustificationConfirmed(true);
-    setShowJustificationModal(false);
-    // Optionally auto-submit here, or let user click submit again.
-    // Let's let them click submit again to be safe, or trigger it.
-    // For better UX, we just close the modal and let them hit "Enviar" again, 
-    // but visually showing it's justified.
-  };
-
   return (
     <div className="p-6 lg:p-10 xl:p-12 w-full max-w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
-      {/* --- JUSTIFICATION MODAL --- */}
-      {showJustificationModal && (
-          <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-red-200 dark:border-red-900 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                  <div className="p-6 border-b border-red-200 dark:border-red-800/50 bg-red-100 dark:bg-red-900/40 rounded-t-2xl">
-                      <h3 className="text-2xl font-bold text-red-800 dark:text-red-300 flex items-center gap-3">
-                          <AlertTriangle className="animate-pulse w-7 h-7" />
-                          Excedente Presupuestario
-                      </h3>
-                      <p className="text-base font-medium text-red-700 dark:text-red-200 mt-3 leading-relaxed">
-                          {isCurrentTaxItemVariable
-                            ? `Se ha marcado el monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) como un excedente que requiere justificación.`
-                            : `El monto ingresado ($${parseFloat(amount || '0').toLocaleString()}) supera el presupuesto establecido para este rubro ($${expectedBudget?.toLocaleString()}).`
-                          }
-                      </p>
-                  </div>
-                  
-                  <div className="p-6 space-y-6 overflow-y-auto">
-                      <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                          <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-3">Se requiere justificación para auditoría:</p>
-                          <textarea
-                              value={justificationNote}
-                              onChange={(e) => setJustificationNote(e.target.value)}
-                              placeholder="Explique la razón del incremento (ej. Multa por retraso, Tasa de cambio ajustada...)"
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl p-4 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-red-500 outline-none h-32 resize-none shadow-inner"
-                          />
-                      </div>
-
-                      <div>
-                          <label className="block text-base font-bold text-slate-800 dark:text-slate-200 mb-3">
-                              Soporte del Excedente {isCurrentTaxItemVariable && manualOverBudget && <span className="text-red-600 dark:text-red-400 font-bold"> (Requerido)</span>}
-                          </label>
-                          <div className="flex items-center gap-3">
-                              <label className="flex-1 cursor-pointer bg-slate-100 dark:bg-slate-800/80 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-5 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
-                                  {justificationFile ? (
-                                      <div className="flex items-center gap-3 text-green-700 dark:text-green-400 font-bold text-base">
-                                          <CheckCircle2 size={24} />
-                                          <span className="truncate max-w-[200px]">{justificationFile.name}</span>
-                                      </div>
-                                  ) : justificationPreviewUrl ? (
-                                      <div className="flex items-center gap-3 text-blue-700 dark:text-blue-400 font-bold text-base">
-                                          <FileText size={24} />
-                                          <span className="truncate max-w-[200px]">Documento previo</span>
-                                      </div>
-                                  ) : (
-                                      <>
-                                        <Upload size={28} className="text-slate-500 dark:text-slate-400 mb-2 group-hover:scale-110 transition-transform" />
-                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Subir archivo extra</span>
-                                      </>
-                                  )}
-                                  <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    onChange={(e) => {
-                                      setJustificationFile(e.target.files?.[0] || null);
-                                      if (e.target.files?.[0]) setJustificationPreviewUrl(null);
-                                    }}
-                                  />
-                              </label>
-                              {(justificationFile || justificationPreviewUrl) && (
-                                  <button 
-                                    onClick={() => {
-                                      setJustificationFile(null);
-                                      setJustificationPreviewUrl(null);
-                                    }} 
-                                    className="p-4 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl hover:bg-red-200 transition-colors"
-                                  >
-                                      <Trash2 size={24} />
-                                  </button>
-                              )}
-                          </div>
-                          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-3 ml-1">
-                              * Si posee un documento adicional que justifique el sobrecosto (ej. Gaceta oficial), adjúntelo aquí.
-                          </p>
-                      </div>
-                  </div>
-
-                  <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 rounded-b-2xl flex gap-4">
-                      <button 
-                          onClick={() => setShowJustificationModal(false)}
-                          className="flex-1 py-4 text-base text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                      >
-                          Cancelar
-                      </button>
-                      <button 
-                          onClick={handleConfirmJustification}
-                          className="flex-[2] py-4 text-base bg-red-600 hover:bg-red-700 text-slate-900 dark:text-white font-bold rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/30 transition-colors flex items-center justify-center gap-2"
-                      >
-                          <FileWarning size={20} />
-                          Confirmar Justificación
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
       {/* Top Banner for Rejected Payments */}
       {initialData?.status === PaymentStatus.REJECTED && (
         <div className="mb-6 -mx-6 -mt-6 p-3 bg-red-600 text-slate-900 dark:text-white text-center text-xs font-bold uppercase tracking-[0.2em] rounded-t-2xl flex items-center justify-center gap-2">
@@ -1505,31 +1364,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                                         <div className="text-[11px] text-amber-200/80 font-medium leading-relaxed">
                                             <p className="font-black mb-1 uppercase tracking-widest text-amber-400">Excedente de Presupuesto</p>
-                                            Excede por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }). Se requerirá justificación.
+                                            Excede por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }).
                                         </div>
                                     </div>
                                 )}
 
-                                {justificationConfirmed && (
-                                    <p className="text-emerald-400 text-[10px] font-black uppercase mt-2 flex items-center gap-1 ml-1">
-                                        <CheckCircle2 size={12} /> Justificación añadida
-                                    </p>
-                                )}
 
-                                {isCurrentTaxItemVariable && (
-                                    <div className="mt-4 p-4 bg-slate-900/50 rounded-2xl flex items-center gap-4 border border-slate-200 dark:border-slate-800 transition-colors hover:border-slate-700">
-                                        <input
-                                            type="checkbox"
-                                            id="manualOverBudget"
-                                            checked={manualOverBudget}
-                                            onChange={(e) => setManualOverBudget(e.target.checked)}
-                                            className="h-5 w-5 rounded border-slate-700 bg-white dark:bg-slate-950 text-brand-500 focus:ring-brand-500/50 shrink-0 cursor-pointer"
-                                        />
-                                        <label htmlFor="manualOverBudget" className="block text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight cursor-pointer leading-tight">
-                                            Marcar como <span className="text-amber-400">excedente presupuestario</span> para solicitar justificación.
-                                        </label>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Payment Date */}
@@ -1893,7 +1733,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 type="submit"
                 disabled={isSubmitting || isFileScanning}
                 className={`w-full md:flex-1 relative overflow-hidden group/submit ${
-                    isOverBudget && !justificationConfirmed 
+                    isOverBudget 
                     ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' 
                     : 'bg-brand-600 hover:bg-brand-500 shadow-brand-500/20'
                 } text-slate-900 dark:text-white font-black uppercase tracking-widest text-sm py-5 rounded-xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${isSubmitting || isFileScanning ? 'opacity-70 cursor-not-allowed' : ''}`}
@@ -1909,11 +1749,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <>
                          <Loader2 size={20} className="animate-spin" />
                          <span>Escaneando...</span>
-                    </>
-                ) : isOverBudget && !justificationConfirmed ? (
-                    <>
-                         <span>Justificar Exceso</span>
-                         <AlertTriangle size={20} className="animate-pulse" />
                     </>
                 ) : (
                     <>

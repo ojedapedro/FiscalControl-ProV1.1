@@ -448,7 +448,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       status: 'PROCESADO'
     };
     await onAddEntry(entry);
-    generatePaymentReceiptPDF(entry);
     setIsAddingEntry(false);
   };
 
@@ -495,6 +494,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const handleAutoGeneratePayroll = async () => {
     const activeEmployees = employees.filter(e => e.isActive);
     const currentMonth = new Date().toISOString().slice(0, 7);
+    const newEntries: PayrollEntry[] = [];
     
     for (const emp of activeEmployees) {
       const totals = calculateTotals(emp);
@@ -511,7 +511,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         status: 'PROCESADO'
       };
       await onAddEntry(entry);
-      generatePaymentReceiptPDF(entry);
+      newEntries.push({ ...entry, id: Math.random().toString(), submittedDate: new Date().toISOString() } as PayrollEntry);
+    }
+
+    if (newEntries.length > 0) {
+      generateConsolidatedPayrollPDF(newEntries);
+      generatePayrollTXT(newEntries);
+      setNotification('✅ Nómina automática generada (TXT y PDF Consolidado)');
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -591,7 +598,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           };
 
           await onAddEntry(entry);
-          generatePaymentReceiptPDF(entry);
 
           processedCount++;
           setImportProgress(Math.round(((i + 1) / data.length) * 100));
@@ -904,17 +910,63 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     doc.save(`Anticipo_${employee.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const generateConsolidatedPayrollPDF = (entries: PayrollEntry[]) => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.setFontSize(18);
+    doc.text('Consolidado de Nómina', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Periodo: ${entries[0]?.month || 'N/A'}`, 14, 30);
+    doc.text(`Fecha de reporte: ${formatDate(new Date())}`, 14, 35);
+
+    const tableData = entries.map(entry => [
+      entry.employeeName,
+      entry.employeeId,
+      STORES.find(s => s.id === entry.storeId)?.name || 'N/A',
+      `$${entry.baseSalary.toLocaleString()}`,
+      `$${entry.bonuses.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}`,
+      `$${entry.deductions.reduce((sum, d) => sum + d.amount, 0).toLocaleString()}`,
+      `$${entry.totalWorkerNet.toLocaleString()}`,
+      `$${entry.totalEmployerCost.toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Trabajador', 'ID', 'Tienda', 'Sueldo Base', 'Bonos', 'Deducciones', 'Neto', 'Costo Empresa']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    doc.save(`Consolidado_Nomina_${entries[0]?.month || 'Reporte'}.pdf`);
+  };
+
+  const generatePayrollTXT = (entries: PayrollEntry[]) => {
+    const lines = entries.map(entry => {
+      const employee = employees.find(e => e.id === entry.employeeId);
+      return `${entry.employeeId};${entry.employeeName};${entry.totalWorkerNet.toFixed(2)};${employee?.bankAccount || 'N/A'}`;
+    });
+    
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Nomina_${entries[0]?.month || 'Reporte'}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 lg:p-10 space-y-8 pb-24 lg:pb-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-2xl shadow-lg shadow-blue-900/20">
-              <Users className="text-white" size={24} />
+              <Users className="text-slate-900 dark:text-white" size={24} />
             </div>
             Gestión de Nómina
           </h1>
-          <p className="text-slate-400 mt-2 font-medium">Control de expedientes, pasivos laborales y salarios</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Control de expedientes, pasivos laborales y salarios</p>
         </div>
         
         <div className="flex gap-3">
@@ -929,7 +981,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
               >
                 <Upload size={20} />
                 Importar CSV/Excel
@@ -937,7 +989,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               <button 
                 onClick={handleAutoGeneratePayroll}
                 disabled={employees.filter(e => e.isActive).length === 0}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
               >
                 <Wand2 size={20} />
                 Generar Nómina Automática
@@ -967,7 +1019,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   });
                   setIsAddingEntry(true);
                 }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
               >
                 <Plus size={20} />
                 Carga Manual
@@ -1034,7 +1086,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 });
                 setIsAddingEmployee(true);
               }}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
             >
               <UserPlus size={20} />
               Nuevo Expediente
@@ -1045,7 +1097,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 setActiveTab('employees');
                 setNotification('Seleccione un trabajador para realizar una entrega de EPP');
               }}
-              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-amber-900/20 active:scale-95"
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-amber-900/20 active:scale-95"
             >
               <ShieldCheck size={20} />
               Nueva Entrega de EPP
@@ -1062,12 +1114,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           className="bg-orange-500/10 border border-orange-500/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-sm"
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+            <div className="p-3 bg-orange-500 rounded-2xl text-slate-900 dark:text-white shadow-lg shadow-orange-500/20">
               <AlertTriangle size={24} className="animate-pulse" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-orange-400">Discrepancias de Ley Detectadas</h3>
-              <p className="text-sm text-slate-400">Se han encontrado diferencias entre los aportes manuales y los cálculos teóricos de SSO, RPE, FAOV e INCES.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Se han encontrado diferencias entre los aportes manuales y los cálculos teóricos de SSO, RPE, FAOV e INCES.</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold px-4 py-2 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">
@@ -1078,7 +1130,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
       {importProgress !== null && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl text-center">
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl text-center">
             <div className="mb-6">
               <div className="relative w-24 h-24 mx-auto mb-4">
                 <svg className="w-full h-full" viewBox="0 0 36 36">
@@ -1097,12 +1149,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center font-bold text-white">
+                <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-900 dark:text-white">
                   {importProgress}%
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Procesando Nómina</h3>
-              <p className="text-slate-400 text-sm">Por favor espere mientras validamos y cargamos los registros...</p>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Procesando Nómina</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Por favor espere mientras validamos y cargamos los registros...</p>
             </div>
           </div>
         </div>
@@ -1117,7 +1169,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             </h3>
             <button 
               onClick={() => setImportErrors([])}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"
             >
               <Trash2 size={18} />
             </button>
@@ -1131,11 +1183,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex p-1 bg-slate-900/80 border border-slate-800 rounded-2xl w-fit">
+      <div className="flex p-1 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl w-fit">
         <button 
           onClick={() => setActiveTab('payroll')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'payroll' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white'
+            activeTab === 'payroll' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
           }`}
         >
           <Calculator size={18} />
@@ -1144,7 +1196,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         <button 
           onClick={() => setActiveTab('employees')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'employees' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white'
+            activeTab === 'employees' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
           }`}
         >
           <Contact size={18} />
@@ -1153,7 +1205,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         <button 
           onClick={() => setActiveTab('ppe-history')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'ppe-history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:text-white'
+            activeTab === 'ppe-history' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
           }`}
         >
           <History size={18} />
@@ -1165,44 +1217,44 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         <>
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">
                   <TrendingUp size={20} />
                 </div>
-                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Costo Total Empresa</span>
+                <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Costo Total Empresa</span>
               </div>
-              <div className="text-3xl font-bold text-white font-mono">${totalPayrollCost.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white font-mono">${totalPayrollCost.toLocaleString()}</div>
               <div className="text-sm text-slate-500 mt-1">Bs. {(totalPayrollCost * exchangeRate).toLocaleString()}</div>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-blue-500/10 rounded-xl text-blue-500">
                   <DollarSign size={20} />
                 </div>
-                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Neto a Trabajadores</span>
+                <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Neto a Trabajadores</span>
               </div>
-              <div className="text-3xl font-bold text-white font-mono">${totalWorkerPayments.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white font-mono">${totalWorkerPayments.toLocaleString()}</div>
               <div className="text-sm text-slate-500 mt-1">Bs. {(totalWorkerPayments * exchangeRate).toLocaleString()}</div>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
                   <ShieldCheck size={20} />
                 </div>
-                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Pasivos al Estado</span>
+                <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Pasivos al Estado</span>
               </div>
-              <div className="text-3xl font-bold text-white font-mono">${totalStateLiabilities.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white font-mono">${totalStateLiabilities.toLocaleString()}</div>
               <div className="text-sm text-slate-500 mt-1">Bs. {(totalStateLiabilities * exchangeRate).toLocaleString()}</div>
             </div>
           </div>
 
           {/* Resumen por Tienda y Mes */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
-            <div className="p-6 border-b border-slate-800">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Building2 className="text-blue-500" size={20} />
                 Resumen por Tienda y Mes
               </h2>
@@ -1210,7 +1262,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Empleados</th>
@@ -1228,9 +1280,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </tr>
                   ) : (
                     sortedStoreMonth.map((s) => (
-                      <tr key={`${s.month}-${s.storeId}`} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 text-white font-bold">{s.month}</td>
-                        <td className="px-6 py-4 text-white font-bold">{STORES.find(st => st.id === s.storeId)?.name || 'N/A'}</td>
+                      <tr key={`${s.month}-${s.storeId}`} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-slate-900 dark:text-white font-bold">{s.month}</td>
+                        <td className="px-6 py-4 text-slate-900 dark:text-white font-bold">{STORES.find(st => st.id === s.storeId)?.name || 'N/A'}</td>
                         <td className="px-6 py-4 text-center text-slate-300">
                           <span className="bg-blue-500/10 text-blue-400 py-1 px-3 rounded-full text-xs font-bold">
                             {s.entriesCount}
@@ -1257,9 +1309,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           </div>
 
           {/* Resumen Mensual */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
-            <div className="p-6 border-b border-slate-800">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Calendar className="text-blue-500" size={20} />
                 Resumen por Mes
               </h2>
@@ -1267,7 +1319,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Empleados Procesados</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Neto Trabajadores</th>
@@ -1284,8 +1336,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </tr>
                   ) : (
                     sortedMonths.map((m) => (
-                      <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 text-white font-bold">{m.month}</td>
+                      <tr key={m.month} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-slate-900 dark:text-white font-bold">{m.month}</td>
                         <td className="px-6 py-4 text-center text-slate-300">
                           <span className="bg-blue-500/10 text-blue-400 py-1 px-3 rounded-full text-xs font-bold">
                             {m.entriesCount}
@@ -1312,9 +1364,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           </div>
 
           {/* Desglose de Pasivos Laborales */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
-            <div className="p-6 border-b border-slate-800">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <ShieldCheck className="text-orange-500" size={20} />
                 Desglose de Pasivos Laborales
               </h2>
@@ -1322,7 +1374,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">SSO</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">LPH</th>
@@ -1339,8 +1391,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </tr>
                   ) : (
                     sortedMonths.map((m) => (
-                      <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 text-white font-bold">{m.month}</td>
+                      <tr key={m.month} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 text-slate-900 dark:text-white font-bold">{m.month}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="font-mono font-bold text-slate-300">${m.ssoTotal.toLocaleString()}</div>
                           <div className="text-[10px] text-slate-500">Bs. {(m.ssoTotal * exchangeRate).toLocaleString()}</div>
@@ -1366,8 +1418,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           </div>
 
           {/* Payroll Table */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
-            <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input 
@@ -1375,13 +1427,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   placeholder="Buscar en histórico detallado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
               <button
                 onClick={exportToCSV}
                 disabled={filteredEntries.length === 0}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download size={18} />
                 Exportar CSV
@@ -1423,7 +1475,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   setTimeout(() => setNotification(null), 3000);
                 }}
                 disabled={filteredEntries.length === 0}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Sincroniza todos los registros visibles con los datos actuales de sus expedientes"
               >
                 <RefreshCw size={18} />
@@ -1434,7 +1486,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trabajador</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mes</th>
@@ -1457,7 +1509,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </tr>
                   ) : (
                     filteredEntries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-800/30 transition-colors group">
+                      <tr key={entry.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors group">
                         <td className="px-6 py-4">
                           <div 
                             className="flex items-center gap-3 cursor-pointer group/name"
@@ -1466,16 +1518,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               if (emp) setViewingEmployee(emp);
                             }}
                           >
-                            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 font-bold group-hover/name:bg-blue-500 group-hover/name:text-white transition-colors">
+                            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 font-bold group-hover/name:bg-blue-500 group-hover/name:text-slate-900 dark:text-white transition-colors">
                               {entry.employeeName.charAt(0)}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <div className="font-bold text-white group-hover/name:text-blue-400 transition-colors">{entry.employeeName}</div>
+                                <div className="font-bold text-slate-900 dark:text-white group-hover/name:text-blue-400 transition-colors">{entry.employeeName}</div>
                                 {hasParafiscalDiscrepancies(entry) && (
                                   <div className="group/warn relative">
                                     <AlertTriangle size={14} className="text-orange-500 animate-pulse" />
-                                    <div className="absolute left-0 bottom-full mb-2 hidden group-hover/warn:block w-48 p-2 bg-slate-900 border border-slate-700 rounded shadow-xl text-[10px] text-slate-300 z-50">
+                                    <div className="absolute left-0 bottom-full mb-2 hidden group-hover/warn:block w-48 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-700 rounded shadow-xl text-[10px] text-slate-300 z-50">
                                       Discrepancia detectada entre aportes manuales y cálculos de ley.
                                     </div>
                                   </div>
@@ -1508,6 +1560,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => generatePaymentReceiptPDF(entry)}
+                              className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="Generar Recibo de Pago"
+                            >
+                              <FileText size={18} />
+                            </button>
                             <button 
                               onClick={async () => {
                                 const emp = employees.find(e => e.id === entry.employeeId);
@@ -1567,8 +1626,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         </>
       ) : activeTab === 'employees' ? (
         /* Employees View */
-        <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
-          <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
               <input 
@@ -1576,7 +1635,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 placeholder="Buscar empleado..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </div>
           </div>
@@ -1584,7 +1643,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-800/50">
+                <tr className="bg-slate-100 dark:bg-slate-800/50">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Empleado</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cargo / Depto</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
@@ -1606,17 +1665,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </tr>
                 ) : (
                   filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-slate-800/30 transition-colors group">
+                    <tr key={emp.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors group">
                       <td className="px-6 py-4">
                         <div 
                           className="flex items-center gap-3 cursor-pointer group/name"
                           onClick={() => setViewingEmployee(emp)}
                         >
-                          <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold group-hover/name:bg-indigo-500 group-hover/name:text-white transition-colors">
+                          <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold group-hover/name:bg-indigo-500 group-hover/name:text-slate-900 dark:text-white transition-colors">
                             {emp.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-bold text-white group-hover/name:text-indigo-400 transition-colors">{emp.name} {emp.lastName}</div>
+                            <div className="font-bold text-slate-900 dark:text-white group-hover/name:text-indigo-400 transition-colors">{emp.name} {emp.lastName}</div>
                             <div className="text-xs text-slate-500 font-mono">{emp.id}</div>
                           </div>
                         </div>
@@ -1629,7 +1688,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         {STORES.find(s => s.id === emp.storeId)?.name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-slate-300">${emp.baseSalary.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-slate-400 text-sm">{emp.hireDate}</td>
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">{emp.hireDate}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           emp.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
@@ -1651,7 +1710,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 setIsAnticipoModalOpen(true);
                               }
                             }}
-                            className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
                             title="Solicitar Anticipo (75%)"
                           >
                             <HandCoins size={18} />
@@ -1662,7 +1721,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               setPrestacionesEndDate(new Date().toISOString().split('T')[0]);
                               setIsPrestacionesModalOpen(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
                             title="Calcular Prestaciones (LOTTT)"
                           >
                             <Landmark size={18} />
@@ -1678,7 +1737,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               });
                               setIsAriModalOpen(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg"
                             title="Calcular AR-I (ISLR)"
                           >
                             <FileSignature size={18} />
@@ -1688,14 +1747,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               setPpeEmployee(emp);
                               setIsPPEModalOpen(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg"
                             title="Seguridad Industrial (EPP)"
                           >
                             <ShieldCheck size={18} />
                           </button>
                           <button 
                             onClick={() => setViewingEmployee(emp)}
-                            className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
                             title="Ver Expediente"
                           >
                             <FileText size={18} />
@@ -1707,14 +1766,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               setEmployeeFormData({ ...emp });
                               setIsAddingEmployee(true);
                             }}
-                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg"
                             title="Editar Expediente"
                           >
                             <Edit3 size={18} />
                           </button>
                           <button 
                             onClick={() => onDeleteEmployee(emp.id)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
                             title="Eliminar Expediente"
                           >
                             <Trash2 size={18} />
@@ -1731,9 +1790,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       ) : (
         /* PPE History View */
         <div className="space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 backdrop-blur-sm">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 backdrop-blur-sm">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <History className="text-blue-400" size={20} />
                 Historial de Entregas de EPP
               </h3>
@@ -1763,7 +1822,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   placeholder="Buscar trabajador..."
                   value={ppeSearchTerm}
                   onChange={(e) => setPpeSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
               <div className="relative">
@@ -1771,7 +1830,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <select 
                   value={ppeStoreFilter}
                   onChange={(e) => setPpeStoreFilter(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
                 >
                   <option value="">Todas las tiendas</option>
                   {STORES.map(s => (
@@ -1785,17 +1844,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   type="date"
                   value={ppeDateFilter}
                   onChange={(e) => setPpeDateFilter(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trabajador</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tienda</th>
@@ -1816,12 +1875,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     </tr>
                   ) : (
                     allPpeAssignments.map((item) => (
-                      <tr key={item.assignment.id} className="hover:bg-slate-800/30 transition-colors group">
+                      <tr key={item.assignment.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors group">
                         <td className="px-6 py-4 text-slate-300 font-medium">
                           {formatDate(item.assignment.date)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-bold text-white">{item.employeeName}</div>
+                          <div className="font-bold text-slate-900 dark:text-white">{item.employeeName}</div>
                           <div className="text-xs text-slate-500 font-mono">{item.employeeId}</div>
                         </td>
                         <td className="px-6 py-4 text-slate-300 font-medium">
@@ -1837,7 +1896,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="font-mono font-bold text-white">${item.assignment.totalCost.toLocaleString()}</div>
+                          <div className="font-mono font-bold text-slate-900 dark:text-white">${item.assignment.totalCost.toLocaleString()}</div>
                           <div className="text-[10px] text-slate-500">Bs. {(item.assignment.totalCost * exchangeRate).toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -1846,7 +1905,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               const emp = employees.find(e => e.id === item.employeeId);
                               if (emp) setViewingEmployee(emp);
                             }}
-                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all"
                             title="Ver Expediente"
                           >
                             <FileText size={18} />
@@ -1871,28 +1930,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddingEntry(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-blue-600 rounded-2xl">
-                    <Plus className="text-white" size={24} />
+                    <Plus className="text-slate-900 dark:text-white" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Nueva Carga de Nómina</h2>
-                    <p className="text-slate-400 text-sm font-medium">Complete los datos del trabajador y pasivos</p>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Nueva Carga de Nómina</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Complete los datos del trabajador y pasivos</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsAddingEntry(false)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
@@ -1929,7 +1988,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             });
                           }
                         }}
-                        className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                       >
                         <option value="">-- Seleccionar de la lista --</option>
                         {employees.filter(e => e.isActive).map(emp => (
@@ -1956,7 +2015,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         type="text"
                         value={payrollFormData.employeeName}
                         onChange={(e) => setPayrollFormData({ ...payrollFormData, employeeName: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         placeholder="Ej. Juan Pérez"
                       />
                     </div>
@@ -1970,7 +2029,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         type="text"
                         value={payrollFormData.employeeId}
                         onChange={(e) => setPayrollFormData({ ...payrollFormData, employeeId: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                         placeholder="Ej. V-12345678"
                       />
                     </div>
@@ -1981,7 +2040,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={payrollFormData.storeId}
                       onChange={(e) => setPayrollFormData({ ...payrollFormData, storeId: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     >
                       <option value="">Seleccionar tienda...</option>
                       {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
@@ -1996,7 +2055,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="month"
                       value={payrollFormData.month}
                       onChange={(e) => setPayrollFormData({ ...payrollFormData, month: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     />
                   </div>
                   <div className="space-y-2">
@@ -2018,7 +2077,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           employerLiabilities: liabilities
                         });
                       }}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                         placeholder="0.00"
                       />
                     </div>
@@ -2063,7 +2122,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               newBonuses[idx].name = e.target.value;
                               setPayrollFormData({ ...payrollFormData, bonuses: newBonuses });
                             }}
-                            className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500"
                           />
                           <input 
                             type="number"
@@ -2080,7 +2139,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 employerLiabilities: liabilities
                               });
                             }}
-                            className="w-24 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                            className="w-24 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                           />
                         </div>
                       ))}
@@ -2116,7 +2175,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                   newDeductions[idx].name = e.target.value;
                                   setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
                                 }}
-                                className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500"
+                                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-red-500"
                               />
                               <div className="relative">
                                 <input 
@@ -2128,7 +2187,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     newDeductions[idx].amount = parseFloat(e.target.value) || 0;
                                     setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
                                   }}
-                                  className={`w-24 px-4 py-3 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-red-500 font-mono`}
+                                  className={`w-24 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-red-500 font-mono`}
                                 />
                                 {hasDiff && (
                                   <button
@@ -2138,7 +2197,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                       newDeductions[idx].amount = theoretical;
                                       setPayrollFormData({ ...payrollFormData, deductions: newDeductions });
                                     }}
-                                    className="absolute -top-2 -right-2 bg-orange-500 text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                    className="absolute -top-2 -right-2 bg-orange-500 text-slate-900 dark:text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
                                     title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
                                   >
                                     <Wand2 size={10} />
@@ -2187,7 +2246,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                   newLiabilities[idx].name = e.target.value;
                                   setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
                                 }}
-                                className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
                               />
                               <div className="relative">
                                 <input 
@@ -2199,7 +2258,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     newLiabilities[idx].amount = parseFloat(e.target.value) || 0;
                                     setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
                                   }}
-                                  className={`w-24 px-4 py-3 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-sm outline-none focus:ring-1 focus:ring-orange-500 font-mono`}
+                                  className={`w-24 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-orange-500 font-mono`}
                                 />
                                 {hasDiff && (
                                   <button
@@ -2209,7 +2268,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                       newLiabilities[idx].amount = theoretical;
                                       setPayrollFormData({ ...payrollFormData, employerLiabilities: newLiabilities });
                                     }}
-                                    className="absolute -top-2 -right-2 bg-orange-500 text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                    className="absolute -top-2 -right-2 bg-orange-500 text-slate-900 dark:text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
                                     title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
                                   >
                                     <Wand2 size={10} />
@@ -2231,7 +2290,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 </div>
 
                 {/* Summary Preview */}
-                <div className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800 flex flex-col md:flex-row justify-between gap-6">
+                <div className="bg-white/50 dark:bg-slate-950/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between gap-6">
                   <div className="space-y-1">
                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Neto Trabajador</span>
                     <div className="text-2xl font-bold text-emerald-400 font-mono">${calculateTotals(payrollFormData).totalWorkerNet.toLocaleString()}</div>
@@ -2245,7 +2304,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <div className="flex items-end">
                     <button 
                       type="submit"
-                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-blue-900/30 flex items-center gap-2"
+                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-blue-900/30 flex items-center gap-2"
                     >
                       <Calculator size={20} />
                       Procesar Nómina
@@ -2267,28 +2326,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddingEmployee(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-indigo-600 rounded-2xl">
-                    <Contact className="text-white" size={24} />
+                    <Contact className="text-slate-900 dark:text-white" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{editingEmployee ? 'Editar Expediente' : 'Nuevo Expediente de Empleado'}</h2>
-                    <p className="text-slate-400 text-sm font-medium">Información base para generación automática de nómina</p>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{editingEmployee ? 'Editar Expediente' : 'Nuevo Expediente de Empleado'}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Información base para generación automática de nómina</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsAddingEmployee(false)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
@@ -2303,7 +2362,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       readOnly
                       type="text"
                       value={employeeFormData.code}
-                      className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-slate-400 outline-none cursor-not-allowed font-mono"
+                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 outline-none cursor-not-allowed font-mono"
                       placeholder="Ej. 0001"
                     />
                   </div>
@@ -2314,7 +2373,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeIdInput}
                       onChange={(e) => setEmployeeIdInput(e.target.value)}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono disabled:opacity-50"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono disabled:opacity-50"
                       placeholder="Ej. V-12345678"
                     />
                     <p className="text-[10px] text-slate-500 ml-1">Si se deja vacío, se usará el Código como ID.</p>
@@ -2326,7 +2385,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.nationality}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, nationality: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. VENEZOLANO"
                     />
                   </div>
@@ -2337,7 +2396,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.name}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, name: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. Juan Alberto"
                     />
                   </div>
@@ -2348,7 +2407,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.lastName}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, lastName: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. Pérez"
                     />
                   </div>
@@ -2359,7 +2418,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="number"
                       value={employeeFormData.age || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, age: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="Ej. 30"
                     />
                   </div>
@@ -2370,7 +2429,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.educationLevel}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, educationLevel: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. TSU"
                     />
                   </div>
@@ -2381,7 +2440,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.position}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, position: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. Gerente de Tienda"
                     />
                   </div>
@@ -2392,7 +2451,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.department}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, department: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. Operaciones"
                     />
                   </div>
@@ -2402,7 +2461,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.positionDescription}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, positionDescription: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. CEO"
                     />
                   </div>
@@ -2413,7 +2472,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="date"
                       value={employeeFormData.hireDate}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, hireDate: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                   </div>
                   <div className="space-y-2">
@@ -2422,7 +2481,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="date"
                       value={employeeFormData.socialBenefitsDate || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, socialBenefitsDate: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                   </div>
                   <div className="space-y-2">
@@ -2431,7 +2490,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="date"
                       value={employeeFormData.projectedExitDate || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectedExitDate: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                   </div>
                   <div className="space-y-2">
@@ -2440,7 +2499,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="email"
                       value={employeeFormData.email}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, email: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. correo@ejemplo.com"
                     />
                   </div>
@@ -2450,7 +2509,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.projectAddress || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectAddress: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. PEQUIVEN MORON"
                     />
                   </div>
@@ -2461,7 +2520,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.directPhone}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, directPhone: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="Ej. 0424-1234567"
                     />
                   </div>
@@ -2472,7 +2531,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.emergencyPhone}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, emergencyPhone: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="Ej. 0424-1234567"
                     />
                   </div>
@@ -2483,7 +2542,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.homeAddress}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, homeAddress: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       placeholder="Ej. MORRO II SAN DIEGO"
                     />
                   </div>
@@ -2493,7 +2552,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.gender}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, gender: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     >
                       <option value="M">Masculino (M)</option>
                       <option value="F">Femenino (F)</option>
@@ -2505,7 +2564,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.wearsGlasses}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, wearsGlasses: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     >
                       <option value="SI">SÍ</option>
                       <option value="NO">NO</option>
@@ -2517,7 +2576,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.hasCondition}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, hasCondition: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     >
                       <option value="SI">SÍ</option>
                       <option value="NO">NO</option>
@@ -2530,7 +2589,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       type="text"
                       value={employeeFormData.height}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, height: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="Ej. 1,70"
                     />
                   </div>
@@ -2540,7 +2599,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.storeId}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     >
                       <option value="">Seleccionar tienda...</option>
                       {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
@@ -2565,16 +2624,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           defaultEmployerLiabilities: liabilities
                         });
                       }}
-                      className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
 
                 {/* Default Payroll Config */}
-                <div className="space-y-6 pt-6 border-t border-slate-800">
+                <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Calculator size={20} className="text-indigo-400" /> Configuración de Nómina Predeterminada
                     </h3>
                     <button
@@ -2612,7 +2671,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 newBonuses[idx].name = e.target.value;
                                 setEmployeeFormData({ ...employeeFormData, defaultBonuses: newBonuses });
                               }}
-                              className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                              className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                             <input 
                               type="number"
@@ -2629,7 +2688,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                   defaultEmployerLiabilities: liabilities
                                 });
                               }}
-                              className="w-20 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                              className="w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                             />
                           </div>
                         ))}
@@ -2663,7 +2722,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     newDeductions[idx].name = e.target.value;
                                     setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
                                   }}
-                                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <div className="relative">
                                   <input 
@@ -2675,7 +2734,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                       newDeductions[idx].amount = parseFloat(e.target.value) || 0;
                                       setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
                                     }}
-                                    className={`w-20 px-3 py-2 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
+                                    className={`w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
                                   />
                                   {hasDiff && (
                                     <button
@@ -2685,7 +2744,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                         newDeductions[idx].amount = theoretical;
                                         setEmployeeFormData({ ...employeeFormData, defaultDeductions: newDeductions });
                                       }}
-                                      className="absolute -top-2 -right-2 bg-orange-500 text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                      className="absolute -top-2 -right-2 bg-orange-500 text-slate-900 dark:text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
                                       title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
                                     >
                                       <Wand2 size={8} />
@@ -2732,7 +2791,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     newLiabilities[idx].name = e.target.value;
                                     setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
                                   }}
-                                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <div className="relative">
                                   <input 
@@ -2744,7 +2803,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                       newLiabilities[idx].amount = parseFloat(e.target.value) || 0;
                                       setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
                                     }}
-                                    className={`w-20 px-3 py-2 bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
+                                    className={`w-20 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border ${hasDiff ? 'border-orange-500 ring-1 ring-orange-500/20' : 'border-slate-700'} rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-mono`}
                                   />
                                   {hasDiff && (
                                     <button
@@ -2754,7 +2813,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                         newLiabilities[idx].amount = theoretical;
                                         setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: newLiabilities });
                                       }}
-                                      className="absolute -top-2 -right-2 bg-orange-500 text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                      className="absolute -top-2 -right-2 bg-orange-500 text-slate-900 dark:text-white p-0.5 rounded-full shadow-lg hover:scale-110 transition-transform"
                                       title={`Valor sugerido por ley: $${theoretical}. Click para ajustar.`}
                                     >
                                       <Wand2 size={8} />
@@ -2776,7 +2835,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800 flex justify-between items-center">
+                <div className="bg-white/50 dark:bg-slate-950/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -2791,7 +2850,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <button 
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-indigo-900/30"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-indigo-900/30"
                   >
                     {editingEmployee ? 'Guardar Cambios' : 'Crear Expediente'}
                   </button>
@@ -2824,24 +2883,24 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingEmployee(null)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-500 font-bold text-2xl">
                     {viewingEmployee.name.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{viewingEmployee.name} {viewingEmployee.lastName}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{viewingEmployee.name} {viewingEmployee.lastName}</h2>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-slate-400 font-mono text-sm">{viewingEmployee.id}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-mono text-sm">{viewingEmployee.id}</span>
                       <span className="text-slate-600">•</span>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         viewingEmployee.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
@@ -2853,13 +2912,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 </div>
                 <button 
                   onClick={() => setViewingEmployee(null)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
               </div>
 
-              <div className="bg-slate-800/50 p-4 border-b border-slate-800 flex flex-wrap gap-3">
+              <div className="bg-slate-100 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
                 <button 
                   onClick={() => {
                     setPpeEmployee(viewingEmployee);
@@ -2876,7 +2935,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     setPrestacionesEndDate(new Date().toISOString().split('T')[0]);
                     setIsPrestacionesModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-slate-900 dark:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
                 >
                   <Landmark size={16} />
                   Calcular Prestaciones
@@ -2892,7 +2951,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     });
                     setIsAriModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-slate-900 dark:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
                 >
                   <FileSignature size={16} />
                   Calcular AR-I
@@ -2902,104 +2961,104 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Código</div>
-                    <div className="text-white font-medium font-mono">{viewingEmployee.code || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium font-mono">{viewingEmployee.code || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cédula / ID</div>
-                    <div className="text-white font-medium font-mono">{viewingEmployee.id}</div>
+                    <div className="text-slate-900 dark:text-white font-medium font-mono">{viewingEmployee.id}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nacionalidad</div>
-                    <div className="text-white font-medium">{viewingEmployee.nationality || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.nationality || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nombres</div>
-                    <div className="text-white font-medium">{viewingEmployee.name}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.name}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Apellidos</div>
-                    <div className="text-white font-medium">{viewingEmployee.lastName || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.lastName || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Edad</div>
-                    <div className="text-white font-medium">{viewingEmployee.age || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.age || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Grado de Instrucción</div>
-                    <div className="text-white font-medium">{viewingEmployee.educationLevel || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.educationLevel || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cargo</div>
-                    <div className="text-white font-medium">{viewingEmployee.position}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.position}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Departamento</div>
-                    <div className="text-white font-medium">{viewingEmployee.department}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.department}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción del Cargo</div>
-                    <div className="text-white font-medium">{viewingEmployee.positionDescription || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.positionDescription || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Ingreso</div>
-                    <div className="text-white font-medium">{viewingEmployee.hireDate}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.hireDate}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Prestaciones Sociales</div>
-                    <div className="text-white font-medium">{viewingEmployee.socialBenefitsDate || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.socialBenefitsDate || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Egreso Proyectada</div>
-                    <div className="text-white font-medium">{viewingEmployee.projectedExitDate || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.projectedExitDate || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</div>
-                    <div className="text-white font-medium">{viewingEmployee.email || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.email || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Dirección del Proyecto</div>
-                    <div className="text-white font-medium">{viewingEmployee.projectAddress || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.projectAddress || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono Directo</div>
-                    <div className="text-white font-medium font-mono">{viewingEmployee.directPhone || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium font-mono">{viewingEmployee.directPhone || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono de Emergencia</div>
-                    <div className="text-white font-medium font-mono">{viewingEmployee.emergencyPhone || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium font-mono">{viewingEmployee.emergencyPhone || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 md:col-span-2">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 md:col-span-2">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Dirección Habitación</div>
-                    <div className="text-white font-medium">{viewingEmployee.homeAddress || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.homeAddress || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sexo</div>
-                    <div className="text-white font-medium">{viewingEmployee.gender === 'M' ? 'Masculino' : viewingEmployee.gender === 'F' ? 'Femenino' : 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.gender === 'M' ? 'Masculino' : viewingEmployee.gender === 'F' ? 'Femenino' : 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Usa Lentes</div>
-                    <div className="text-white font-medium">{viewingEmployee.wearsGlasses || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.wearsGlasses || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Persona con Condición</div>
-                    <div className="text-white font-medium">{viewingEmployee.hasCondition || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">{viewingEmployee.hasCondition || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Estatura</div>
-                    <div className="text-white font-medium font-mono">{viewingEmployee.height || 'N/A'}</div>
+                    <div className="text-slate-900 dark:text-white font-medium font-mono">{viewingEmployee.height || 'N/A'}</div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sueldo Base</div>
-                    <div className="text-white font-bold font-mono text-lg">${viewingEmployee.baseSalary.toLocaleString()}</div>
+                    <div className="text-slate-900 dark:text-white font-bold font-mono text-lg">${viewingEmployee.baseSalary.toLocaleString()}</div>
                     <div className="text-xs text-slate-500">Bs. {(viewingEmployee.baseSalary * exchangeRate).toLocaleString()}</div>
                   </div>
                 </div>
 
                 {/* Configuración de Nómina */}
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <Calculator size={16} className="text-indigo-400" /> Configuración de Nómina
                   </h3>
                   
@@ -3012,7 +3071,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       {viewingEmployee.defaultBonuses.length > 0 ? (
                         <div className="space-y-2">
                           {viewingEmployee.defaultBonuses.map((b, i) => (
-                            <div key={i} className="flex justify-between items-center bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
+                            <div key={i} className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
                               <span className="text-sm text-slate-300">{b.name}</span>
                               <span className="text-sm font-bold text-emerald-400 font-mono">+${b.amount}</span>
                             </div>
@@ -3031,7 +3090,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       {viewingEmployee.defaultDeductions.length > 0 ? (
                         <div className="space-y-2">
                           {viewingEmployee.defaultDeductions.map((d, i) => (
-                            <div key={i} className="flex justify-between items-center bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
+                            <div key={i} className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
                               <span className="text-sm text-slate-300">{d.name}</span>
                               <span className="text-sm font-bold text-red-400 font-mono">-${d.amount}</span>
                             </div>
@@ -3046,16 +3105,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                 {/* Historial de EPP */}
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <ShieldCheck size={16} className="text-amber-500" /> Historial de Seguridad Industrial (EPP)
                   </h3>
                   
                   {viewingEmployee.ppeAssignments && viewingEmployee.ppeAssignments.length > 0 ? (
                     <div className="space-y-4">
                       {viewingEmployee.ppeAssignments.map((assignment) => (
-                        <div key={assignment.id} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                        <div key={assignment.id} className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                           <div className="flex justify-between items-center mb-3">
-                            <div className="text-sm font-bold text-white">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white">
                               Asignación del {formatDate(assignment.date)}
                             </div>
                             <div className="text-sm font-mono font-bold text-amber-400">
@@ -3064,12 +3123,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {assignment.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                              <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
                                 <div>
                                   <div className="text-xs font-bold text-slate-300">{item.name}</div>
                                   <div className="text-[10px] text-slate-500">Talla: {item.talla || 'N/A'} | Frecuencia: {item.frecuencia}</div>
                                 </div>
-                                <div className="text-xs font-mono text-slate-400">
+                                <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
                                   {item.cantidad} x ${item.precio.toFixed(2)}
                                 </div>
                               </div>
@@ -3096,7 +3155,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-slate-950 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-800 shadow-2xl custom-scrollbar"
+              className="bg-white dark:bg-slate-950 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl custom-scrollbar"
             >
               <div className="p-8">
                 <div className="flex justify-between items-start mb-8">
@@ -3105,40 +3164,40 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <FileText size={32} />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Detalle de Nómina</h2>
+                      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Detalle de Nómina</h2>
                       <p className="text-slate-500 font-mono text-sm">{viewingEntry.id} • {viewingEntry.month}</p>
                     </div>
                   </div>
                   <button 
                     onClick={() => setViewingEntry(null)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+                    className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
                   >
                     <X size={24} />
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Empleado</p>
-                    <p className="text-lg font-bold text-white">{viewingEntry.employeeName}</p>
-                    <p className="text-sm text-slate-400">{viewingEntry.employeeId}</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{viewingEntry.employeeName}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{viewingEntry.employeeId}</p>
                   </div>
-                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tienda</p>
-                    <p className="text-lg font-bold text-white">{STORES.find(s => s.id === viewingEntry.storeId)?.name || 'N/A'}</p>
-                    <p className="text-sm text-slate-400">ID: {viewingEntry.storeId}</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{STORES.find(s => s.id === viewingEntry.storeId)?.name || 'N/A'}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">ID: {viewingEntry.storeId}</p>
                   </div>
-                  <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Registro</p>
-                    <p className="text-lg font-bold text-white">{formatDate(viewingEntry.submittedDate)}</p>
-                    <p className="text-sm text-slate-400">{formatTime(viewingEntry.submittedDate)}</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{formatDate(viewingEntry.submittedDate)}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{formatTime(viewingEntry.submittedDate)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Deducciones */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <TrendingDown className="text-red-400" size={20} />
                       Deducciones del Trabajador
                     </h3>
@@ -3147,16 +3206,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         const { theoretical, diff, hasDiff } = getParafiscalDiff(d.name, d.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
                         return (
                           <div key={idx} className={`p-4 rounded-xl border transition-all ${
-                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-900/30 border-slate-800'
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
                           }`}>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-sm font-medium text-slate-300">{d.name}</span>
                               <div className="flex items-center gap-3">
-                                <span className="font-mono text-white font-bold">${d.amount.toLocaleString()}</span>
+                                <span className="font-mono text-slate-900 dark:text-white font-bold">${d.amount.toLocaleString()}</span>
                                 {hasDiff && onUpdateEntry && (
                                   <button
                                     onClick={() => handleAdjustParafiscal(viewingEntry, d.name, 'deduction')}
-                                    className="p-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
+                                    className="p-1.5 bg-orange-500 text-slate-900 dark:text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
                                     title="Ajustar a Ley"
                                   >
                                     <Wand2 size={14} />
@@ -3180,7 +3239,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                   {/* Pasivos Patronales */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <ShieldCheck className="text-blue-400" size={20} />
                       Pasivos Patronales
                     </h3>
@@ -3189,16 +3248,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         const { theoretical, diff, hasDiff } = getParafiscalDiff(l.name, l.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
                         return (
                           <div key={idx} className={`p-4 rounded-xl border transition-all ${
-                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-900/30 border-slate-800'
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
                           }`}>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-sm font-medium text-slate-300">{l.name}</span>
                               <div className="flex items-center gap-3">
-                                <span className="font-mono text-white font-bold">${l.amount.toLocaleString()}</span>
+                                <span className="font-mono text-slate-900 dark:text-white font-bold">${l.amount.toLocaleString()}</span>
                                 {hasDiff && onUpdateEntry && (
                                   <button
                                     onClick={() => handleAdjustParafiscal(viewingEntry, l.name, 'liability')}
-                                    className="p-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
+                                    className="p-1.5 bg-orange-500 text-slate-900 dark:text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
                                     title="Ajustar a Ley"
                                   >
                                     <Wand2 size={14} />
@@ -3221,7 +3280,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="p-6 bg-blue-500/5 rounded-2xl border border-blue-500/20">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sueldo Base</p>
                     <p className="text-2xl font-mono font-bold text-blue-400">${viewingEntry.baseSalary.toLocaleString()}</p>
@@ -3250,28 +3309,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAriModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                     <div className="p-2 bg-purple-500/20 rounded-xl text-purple-400">
                       <FileSignature size={24} />
                     </div>
                     Formulario AR-I (ISLR)
                   </h2>
-                  <p className="text-slate-400 mt-1 text-sm">Cálculo de retención para {ariEmployee.name}</p>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Cálculo de retención para {ariEmployee.name}</p>
                 </div>
                 <button 
                   onClick={() => setIsAriModalOpen(false)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
@@ -3280,7 +3339,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ingresos Estimados (Bs/Año)</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ingresos Estimados (Bs/Año)</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span className="text-slate-500 font-bold">Bs.</span>
@@ -3289,14 +3348,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         type="number" 
                         value={ariData.estimatedIncomeBs || ''}
                         onChange={(e) => setAriData({...ariData, estimatedIncomeBs: Number(e.target.value)})}
-                        className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                       />
                     </div>
                     <p className="text-[10px] text-slate-500">Equivale a ${(ariData.estimatedIncomeBs / exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})} USD</p>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Desgravámenes Estimados (Bs/Año)</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Desgravámenes Estimados (Bs/Año)</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span className="text-slate-500 font-bold">Bs.</span>
@@ -3305,37 +3364,37 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         type="number" 
                         value={ariData.estimatedExpensesBs || ''}
                         onChange={(e) => setAriData({...ariData, estimatedExpensesBs: Number(e.target.value)})}
-                        className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cargas Familiares</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cargas Familiares</label>
                     <input 
                       type="number" 
                       min="0"
                       value={ariData.dependents}
                       onChange={(e) => setAriData({...ariData, dependents: Number(e.target.value)})}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor Unidad Tributaria (Bs)</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor Unidad Tributaria (Bs)</label>
                     <input 
                       type="number" 
                       step="0.01"
                       value={ariData.taxUnitValueBs}
                       onChange={(e) => setAriData({...ariData, taxUnitValueBs: Number(e.target.value)})}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
+                      className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                     />
                   </div>
                 </div>
 
                 {/* Results Section */}
-                <div className="mt-8 p-6 bg-slate-800/30 border border-slate-700 rounded-2xl">
-                  <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                <div className="mt-8 p-6 bg-slate-100 dark:bg-slate-800/30 border border-slate-700 rounded-2xl">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <Calculator size={16} className="text-purple-400" /> Resultados del Cálculo
                   </h3>
                   
@@ -3343,13 +3402,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     const result = calculateARI();
                     return (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                          <span className="text-sm text-slate-400">Ingresos en UT</span>
-                          <span className="font-mono font-bold text-white">{result.incomeUT.toLocaleString(undefined, {maximumFractionDigits: 2})} UT</span>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">Ingresos en UT</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{result.incomeUT.toLocaleString(undefined, {maximumFractionDigits: 2})} UT</span>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                          <span className="text-sm text-slate-400">Obligación de Presentar AR-I</span>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">Obligación de Presentar AR-I</span>
                           <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
                             result.isObligated ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'
                           }`}>
@@ -3357,9 +3416,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                          <span className="text-sm text-slate-400">Impuesto Anual Estimado</span>
-                          <span className="font-mono font-bold text-white">Bs. {result.totalTaxBs.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">Impuesto Anual Estimado</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">Bs. {result.totalTaxBs.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                         </div>
 
                         <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
@@ -3372,11 +3431,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 </div>
               </div>
               
-              <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+              <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsAriModalOpen(false)}
-                  className="px-6 py-3 text-slate-300 hover:text-white font-bold transition-colors"
+                  className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
                 >
                   Cerrar
                 </button>
@@ -3395,28 +3454,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsPrestacionesModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                     <div className="p-2 bg-amber-500/20 rounded-xl text-amber-400">
                       <Landmark size={24} />
                     </div>
                     Cálculo de Prestaciones Sociales (LOTTT)
                   </h2>
-                  <p className="text-slate-400 mt-1 text-sm">Liquidación estimativa para {prestacionesEmployee.name}</p>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Liquidación estimativa para {prestacionesEmployee.name}</p>
                 </div>
                 <button 
                   onClick={() => setIsPrestacionesModalOpen(false)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
@@ -3425,29 +3484,29 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
                 {/* Header Info */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Ingreso</div>
-                    <div className="text-white font-medium flex items-center gap-2">
-                      <Calendar size={16} className="text-slate-400" />
+                    <div className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
+                      <Calendar size={16} className="text-slate-500 dark:text-slate-400" />
                       {prestacionesEmployee.hireDate}
                     </div>
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Cálculo</div>
                     <input 
                       type="date" 
                       value={prestacionesEndDate}
                       onChange={(e) => setPrestacionesEndDate(e.target.value)}
-                      className="w-full bg-transparent text-white outline-none font-medium"
+                      className="w-full bg-transparent text-slate-900 dark:text-white outline-none font-medium"
                     />
                   </div>
-                  <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Salario Integral Diario</div>
                     {(() => {
                       const result = calculatePrestaciones();
                       return result ? (
                         <div>
-                          <div className="text-white font-bold font-mono text-lg">${result.dailyIntegralSalary.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                          <div className="text-slate-900 dark:text-white font-bold font-mono text-lg">${result.dailyIntegralSalary.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                           <div className="text-xs text-slate-500">Bs. {(result.dailyIntegralSalary * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                         </div>
                       ) : <div className="text-slate-500">Fecha inválida</div>;
@@ -3463,7 +3522,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="space-y-8">
                       {/* Tiempo de Servicio */}
                       <div>
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                           <Clock size={16} className="text-blue-400" /> Tiempo de Servicio
                         </h3>
                         <div className="flex items-center gap-4">
@@ -3484,22 +3543,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Garantía Trimestral */}
-                        <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
-                          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <div className="bg-slate-100 dark:bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <ShieldCheck size={16} className="text-emerald-400" /> 1. Garantía Trimestral (Art. 142 a, b)
                           </h3>
                           <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">Trimestres Completos</span>
-                              <span className="font-bold text-white">{result.quarters}</span>
+                              <span className="text-slate-500 dark:text-slate-400">Trimestres Completos</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{result.quarters}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">Días Base (15 x Trimestre)</span>
-                              <span className="font-bold text-white">{result.baseDaysQuarterly} días</span>
+                              <span className="text-slate-500 dark:text-slate-400">Días Base (15 x Trimestre)</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{result.baseDaysQuarterly} días</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">Días Adicionales (Antigüedad)</span>
-                              <span className="font-bold text-white">{result.additionalDays} días</span>
+                              <span className="text-slate-500 dark:text-slate-400">Días Adicionales (Antigüedad)</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{result.additionalDays} días</span>
                             </div>
                             <div className="pt-4 border-t border-slate-700/50">
                               <div className="flex justify-between items-center mb-1">
@@ -3508,25 +3567,25 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Monto Estimado</span>
-                                <span className="font-mono font-bold text-white">${result.totalGuaranteeAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.totalGuaranteeAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Cálculo Literal C */}
-                        <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
-                          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <div className="bg-slate-100 dark:bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <FileText size={16} className="text-orange-400" /> 2. Cálculo Retroactivo (Art. 142 c)
                           </h3>
                           <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">Años a considerar (&gt; 6 meses = 1 año)</span>
-                              <span className="font-bold text-white">{result.literalCYears} años</span>
+                              <span className="text-slate-500 dark:text-slate-400">Años a considerar (&gt; 6 meses = 1 año)</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{result.literalCYears} años</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                              <span className="text-slate-400">Días (30 x Año)</span>
-                              <span className="font-bold text-white">{result.literalCDays} días</span>
+                              <span className="text-slate-500 dark:text-slate-400">Días (30 x Año)</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{result.literalCDays} días</span>
                             </div>
                             <div className="pt-4 border-t border-slate-700/50 mt-auto">
                               <div className="flex justify-between items-center mb-1">
@@ -3535,7 +3594,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Monto Estimado</span>
-                                <span className="font-mono font-bold text-white">${result.literalCAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.literalCAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                               </div>
                             </div>
                           </div>
@@ -3551,8 +3610,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-3xl font-bold font-mono text-white">${result.finalAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
-                          <div className="text-sm text-slate-400 font-medium mt-1">Bs. {(result.finalAmount * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                          <div className="text-3xl font-bold font-mono text-slate-900 dark:text-white">${result.finalAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Bs. {(result.finalAmount * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                         </div>
                       </div>
                     </div>
@@ -3560,7 +3619,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 })()}
               </div>
               
-              <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+              <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => {
@@ -3574,7 +3633,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       setIsPrestacionesModalOpen(false);
                     }
                   }}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white font-bold rounded-2xl transition-all flex items-center gap-2"
                 >
                   <HandCoins size={18} />
                   Solicitar Anticipo (75%)
@@ -3582,7 +3641,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <button 
                   type="button"
                   onClick={() => setIsPrestacionesModalOpen(false)}
-                  className="px-6 py-3 text-slate-300 hover:text-white font-bold transition-colors"
+                  className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
                 >
                   Cerrar
                 </button>
@@ -3600,28 +3659,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAnticipoModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
             >
-              <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                     <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-400">
                       <HandCoins size={24} />
                     </div>
                     Solicitud de Anticipo (Art. 144 LOTTT)
                   </h2>
-                  <p className="text-slate-400 mt-1 text-sm">Solicitud para {anticipoEmployee.name} {anticipoEmployee.lastName}</p>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Solicitud para {anticipoEmployee.name} {anticipoEmployee.lastName}</p>
                 </div>
                 <button 
                   onClick={() => setIsAnticipoModalOpen(false)}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                  className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
                   <Plus size={24} className="rotate-45" />
                 </button>
@@ -3629,11 +3688,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
               <div className="p-8 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Acumulado Garantía</div>
-                    <div className="text-xl font-bold text-white font-mono">${accumulatedPrestaciones.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">${accumulatedPrestaciones.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                   </div>
-                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+                  <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Máximo Anticipo (75%)</div>
                     <div className="text-xl font-bold text-emerald-400 font-mono">${maxAnticipo.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                   </div>
@@ -3641,7 +3700,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Monto a Solicitar ($)</label>
+                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Monto a Solicitar ($)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                       <input 
@@ -3651,19 +3710,19 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           const val = parseFloat(e.target.value) || 0;
                           setAnticipoAmount(Math.min(val, maxAnticipo));
                         }}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                       />
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Equivalente a Bs. {(anticipoAmount * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Motivo de la Solicitud</label>
+                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Motivo de la Solicitud</label>
                     <textarea 
                       value={anticipoReason}
                       onChange={(e) => setAnticipoReason(e.target.value)}
                       placeholder="Ej: Gastos médicos, educación, vivienda..."
-                      className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all h-32 resize-none"
+                      className="w-full p-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all h-32 resize-none"
                     />
                   </div>
                 </div>
@@ -3676,11 +3735,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 </div>
               </div>
               
-              <div className="p-8 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+              <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsAnticipoModalOpen(false)}
-                  className="px-6 py-3 text-slate-300 hover:text-white font-bold transition-colors"
+                  className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
                 >
                   Cancelar
                 </button>
@@ -3689,7 +3748,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     generateAnticipoReceiptPDF(anticipoEmployee, anticipoAmount, accumulatedPrestaciones, anticipoReason);
                     setIsAnticipoModalOpen(false);
                   }}
-                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2"
+                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white font-bold rounded-2xl shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2"
                 >
                   <Download size={18} />
                   Generar Recibo y Procesar
@@ -3707,12 +3766,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-8 right-8 z-[100] px-6 py-4 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex items-center gap-3"
+            className="fixed bottom-8 right-8 z-[100] px-6 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex items-center gap-3"
           >
             <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500">
               <AlertCircle size={18} />
             </div>
-            <span className="text-white font-medium">{notification}</span>
+            <span className="text-slate-900 dark:text-white font-medium">{notification}</span>
           </motion.div>
         )}
       </AnimatePresence>

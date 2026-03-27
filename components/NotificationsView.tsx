@@ -604,10 +604,10 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         </div>
         <button 
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg"
+            className="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 active:scale-95"
         >
             <Settings size={18} />
-            <span>Configurar Automatización</span>
+            <span>Configurar</span>
         </button>
       </header>
 
@@ -615,20 +615,23 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {[
-              { id: 'all', label: 'Todas las Alertas' },
-              { id: 'critical', label: 'Críticas (Vencidas)' },
-              { id: 'scheduled', label: 'Programadas' }
+              { id: 'all', label: 'Todas', count: alerts.length },
+              { id: 'critical', label: '🔴 Críticas', count: alerts.filter(a => a.severity === 'critical').length },
+              { id: 'scheduled', label: '🔵 Programadas', count: alerts.filter(a => a.severity === 'scheduled').length }
           ].map(item => (
               <button
                   key={item.id}
                   onClick={() => setFilter(item.id as any)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
                       filter === item.id 
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
-                      : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30 scale-105' 
+                      : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-brand-300 hover:text-brand-600 dark:hover:border-brand-700'
                   }`}
               >
                   {item.label}
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                      filter === item.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  }`}>{item.count}</span>
               </button>
           ))}
         </div>
@@ -662,33 +665,40 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         ) : (
             <>
                 {visibleAlerts.map((alert) => (
-                    <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {/* Status Strip */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                    <div key={alert.id} className={`relative bg-white dark:bg-slate-900 rounded-2xl p-5 border transition-all duration-300 flex flex-col md:flex-row gap-5 hover:shadow-xl group animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-hidden ${
+                        alert.severity === 'critical'
+                        ? 'border-red-200 dark:border-red-900/50 hover:border-red-300 dark:hover:border-red-800 shadow-sm shadow-red-100 dark:shadow-red-900/10'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-brand-200 dark:hover:border-brand-900'
+                    }`}>
+                        {/* Color accent bar */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
+                            alert.severity === 'critical' ? 'bg-gradient-to-b from-red-500 to-red-600' : 'bg-gradient-to-b from-brand-500 to-indigo-500'
+                        }`} />
 
-                        <div className="flex-1 flex gap-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                                alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
-                                'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
+                        <div className="flex-1 flex gap-4 pl-3">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
+                                alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                                'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
                             }`}>
                                 {getSeverityIcon(alert.severity)}
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{alert.category}</span>
+                                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{alert.storeName}</span>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <p className={`text-sm font-medium ${
-                                        alert.severity === 'critical' ? 'text-red-600' : 'text-blue-600'
+                                <h3 className="text-base font-black text-slate-900 dark:text-white mb-2 leading-tight">{alert.title}</h3>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                                        alert.severity === 'critical'
+                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                        : 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
                                     }`}>
-                                        {alert.timeLabel}
-                                    </p>
-                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-                                        <Calendar size={12} className="text-slate-400" />
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Vencimiento:</span>
+                                        {alert.severity === 'critical' ? '⚠️' : '📅'} {alert.timeLabel}
+                                    </span>
+                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                                        <Calendar size={11} className="text-slate-400" />
                                         <input 
                                             type="date"
                                             value={alert.dueDate}
@@ -700,31 +710,31 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                             </div>
                         </div>
 
-                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3 md:min-w-[160px]">
                             <div className="text-right">
-                                <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
-                                <span className="text-xs text-slate-400">Monto estimado</span>
+                                <span className="block text-2xl font-black text-slate-900 dark:text-white font-mono">${alert.amount.toLocaleString()}</span>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Monto estimado</span>
                             </div>
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => handleNotifyPerson(alert)}
                                     disabled={notifyingAlertId === alert.id || (!config.whatsappEnabled && !config.emailEnabled)}
-                                    className="px-4 py-2 bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-                                    title="Enviar recordatorio por WhatsApp/Email"
+                                    className="px-3 py-2 bg-emerald-100 dark:bg-emerald-900/20 hover:bg-emerald-200 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-black rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+                                    title="Enviar recordatorio"
                                 >
                                     {notifyingAlertId === alert.id ? (
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <Loader2 size={14} className="animate-spin" />
                                     ) : (
-                                        <Send size={16} />
+                                        <Send size={14} />
                                     )}
                                     <span className="hidden sm:inline">Notificar</span>
                                 </button>
                                 <button 
                                     onClick={() => onManage(alert.id)}
-                                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                                    className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-black rounded-xl transition-all flex items-center gap-1.5 active:scale-95"
                                 >
                                     <span>Gestionar</span>
-                                    <ChevronRight size={16} />
+                                    <ChevronRight size={14} />
                                 </button>
                             </div>
                         </div>
