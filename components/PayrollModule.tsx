@@ -28,7 +28,6 @@ import {
   Clock,
   Landmark,
   Building2,
-  Upload,
   AlertCircle,
   AlertTriangle,
   Eye,
@@ -86,10 +85,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [ppeSearchTerm, setPpeSearchTerm] = React.useState('');
   const [ppeStoreFilter, setPpeStoreFilter] = React.useState('');
   const [ppeDateFilter, setPpeDateFilter] = React.useState('');
-  const [importProgress, setImportProgress] = React.useState<number | null>(null);
-  const [importErrors, setImportErrors] = React.useState<string[]>([]);
   const [notification, setNotification] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [payrollIdFilter, setPayrollIdFilter] = React.useState('');
+  const [payrollDateFilter, setPayrollDateFilter] = React.useState('');
   const { exchangeRate } = useExchangeRate();
 
   React.useEffect(() => {
@@ -523,106 +521,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImportProgress(0);
-    setImportErrors([]);
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-
-        if (data.length === 0) {
-          setImportErrors(['El archivo está vacío']);
-          setImportProgress(null);
-          return;
-        }
-
-        const errors: string[] = [];
-        let processedCount = 0;
-
-        for (let i = 0; i < data.length; i++) {
-          const row: any = data[i];
-          
-          // Normalizar nombres de columnas (quitar espacios, minúsculas)
-          const normalizedRow: any = {};
-          Object.keys(row).forEach(key => {
-            const normalizedKey = key.toLowerCase().trim()
-              .replace(/ /g, '_')
-              .replace(/cedula|id_empleado|id/g, 'employeeid')
-              .replace(/mes|periodo/g, 'month')
-              .replace(/sueldo|salario|base/g, 'basesalary');
-            normalizedRow[normalizedKey] = row[key];
-          });
-
-          // Basic validation
-          if (!normalizedRow.employeeid || !normalizedRow.month || normalizedRow.basesalary === undefined) {
-            errors.push(`Fila ${i + 2}: Faltan campos obligatorios (ID Empleado, Mes, Sueldo Base)`);
-            continue;
-          }
-
-          const employee = employees.find(emp => emp.id.toString() === normalizedRow.employeeid.toString());
-          if (!employee) {
-            errors.push(`Fila ${i + 2}: Empleado con ID ${normalizedRow.employeeid} no encontrado`);
-            continue;
-          }
-
-          // Prepare entry
-          const baseSalary = Number(normalizedRow.basesalary);
-          const bonuses = employee.defaultBonuses;
-          
-          const totals = calculateTotals({
-            baseSalary,
-            bonuses,
-            deductions: employee.defaultDeductions,
-            employerLiabilities: employee.defaultEmployerLiabilities
-          });
-
-          const entry: Omit<PayrollEntry, 'id' | 'submittedDate'> = {
-            employeeName: `${employee.name} ${employee.lastName || ''}`.trim(),
-            employeeId: employee.id,
-            storeId: employee.storeId,
-            month: normalizedRow.month.toString(),
-            baseSalary,
-            bonuses,
-            deductions: employee.defaultDeductions,
-            employerLiabilities: employee.defaultEmployerLiabilities,
-            ...totals,
-            status: 'PROCESADO'
-          };
-
-          await onAddEntry(entry);
-
-          processedCount++;
-          setImportProgress(Math.round(((i + 1) / data.length) * 100));
-        }
-
-        if (errors.length > 0) {
-          setImportErrors(errors);
-        } else {
-          alert(`✅ Se cargaron ${processedCount} registros exitosamente`);
-        }
-      } catch (err) {
-        setImportErrors(['Error procesando el archivo: ' + (err as Error).message]);
-      } finally {
-        setImportProgress(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  const filteredEntries = entries.filter(e => 
-    e.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    e.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEntries = entries.filter(e => {
+    const matchesId = e.employeeId.toLowerCase().includes(payrollIdFilter.toLowerCase());
+    const matchesDate = payrollDateFilter ? e.month === payrollDateFilter : true;
+    return matchesId && matchesDate;
+  });
 
   const filteredEmployees = employees.filter(e => 
     `${e.name} ${e.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -983,23 +886,36 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Control de expedientes, pasivos laborales y salarios</p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {activeTab === 'payroll' ? (
             <>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".csv, .xlsx, .xls"
-                onChange={handleFileUpload}
-              />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
-              >
-                <Upload size={20} />
-                Importar CSV/Excel
-              </button>
+              <div className="flex flex-wrap gap-2 items-center bg-slate-100 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Cédula de Identidad"
+                    value={payrollIdFilter}
+                    onChange={(e) => setPayrollIdFilter(e.target.value)}
+                    className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-44 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="month"
+                    value={payrollDateFilter}
+                    onChange={(e) => setPayrollDateFilter(e.target.value)}
+                    className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-44 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <button 
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-2 text-sm"
+                >
+                  <Search size={16} />
+                  Filtrar
+                </button>
+              </div>
               <button 
                 onClick={handleAutoGeneratePayroll}
                 disabled={employees.filter(e => e.isActive).length === 0}
@@ -1118,60 +1034,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             {filteredEntries.filter(hasParafiscalDiscrepancies).length} REGISTROS AFECTADOS
           </div>
         </motion.div>
-      )}
-
-      {importProgress !== null && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl text-center">
-            <div className="mb-6">
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-800 stroke-current"
-                    strokeWidth="3"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-blue-500 stroke-current"
-                    strokeWidth="3"
-                    strokeDasharray={`${importProgress}, 100`}
-                    strokeLinecap="round"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-900 dark:text-white">
-                  {importProgress}%
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Procesando Nómina</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Por favor espere mientras validamos y cargamos los registros...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {importErrors.length > 0 && (
-        <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-3xl mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-red-500 font-bold flex items-center gap-2">
-              <AlertCircle size={20} />
-              Errores en la Importación
-            </h3>
-            <button 
-              onClick={() => setImportErrors([])}
-              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-          <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar">
-            {importErrors.map((err, idx) => (
-              <p key={idx} className="text-sm text-red-400/80">• {err}</p>
-            ))}
-          </div>
-        </div>
       )}
 
       {/* Tabs */}
