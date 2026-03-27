@@ -11,6 +11,7 @@ import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
+import { EvaluationModule } from './components/EvaluationModule';
 import { CloudSync } from './components/CloudSync.tsx';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
@@ -1025,6 +1026,8 @@ function App({ isDemoMode = false }: AppProps) {
             currentUser={currentUser}
           />
         );
+      case 'evaluation':
+        return <EvaluationModule payments={payments} />;
       case 'notifications':
         return (
           <NotificationsView 
@@ -1148,11 +1151,11 @@ function App({ isDemoMode = false }: AppProps) {
 
   useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency', 'evaluation'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'reports'],
-      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings'],
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'reports', 'evaluation'],
+      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation'],
       [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
