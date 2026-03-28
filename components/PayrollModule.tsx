@@ -757,21 +757,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const handleSendBulkEmails = async () => {
     if (filteredEntries.length === 0) return;
+    
     setIsSendingEmails(true);
     try {
-      // 1. Verificar conexión con el servidor (Ping)
-      console.log('🔍 Verificando conexión con el servidor...');
-      const pingResponse = await fetch('/api/ping').catch(() => null);
-      if (!pingResponse || !pingResponse.ok) {
-        setNotification('❌ No se pudo conectar con el servidor de correos. Es posible que el servidor se esté reiniciando.');
-        return;
-      }
-      const pingData = await pingResponse.json();
-      if (!pingData.env.hasResendKey) {
-        setNotification('❌ La API Key de Resend no está configurada. Por favor, agrégala en Settings > Environment Variables como RESEND_API_KEY.');
-        return;
-      }
-
       const entriesWithEmails = filteredEntries.map(entry => {
         const employee = employees.find(e => e.id === entry.employeeId);
         return {
@@ -786,7 +774,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         return;
       }
 
-      console.log('📧 Enviando correos masivos...');
       const response = await fetch('/api/payroll/send-emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
