@@ -416,36 +416,40 @@ async function startServer() {
     }
   });
 
+  // Health check route
+  app.get('/api/ping', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: { hasResendKey: !!process.env.RESEND_API_KEY } });
+  });
+
   // Bulk Email Route for Payroll
-  app.post('/api/payroll/send-emails', async (req, res) => {
-    console.log('📧 Petición recibida en /api/payroll/send-emails');
-    const { entries } = req.body;
-    
-    const resendClient = getResend();
-    if (!resendClient) {
-      return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
-    }
+  app.post('/api/payroll/send-emails', async (req, res, next) => {
+    console.log('📧 [Server] Petición recibida en /api/payroll/send-emails');
+    try {
+      const { entries } = req.body;
+      
+      if (!entries || !Array.isArray(entries)) {
+        console.warn('⚠️ [Server] Petición inválida: entries no es un array.');
+        return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
+      }
 
-    if (!entries || !Array.isArray(entries)) {
-      return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
-    }
+      const resendClient = getResend();
+      if (!resendClient) {
+        console.error('❌ [Server] Resend no configurado.');
+        return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
+      }
 
-    const results = [];
-    
-    for (const entry of entries) {
-      try {
-        console.log(`[Email] Procesando: ${entry.employeeName} <${entry.employeeEmail}>`);
-        
-        if (!entry.employeeEmail) {
-          console.warn(`[Email] Saltando ${entry.employeeName}: Correo no proporcionado.`);
-          results.push({ id: entry.id, success: false, error: 'Correo no proporcionado' });
-          continue;
-        }
-
-        console.log(`[Email] Renderizando plantilla para ${entry.employeeName}...`);
-        let html;
+      console.log(`[Server] Procesando ${entries.length} correos en paralelo...`);
+      
+      // Process in batches or parallel with limit to avoid timeout and rate limits
+      // For now, we'll do them in parallel but catch individual errors
+      const results = await Promise.all(entries.map(async (entry) => {
         try {
-          html = await render(
+          if (!entry.employeeEmail) {
+            return { id: entry.id, success: false, error: 'Correo no proporcionado' };
+          }
+
+          console.log(`[Email] Renderizando: ${entry.employeeName}`);
+          const html = await render(
             <PayrollEmailTemplate
               employeeName={entry.employeeName}
               month={entry.month}
@@ -455,34 +459,33 @@ async function startServer() {
               deductions={entry.deductions || []}
             />
           );
-        } catch (renderErr: any) {
-          console.error(`[Email] Error renderizando plantilla para ${entry.employeeName}:`, renderErr);
-          results.push({ id: entry.id, success: false, error: `Error de renderizado: ${renderErr.message}` });
-          continue;
-        }
 
-        console.log(`[Email] Enviando correo a ${entry.employeeEmail}...`);
-        const { data, error } = await resendClient.emails.send({
-          from: 'Nomina <onboarding@resend.dev>', // Should be a verified domain in production
-          to: [entry.employeeEmail],
-          subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
-          html: html,
-        });
+          console.log(`[Email] Enviando a: ${entry.employeeEmail}`);
+          const { data, error } = await resendClient.emails.send({
+            from: 'Nomina <onboarding@resend.dev>',
+            to: [entry.employeeEmail],
+            subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
+            html: html,
+          });
 
-        if (error) {
-          console.error(`Error de Resend para ${entry.employeeEmail}:`, error);
-          results.push({ id: entry.id, success: false, error: error.message });
-        } else {
-          console.log(`✅ Email enviado con éxito a ${entry.employeeEmail}. ID: ${data?.id}`);
-          results.push({ id: entry.id, success: true, messageId: data?.id });
+          if (error) {
+            console.error(`[Email] Error Resend (${entry.employeeEmail}):`, error);
+            return { id: entry.id, success: false, error: error.message };
+          }
+
+          return { id: entry.id, success: true, messageId: data?.id };
+        } catch (err: any) {
+          console.error(`[Email] Error crítico (${entry.employeeName}):`, err);
+          return { id: entry.id, success: false, error: err.message || 'Error interno' };
         }
-      } catch (err: any) {
-        console.error(`❌ Error crítico enviando email a ${entry.employeeName}:`, err);
-        results.push({ id: entry.id, success: false, error: err.message || 'Error interno al renderizar o enviar.' });
-      }
+      }));
+
+      console.log(`[Server] Finalizado: ${results.filter(r => r.success).length} éxitos, ${results.filter(r => !r.success).length} fallos.`);
+      res.json({ success: true, results });
+    } catch (err: any) {
+      console.error('[Server] 💥 Error fatal en la ruta de correos:', err);
+      res.status(500).json({ error: 'Error fatal en el servidor', details: err.message });
     }
-
-    res.json({ success: true, results });
   });
 
   // Global Error Handler
