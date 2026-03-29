@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.tsx",
+    "start": "tsx server.tsx",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
@@ -42,6 +43,6 @@
     "@vitejs/plugin-react": "^5.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.4.1"
   }
 }

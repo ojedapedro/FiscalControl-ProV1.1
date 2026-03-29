@@ -1,5 +1,7 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
+
+console.log('🚀 [Server] server.tsx cargado');
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
@@ -15,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  console.log('🚀 [Server] Iniciando servidor Express...');
   const app = express();
   const PORT = 3000;
 
@@ -30,6 +33,12 @@ async function startServer() {
       httpOnly: true 
     }
   }));
+
+  // Health check route - moved up to ensure it's registered early
+  app.get('/api/ping', (req, res) => {
+    console.log('🔍 [Server] PING recibido');
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: { hasResendKey: !!process.env.RESEND_API_KEY } });
+  });
 
   const getOAuth2Client = () => {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -414,11 +423,6 @@ async function startServer() {
       console.error('Sync pull error:', error);
       res.status(500).json({ success: false, error: error.message });
     }
-  });
-
-  // Health check route
-  app.get('/api/ping', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: { hasResendKey: !!process.env.RESEND_API_KEY } });
   });
 
   // Bulk Email Route for Payroll
