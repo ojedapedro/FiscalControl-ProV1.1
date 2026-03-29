@@ -803,7 +803,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           const errorData = JSON.parse(text);
           errorMsg = errorData.error || errorData.details || errorMsg;
         } catch (e) {
-          errorMsg = `Error del servidor (no JSON): ${text.substring(0, 200) || 'Respuesta vacía'}`;
+          errorMsg = `Error del servidor (no JSON). Status: ${response.status} ${response.statusText}. Inicio de respuesta: ${text.substring(0, 100) || 'Respuesta vacía'}`;
         }
         setNotification(`❌ Error al enviar correos: ${errorMsg}`);
         return;

@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 
 console.log('🚀 [Server] server.tsx cargado');
+console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
@@ -21,6 +22,19 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Health check route - moved to the VERY TOP
+  app.get('/api/ping', (req, res) => {
+    console.log('🔍 [Server] PING recibido');
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(), 
+      env: { 
+        hasResendKey: !!process.env.RESEND_API_KEY,
+        nodeEnv: process.env.NODE_ENV
+      } 
+    });
+  });
+
   app.use(express.json({ limit: '50mb' }));
   app.use(cookieParser());
   app.use(session({
@@ -33,12 +47,6 @@ async function startServer() {
       httpOnly: true 
     }
   }));
-
-  // Health check route - moved up to ensure it's registered early
-  app.get('/api/ping', (req, res) => {
-    console.log('🔍 [Server] PING recibido');
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: { hasResendKey: !!process.env.RESEND_API_KEY } });
-  });
 
   const getOAuth2Client = () => {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -442,17 +450,18 @@ async function startServer() {
         return res.status(500).json({ error: 'Resend no está configurado en el servidor. Verifica la variable RESEND_API_KEY en Settings.' });
       }
 
-      console.log(`[Server] Procesando ${entries.length} correos en paralelo...`);
-      
-      // Process in batches or parallel with limit to avoid timeout and rate limits
-      // For now, we'll do them in parallel but catch individual errors
-      const results = await Promise.all(entries.map(async (entry) => {
+      console.log(`📧 [Server] Procesando ${entries.length} correos secuencialmente...`);
+      const results = [];
+
+      for (const entry of entries) {
         try {
           if (!entry.employeeEmail) {
-            return { id: entry.id, success: false, error: 'Correo no proporcionado' };
+            console.warn(`   [Email] ⚠️ Saltando ${entry.employeeName}: Correo no proporcionado`);
+            results.push({ id: entry.id, success: false, error: 'Correo no proporcionado' });
+            continue;
           }
 
-          console.log(`[Email] Renderizando: ${entry.employeeName}`);
+          console.log(`   [Email] Generando HTML para: ${entry.employeeName}`);
           const html = await render(
             <PayrollEmailTemplate
               employeeName={entry.employeeName}
@@ -464,27 +473,28 @@ async function startServer() {
             />
           );
 
-          console.log(`[Email] Enviando a: ${entry.employeeEmail}`);
+          console.log(`   [Email] Enviando vía Resend a: ${entry.employeeEmail}`);
           const { data, error } = await resendClient.emails.send({
-            from: 'Nomina <onboarding@resend.dev>',
+            from: 'Nómina FiscalControl <onboarding@resend.dev>',
             to: [entry.employeeEmail],
             subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
             html: html,
           });
 
           if (error) {
-            console.error(`[Email] Error Resend (${entry.employeeEmail}):`, error);
-            return { id: entry.id, success: false, error: error.message };
+            console.error(`   [Email] ❌ Error de Resend (${entry.employeeEmail}):`, error);
+            results.push({ id: entry.id, success: false, error: error.message });
+          } else {
+            console.log(`   [Email] ✅ Enviado con éxito a: ${entry.employeeName}`);
+            results.push({ id: entry.id, success: true, messageId: data?.id });
           }
-
-          return { id: entry.id, success: true, messageId: data?.id };
         } catch (err: any) {
-          console.error(`[Email] Error crítico (${entry.employeeName}):`, err);
-          return { id: entry.id, success: false, error: err.message || 'Error interno' };
+          console.error(`   [Email] 💥 Error crítico (${entry.employeeName}):`, err);
+          results.push({ id: entry.id, success: false, error: err.message || 'Error interno al procesar correo' });
         }
-      }));
+      }
 
-      console.log(`[Server] Finalizado: ${results.filter(r => r.success).length} éxitos, ${results.filter(r => !r.success).length} fallos.`);
+      console.log(`📧 [Server] Finalizado: ${results.filter(r => r.success).length} éxitos, ${results.filter(r => !r.success).length} fallos.`);
       res.json({ success: true, results });
     } catch (err: any) {
       console.error('[Server] 💥 Error fatal en la ruta de correos:', err);
