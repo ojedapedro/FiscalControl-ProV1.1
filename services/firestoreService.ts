@@ -68,14 +68,28 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // Helper to remove undefined values from objects before sending to Firestore
-function cleanObject(obj: any): any {
+export function cleanObject(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (obj instanceof Date) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => cleanObject(item));
+  }
+
   const newObj: any = {};
   Object.keys(obj).forEach(key => {
-    if (obj[key] !== undefined) {
-      if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-        newObj[key] = cleanObject(obj[key]);
-      } else {
-        newObj[key] = obj[key];
+    const value = obj[key];
+    if (value !== undefined) {
+      const cleaned = cleanObject(value);
+      if (cleaned !== undefined) {
+        newObj[key] = cleaned;
       }
     }
   });
@@ -359,10 +373,10 @@ export const firestoreService = {
   saveExchangeRate: async (rate: number, date?: string) => {
     const targetDate = date || new Date().toISOString().split('T')[0];
     try {
-      await setDoc(doc(db, 'exchange_rates', targetDate), {
+      await setDoc(doc(db, 'exchange_rates', targetDate), cleanObject({
         date: targetDate,
         rate: rate
-      });
+      }));
       return { success: true };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `exchange_rates/${targetDate}`);

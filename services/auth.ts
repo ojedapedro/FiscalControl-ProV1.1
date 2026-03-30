@@ -8,6 +8,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { cleanObject } from './firestoreService';
 
 export const authService = {
   login: async (email: string, password: string): Promise<User> => {
@@ -29,7 +30,7 @@ export const authService = {
           role: Role.ADMIN, // Default role
           avatar: firebaseUser.photoURL || null
         };
-        await setDoc(doc(db, 'users', firebaseUser.uid), defaultUser);
+        await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
         return defaultUser;
       }
     } catch (error: any) {
@@ -70,7 +71,7 @@ export const authService = {
             role: Role.ADMIN,
             avatar: firebaseUser.photoURL || null
           };
-          await setDoc(doc(db, 'users', firebaseUser.uid), defaultUser);
+          await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
           callback(defaultUser);
         }
       } else {
