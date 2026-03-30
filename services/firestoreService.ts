@@ -70,12 +70,20 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Test connection
 async function testConnection() {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log("Firestore connection successful.");
+    const docRef = doc(db, 'test', 'connection');
+    const docSnap = await getDocFromServer(docRef);
+    if (docSnap.exists()) {
+      console.log("Firestore connection successful (document exists).");
+    } else {
+      console.log("Firestore connection successful (document does not exist, but read is allowed).");
+    }
   } catch (error) {
-    console.error("Firestore connection test failed:", error);
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. ");
+    if (error instanceof Error && error.message.includes('permission-denied')) {
+      console.error("Firestore connection test failed: Missing or insufficient permissions. Please ensure security rules are published.");
+    } else if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Firestore connection test failed: The client is offline. Please check your Firebase configuration or internet connection.");
+    } else {
+      console.error("Firestore connection test failed with an unexpected error:", error);
     }
   }
 }
