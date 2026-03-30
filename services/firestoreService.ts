@@ -67,6 +67,21 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Helper to remove undefined values from objects before sending to Firestore
+function cleanObject(obj: any): any {
+  const newObj: any = {};
+  Object.keys(obj).forEach(key => {
+    if (obj[key] !== undefined) {
+      if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+        newObj[key] = cleanObject(obj[key]);
+      } else {
+        newObj[key] = obj[key];
+      }
+    }
+  });
+  return newObj;
+}
+
 // Test connection
 async function testConnection() {
   try {
@@ -105,7 +120,7 @@ export const firestoreService = {
   createUser: async (user: User) => {
     const path = `users/${user.id}`;
     try {
-      await setDoc(doc(db, 'users', user.id), user);
+      await setDoc(doc(db, 'users', user.id), cleanObject(user));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -115,7 +130,7 @@ export const firestoreService = {
   updateUser: async (user: User) => {
     const path = `users/${user.id}`;
     try {
-      await updateDoc(doc(db, 'users', user.id), { ...user });
+      await updateDoc(doc(db, 'users', user.id), cleanObject(user));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -157,7 +172,7 @@ export const firestoreService = {
   createPayment: async (payment: Payment) => {
     const path = `payments/${payment.id}`;
     try {
-      await setDoc(doc(db, 'payments', payment.id), payment);
+      await setDoc(doc(db, 'payments', payment.id), cleanObject(payment));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -167,7 +182,7 @@ export const firestoreService = {
   updatePayment: async (payment: Payment) => {
     const path = `payments/${payment.id}`;
     try {
-      await updateDoc(doc(db, 'payments', payment.id), { ...payment });
+      await updateDoc(doc(db, 'payments', payment.id), cleanObject(payment));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -199,7 +214,7 @@ export const firestoreService = {
   createEmployee: async (employee: Employee) => {
     const path = `employees/${employee.id}`;
     try {
-      await setDoc(doc(db, 'employees', employee.id), employee);
+      await setDoc(doc(db, 'employees', employee.id), cleanObject(employee));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -209,7 +224,7 @@ export const firestoreService = {
   updateEmployee: async (employee: Employee) => {
     const path = `employees/${employee.id}`;
     try {
-      await updateDoc(doc(db, 'employees', employee.id), { ...employee });
+      await updateDoc(doc(db, 'employees', employee.id), cleanObject(employee));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -241,7 +256,7 @@ export const firestoreService = {
   createPayrollEntry: async (entry: PayrollEntry) => {
     const path = `payroll/${entry.id}`;
     try {
-      await setDoc(doc(db, 'payroll', entry.id), entry);
+      await setDoc(doc(db, 'payroll', entry.id), cleanObject(entry));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -251,7 +266,7 @@ export const firestoreService = {
   updatePayrollEntry: async (entry: PayrollEntry) => {
     const path = `payroll/${entry.id}`;
     try {
-      await updateDoc(doc(db, 'payroll', entry.id), { ...entry });
+      await updateDoc(doc(db, 'payroll', entry.id), cleanObject(entry));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -283,7 +298,7 @@ export const firestoreService = {
   createBudget: async (budget: BudgetEntry) => {
     const path = `budgets/${budget.id}`;
     try {
-      await setDoc(doc(db, 'budgets', budget.id), budget);
+      await setDoc(doc(db, 'budgets', budget.id), cleanObject(budget));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -319,7 +334,7 @@ export const firestoreService = {
   saveSettings: async (settings: SystemSettings) => {
     const path = 'settings/global';
     try {
-      await setDoc(doc(db, 'settings', 'global'), settings);
+      await setDoc(doc(db, 'settings', 'global'), cleanObject(settings));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);

@@ -27,7 +27,7 @@ export const authService = {
           name: firebaseUser.displayName || email.split('@')[0],
           email: firebaseUser.email || email,
           role: Role.ADMIN, // Default role
-          avatar: firebaseUser.photoURL || undefined
+          avatar: firebaseUser.photoURL || null
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), defaultUser);
         return defaultUser;
@@ -68,7 +68,7 @@ export const authService = {
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
             email: firebaseUser.email || '',
             role: Role.ADMIN,
-            avatar: firebaseUser.photoURL || undefined
+            avatar: firebaseUser.photoURL || null
           };
           await setDoc(doc(db, 'users', firebaseUser.uid), defaultUser);
           callback(defaultUser);
