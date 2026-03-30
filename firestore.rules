@@ -29,15 +29,21 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario' ||
-         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario')) ||
+          (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true)
+        );
     }
 
     function isSuperAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario' ||
-         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario') ||
+          (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true)
+        );
     }
 
     function isAuditor() {
@@ -108,6 +114,25 @@ service cloud.firestore {
       allow create: if isAdmin() || isSuperAdmin();
       allow update: if isAdmin() || isSuperAdmin() || isAuditor() || isPresident();
       allow delete: if isSuperAdmin();
+    }
+
+    match /budgets/{budgetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isSuperAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /exchange_rates/{date} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isSuperAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
     }
   }
 }
