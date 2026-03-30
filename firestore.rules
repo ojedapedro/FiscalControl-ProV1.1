@@ -33,7 +33,7 @@ service cloud.firestore {
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario')) ||
-          (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true)
+          request.auth.token.email == "analistadedatosnova@gmail.com"
         );
     }
 
@@ -42,7 +42,7 @@ service cloud.firestore {
         (
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Usuario') ||
-          (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true)
+          request.auth.token.email == "analistadedatosnova@gmail.com"
         );
     }
 
