@@ -141,6 +141,28 @@
         "submittedDate": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "employeeId", "storeId", "month", "baseSalary", "status", "submittedDate"]
+    },
+    "ExchangeRate": {
+      "title": "ExchangeRate",
+      "description": "Historical exchange rate",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "rate": { "type": "number" }
+      },
+      "required": ["date", "rate"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "exchangeRate": { "type": "number" },
+        "whatsappEnabled": { "type": "boolean" },
+        "emailEnabled": { "type": "boolean" },
+        "notificationPhone": { "type": "string" },
+        "notificationEmail": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -159,6 +181,14 @@
     "/payroll/{payrollId}": {
       "schema": "PayrollEntry",
       "description": "Payroll history"
+    },
+    "/exchange_rates/{date}": {
+      "schema": "ExchangeRate",
+      "description": "Historical exchange rates"
+    },
+    "/settings/global": {
+      "schema": "Settings",
+      "description": "Global settings"
     }
   }
 }

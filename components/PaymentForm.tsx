@@ -29,7 +29,7 @@ import { formatDate } from '../src/utils';
 import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
-import { api } from '../services/api';
+import { firestoreService } from '../services/firestoreService';
 
 // Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
 const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
@@ -720,7 +720,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const fetchHistoricalRate = async () => {
       if (docDate) {
         try {
-          const result = await api.getExchangeRateByDate(docDate);
+          const result = await firestoreService.getExchangeRateByDate(docDate);
           if (result && result.rate) {
             setDocExchangeRate(result.rate);
           } else {

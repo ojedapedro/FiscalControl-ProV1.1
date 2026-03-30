@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User, Role } from '../types';
-import { api } from '../services/api';
+import { firestoreService } from '../services/firestoreService';
 import { STORES } from '../constants';
 import { 
   UserPlus, 
@@ -48,7 +48,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getUsers();
+      const data = await firestoreService.getUsers();
       setUsers(data);
     } catch (e) {
       console.error("Error cargando usuarios", e);
@@ -74,12 +74,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     if (!window.confirm('¿Está seguro de que desea eliminar este usuario?')) return;
     
     try {
-      const res = await api.deleteUser(id);
-      if (res.status === 'success') {
+      const res = await firestoreService.deleteUser(id);
+      if (res?.status === 'success') {
         setUsers(prev => prev.filter(u => u.id !== id));
         setMessage({ type: 'success', text: 'Usuario eliminado correctamente.' });
       } else {
-        setMessage({ type: 'error', text: res.message || 'Error eliminando usuario' });
+        setMessage({ type: 'error', text: 'Error eliminando usuario' });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Error de conexión' });
@@ -101,12 +101,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     try {
       let res;
       if (editingUserId) {
-        res = await api.updateUser(userToSave);
+        res = await firestoreService.updateUser(userToSave);
       } else {
-        res = await api.createUser(userToSave);
+        res = await firestoreService.createUser(userToSave);
       }
 
-      if (res.status === 'success') {
+      if (res?.status === 'success') {
         setMessage({ type: 'success', text: editingUserId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.' });
         
         if (editingUserId) {

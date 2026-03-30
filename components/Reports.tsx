@@ -42,13 +42,13 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95">
+      <div className="bg-white dark:bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95">
         <div className="flex items-center gap-2 mb-1">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.color }}></span>
-            <p className="font-bold text-white text-sm">{data.name}</p>
+            <p className="font-bold text-slate-900 dark:text-white text-sm">{data.name}</p>
         </div>
-        <p className="text-xs text-slate-400">
-          <span className="font-mono text-lg text-white font-bold">{data.value}</span> Pagos
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="font-mono text-lg text-slate-900 dark:text-white font-bold">{data.value}</span> Pagos
         </p>
       </div>
     );
@@ -72,7 +72,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
     const totalPercent = ((approvedValue + pendingValue) / budgetTarget) * 100;
 
     return (
-      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
+      <div className="bg-white dark:bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
         <p className="font-bold text-slate-200 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
         
         <div className="space-y-3">
@@ -81,7 +81,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span className="text-slate-400">Gasto Ejecutado</span>
+                <span className="text-slate-500 dark:text-slate-400">Gasto Ejecutado</span>
               </div>
               <div className="text-right">
                 <div className="font-mono font-bold text-blue-400">
@@ -93,7 +93,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
                 <div className="bg-blue-500 h-full" style={{ width: `${Math.min(approvedPercent, 100)}%` }}></div>
               </div>
               <span className="text-[10px] font-bold text-slate-500">{approvedPercent.toFixed(1)}%</span>
@@ -105,7 +105,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                <span className="text-slate-400">Pendiente / En Proceso</span>
+                <span className="text-slate-500 dark:text-slate-400">Pendiente / En Proceso</span>
               </div>
               <div className="text-right">
                 <div className="font-mono font-bold text-yellow-400">
@@ -117,7 +117,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mr-2">
                 <div className="bg-yellow-500 h-full" style={{ width: `${Math.min(pendingPercent, 100)}%` }}></div>
               </div>
               <span className="text-[10px] font-bold text-slate-500">{pendingPercent.toFixed(1)}%</span>
@@ -139,7 +139,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
           </div>
           <div className="flex justify-between items-center text-[10px]">
             <span className="text-slate-500">Utilización Total:</span>
-            <span className={`font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-400'}`}>
+            <span className={`font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
               {totalPercent.toFixed(1)}% del presupuesto
             </span>
           </div>
@@ -859,7 +859,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 lg:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 lg:p-8 font-sans">
       {/* Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
@@ -876,7 +876,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                     <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p className="text-slate-400 text-sm font-medium">Supervisión en Tiempo Real • Auditoría Fiscal</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Supervisión en Tiempo Real • Auditoría Fiscal</p>
                 </div>
              </div>
         </div>
@@ -884,11 +884,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         <div className="flex flex-col sm:flex-row gap-4">
             {/* Report specific filters */}
             {activeReport === 'labor' && (
-              <div className="flex items-center bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
+              <div className="flex items-center bg-white dark:bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl">
                 <select 
                     value={selectedLiabilityType} 
                     onChange={e => setSelectedLiabilityType(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer hover:bg-slate-800"
+                    className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todos los Pasivos</option>
                     {liabilityTypes.filter(t => t !== 'all').map(t => <option key={t} value={t}>{t}</option>)}
@@ -896,7 +896,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 <select 
                     value={selectedEmployeeId} 
                     onChange={e => setSelectedEmployeeId(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 ml-1.5 transition-all cursor-pointer hover:bg-slate-800"
+                    className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/50 ml-1.5 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todos los Trabajadores</option>
                     {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} {emp.lastName}</option>)}
@@ -905,11 +905,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             )}
 
             {/* Store and Municipality Filters */}
-            <div className="flex items-center bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
+            <div className="flex items-center bg-white dark:bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl">
                 <select 
                     value={selectedStore} 
                     onChange={e => setSelectedStore(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:bg-slate-800"
+                    className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todas las Tiendas</option>
                     {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -917,7 +917,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 <select 
                     value={selectedMunicipality} 
                     onChange={e => setSelectedMunicipality(e.target.value)}
-                    className="bg-slate-800/50 text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 ml-1.5 transition-all cursor-pointer hover:bg-slate-800"
+                    className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 ml-1.5 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todos los Municipios</option>
                     {municipalities.filter(m => m !== 'all').map(m => <option key={m} value={m}>{m}</option>)}
@@ -925,8 +925,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             </div>
 
             {/* Date Range Picker */}
-            <div className="flex items-center bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
-                <div className="flex items-center gap-2 px-3 py-2 border-r border-slate-800 text-slate-400">
+            <div className="flex items-center bg-white dark:bg-slate-900/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl">
+                <div className="flex items-center gap-2 px-3 py-2 border-r border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                     <Filter size={16} />
                     <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">Rango</span>
                 </div>
@@ -935,14 +935,14 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         type="date" 
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-transparent text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark] cursor-pointer"
+                        className="bg-transparent text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark] cursor-pointer"
                     />
                     <span className="text-slate-600 font-bold">-</span>
                     <input 
                         type="date" 
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-transparent text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark] cursor-pointer"
+                        className="bg-transparent text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 [color-scheme:dark] cursor-pointer"
                     />
                 </div>
             </div>
@@ -966,7 +966,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50"
+                            className="absolute right-0 mt-2 w-48 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50"
                         >
                             <div className="p-1">
                                 <button 
@@ -1001,8 +1001,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           onClick={() => setActiveReport('financial')}
           className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
             activeReport === 'financial'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
+              ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-500/30'
+              : 'bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800'
           }`}
         >
           <TrendingUp size={18} />
@@ -1012,8 +1012,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           onClick={() => setActiveReport('labor')}
           className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
             activeReport === 'labor'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
+              ? 'bg-emerald-600 text-slate-900 dark:text-white shadow-lg shadow-emerald-500/30'
+              : 'bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800'
           }`}
         >
           <Users size={18} />
@@ -1023,8 +1023,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           onClick={() => setActiveReport('auditor')}
           className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
             activeReport === 'auditor'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-              : 'bg-slate-900/50 text-slate-400 border border-slate-800 hover:bg-slate-800'
+              ? 'bg-purple-600 text-slate-900 dark:text-white shadow-lg shadow-purple-500/30'
+              : 'bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800'
           }`}
         >
           <ShieldCheck size={18} />
@@ -1047,7 +1047,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={`bg-slate-900 border border-slate-800 p-6 rounded-3xl relative overflow-hidden group hover:border-${kpi.color}-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-${kpi.color}-500/10`}
+              className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group hover:border-${kpi.color}-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-${kpi.color}-500/10`}
             >
                 <div className="relative z-10">
                     <div className="flex justify-between items-start mb-4">
@@ -1058,10 +1058,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                             Live
                         </div>
                     </div>
-                    <div className="text-slate-400 text-sm font-semibold tracking-wide">{kpi.label}</div>
-                    <div className="text-3xl font-bold text-white mt-1 font-mono">{kpi.value}</div>
+                    <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold tracking-wide">{kpi.label}</div>
+                    <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1 font-mono">{kpi.value}</div>
                     {kpi.bsValue && (
-                      <div className="text-sm font-medium text-slate-400 mt-1">{kpi.bsValue}</div>
+                      <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{kpi.bsValue}</div>
                     )}
                     <p className={`text-xs text-${kpi.color}-400/70 mt-3 flex items-center gap-1.5 font-medium`}>
                         <ArrowUpRight size={14} />
@@ -1078,10 +1078,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl mb-8 overflow-hidden"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-2xl mb-8 overflow-hidden"
       >
         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
                 Reporte Mensual por Categoría
             </h3>
@@ -1104,10 +1104,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 + (idx * 0.05) }}
-                    className="bg-slate-800/30 border border-slate-800 rounded-3xl p-6 hover:bg-slate-800/50 transition-all group"
+                    className="bg-slate-100 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 hover:bg-slate-100 dark:bg-slate-800/50 transition-all group"
                 >
                     <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700/50">
-                        <span className="text-lg font-bold text-white uppercase tracking-wider">{monthData.month}</span>
+                        <span className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wider">{monthData.month}</span>
                         <div className="text-right">
                             <div className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Total Mes</div>
                             <div className="text-sm font-bold text-blue-400 font-mono">${(monthData.totalApproved + monthData.totalPending).toLocaleString()}</div>
@@ -1118,10 +1118,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         {monthData.categories.map((catData) => (
                             <div key={`${monthData.month}-${catData.category}`} className="flex flex-col gap-1.5">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[11px] font-bold text-slate-400 truncate max-w-[180px]">{catData.category}</span>
-                                    <span className="text-[11px] font-bold text-white font-mono">${catData.total.toLocaleString()}</span>
+                                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{catData.category}</span>
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white font-mono">${catData.total.toLocaleString()}</span>
                                 </div>
-                                <div className="flex h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                                <div className="flex h-1.5 w-full bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                                     <div 
                                         className="bg-emerald-500 h-full transition-all duration-1000" 
                                         style={{ width: `${(catData.approved / catData.total) * 100}%` }}
@@ -1162,24 +1162,24 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
+            className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
          >
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 relative z-10">
                 <div>
-                    <h3 className="font-bold text-2xl text-white flex items-center gap-3">
+                    <h3 className="font-bold text-2xl text-slate-900 dark:text-white flex items-center gap-3">
                         <div className="p-2 bg-blue-500/20 rounded-xl">
                             <Wallet className="text-blue-500" size={20} />
                         </div>
                         Proyección Financiera Anual
                     </h3>
-                    <p className="text-slate-400 text-sm mt-1.5 font-medium">Comparativa de Ejecución vs. Presupuesto Base</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 font-medium">Comparativa de Ejecución vs. Presupuesto Base</p>
                 </div>
                 
                 <div className="flex gap-3">
-                    <div className="px-5 py-3 bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="px-5 py-3 bg-slate-100 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-inner">
                         <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-widest mb-1">Presupuesto Anual</span>
                         <div className="flex flex-col">
-                          <span className="text-xl font-bold text-white font-mono">${totalAnnualBudget.toLocaleString()}</span>
+                          <span className="text-xl font-bold text-slate-900 dark:text-white font-mono">${totalAnnualBudget.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-500 font-bold">Bs. {(totalAnnualBudget * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
                         </div>
                     </div>
@@ -1264,7 +1264,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                             transition={{ delay: 0.6 + (idx * 0.05) }}
                             className={`p-3 rounded-2xl border transition-all duration-300 group cursor-default ${
                             isEmpty 
-                            ? 'bg-slate-900/50 border-slate-800 opacity-40' 
+                            ? 'bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-40' 
                             : isOver 
                                 ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/50' 
                                 : 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/50'
@@ -1283,7 +1283,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                                 <span className={`text-xs font-mono font-bold ${isEmpty ? 'text-slate-600' : isOver ? 'text-red-400' : 'text-emerald-400'}`}>
                                     {isEmpty ? '0%' : `${percentage.toFixed(0)}%`}
                                 </span>
-                                <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
+                                <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full mt-1.5 overflow-hidden">
                                     <motion.div 
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.min(percentage, 100)}%` }}
@@ -1305,9 +1305,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center shadow-2xl"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center shadow-2xl"
             >
-                <h3 className="text-lg font-bold text-white mb-6 self-start flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 self-start flex items-center gap-2">
                     <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
                     Distribución de Pagos
                 </h3>
@@ -1334,19 +1334,19 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-3xl font-bold text-white font-mono">{filteredPayments.length}</span>
+                        <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">{filteredPayments.length}</span>
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Total</span>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 w-full gap-3 mt-8">
                     {statusData.map(item => (
-                        <div key={item.name} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-2xl border border-slate-800/50 hover:bg-slate-800/50 transition-colors">
+                        <div key={item.name} className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/50 transition-colors">
                             <div className="flex items-center gap-3">
                                 <span className="w-3 h-3 rounded-full shadow-lg" style={{backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}40`}}></span>
                                 <span className="text-xs font-bold text-slate-300">{item.name}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-white font-mono">{item.value}</span>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{item.value}</span>
                                 <span className="text-[10px] text-slate-500 font-bold">({((item.value / (filteredPayments.length || 1)) * 100).toFixed(0)}%)</span>
                             </div>
                         </div>
@@ -1359,7 +1359,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-blue-500/20 relative overflow-hidden group"
+                className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-slate-900 dark:text-white shadow-2xl shadow-blue-500/20 relative overflow-hidden group"
             >
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4">
@@ -1369,7 +1369,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         <h4 className="font-bold text-lg">Insight Ejecutivo</h4>
                     </div>
                     <p className="text-blue-50 leading-relaxed text-sm">
-                        Se ha ejecutado el <span className="font-bold text-white underline decoration-white/30 underline-offset-4">{budgetUtilization.toFixed(1)}%</span> del presupuesto anual. 
+                        Se ha ejecutado el <span className="font-bold text-slate-900 dark:text-white underline decoration-white/30 underline-offset-4">{budgetUtilization.toFixed(1)}%</span> del presupuesto anual. 
                         {budgetUtilization > 100 ? ' Se recomienda revisar las desviaciones críticas en los rubros variables.' : ' El flujo de caja se mantiene dentro de los parámetros proyectados.'}
                     </p>
                     <div className="mt-6 flex items-center justify-between">
@@ -1411,10 +1411,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl flex flex-col"
+            className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-2xl flex flex-col"
           >
             <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                     <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
                     Bitácora de Auditoría
                 </h3>
@@ -1422,12 +1422,12 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     <button 
                         onClick={handleDownloadAuditPDF}
                         disabled={isGeneratingPdf}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                     >
                         {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
                         Exportar PDF
                     </button>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 uppercase tracking-widest">
                         {allAuditLogs.length} Eventos
                     </span>
                 </div>
@@ -1444,7 +1444,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         placeholder="Buscar pago o tienda..."
                         value={auditSearchTerm}
                         onChange={(e) => setAuditSearchTerm(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-600"
                     />
                 </div>
                 <div className="relative group">
@@ -1454,7 +1454,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     <select 
                         value={auditUserFilter}
                         onChange={(e) => setAuditUserFilter(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
                     >
                         <option value="all">Todos los usuarios</option>
                         {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
@@ -1473,7 +1473,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         type="date"
                         value={auditDateFilter}
                         onChange={(e) => setAuditDateFilter(e.target.value)}
-                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all [color-scheme:dark]"
+                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all [color-scheme:dark]"
                     />
                     {auditDateFilter && (
                         <button 
@@ -1488,7 +1488,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             
             <div className="overflow-y-auto max-h-[400px] pr-2 custom-scrollbar space-y-4">
                 {allAuditLogs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-[2rem]">
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem]">
                         <AlertCircle size={40} className="mb-4 opacity-20" />
                         <p className="font-medium">Sin registros en este rango</p>
                     </div>
@@ -1500,7 +1500,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 1 + (idx * 0.05) }}
-                                className={`group flex justify-between items-center p-4 rounded-2xl border transition-all duration-300 bg-slate-800/30 border-slate-800/50 hover:border-slate-700 hover:bg-slate-800/50`}
+                                className={`group flex justify-between items-center p-4 rounded-2xl border transition-all duration-300 bg-slate-100 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800/50 hover:border-slate-700 hover:bg-slate-100 dark:bg-slate-800/50`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`p-2.5 rounded-xl ${
@@ -1523,18 +1523,18 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                                         )}
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-slate-200 flex items-center gap-2 group-hover:text-white transition-colors">
+                                        <div className="text-sm font-bold text-slate-200 flex items-center gap-2 group-hover:text-slate-900 dark:text-white transition-colors">
                                             {log.action} por {log.actorName}
-                                            <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-400 font-mono">{log.role}</span>
+                                            <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">{log.role}</span>
                                         </div>
                                         <div className="text-[11px] text-slate-500 flex flex-col gap-0.5 mt-0.5 font-medium">
                                             <div className="flex items-center gap-2">
-                                                <span className="truncate max-w-[150px] text-slate-400">{log.storeName} - {log.specificType}</span>
+                                                <span className="truncate max-w-[150px] text-slate-500 dark:text-slate-400">{log.storeName} - {log.specificType}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-700"></span>
                                                 <span>{formatDateTime(log.date)}</span>
                                             </div>
                                             {log.note && (
-                                                <div className="text-[10px] italic text-slate-500 mt-1 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800">
+                                                <div className="text-[10px] italic text-slate-500 mt-1 bg-white dark:bg-slate-900/50 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
                                                     "{log.note}"
                                                 </div>
                                             )}
@@ -1542,7 +1542,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm font-bold font-mono text-slate-100">
+                                    <div className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
                                         ${log.amount.toLocaleString()}
                                     </div>
                                     <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1">
@@ -1564,48 +1564,48 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
                   <Calculator size={24} />
                 </div>
               </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Total Pasivos Acumulados</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">${laborIndicators.totalAmount.toLocaleString()}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Bs. {(laborIndicators.totalAmount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</div>
+              <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold tracking-wide">Total Pasivos Acumulados</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1 font-mono">${laborIndicators.totalAmount.toLocaleString()}</div>
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Bs. {(laborIndicators.totalAmount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</div>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500">
                   <Users size={24} />
                 </div>
               </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Trabajadores en Reporte</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">{new Set(laborLiabilitiesData.map(d => d.worker)).size}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Personal Activo / Histórico</div>
+              <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold tracking-wide">Trabajadores en Reporte</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1 font-mono">{new Set(laborLiabilitiesData.map(d => d.worker)).size}</div>
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Personal Activo / Histórico</div>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-500">
                   <Briefcase size={24} />
                 </div>
               </div>
-              <div className="text-slate-400 text-sm font-semibold tracking-wide">Tipos de Pasivos</div>
-              <div className="text-3xl font-bold text-white mt-1 font-mono">{laborIndicators.byType.length}</div>
-              <div className="text-sm font-medium text-slate-400 mt-1">Categorías de Ley</div>
+              <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold tracking-wide">Tipos de Pasivos</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1 font-mono">{laborIndicators.byType.length}</div>
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Categorías de Ley</div>
             </motion.div>
           </div>
 
@@ -1614,9 +1614,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
             >
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
                 Distribución por Tipo de Pasivo
               </h3>
@@ -1650,9 +1650,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
-              className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-2xl"
             >
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
                 Top 10 Trabajadores por Pasivo
               </h3>
@@ -1677,10 +1677,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
           >
-            <div className="p-8 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
                 Detalle de Pasivos Laborales
               </h3>
@@ -1691,26 +1691,26 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Trabajador</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo de Pasivo</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto (Bs.)</th>
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fecha</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Trabajador</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tipo de Pasivo</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Monto (Bs.)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {laborLiabilitiesData.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={idx} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
                       <td className="p-4 text-sm font-medium text-slate-300">{item.date}</td>
-                      <td className="p-4 text-sm font-bold text-white">{item.worker}</td>
+                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">{item.worker}</td>
                       <td className="p-4">
-                        <span className="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-slate-700">
+                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-slate-700">
                           {item.type}
                         </span>
                       </td>
-                      <td className="p-4 text-sm font-bold text-white text-right font-mono">${item.amount.toLocaleString()}</td>
-                      <td className="p-4 text-sm font-medium text-slate-400 text-right font-mono">Bs. {(item.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white text-right font-mono">${item.amount.toLocaleString()}</td>
+                      <td className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 text-right font-mono">Bs. {(item.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                   {laborLiabilitiesData.length === 0 && (
@@ -1731,10 +1731,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl"
           >
-            <div className="p-8 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
                 Actividad de Auditores (Aprobaciones y Rechazos)
               </h3>
@@ -1744,7 +1744,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             </div>
 
             {/* Auditor Activity Filters */}
-            <div className="p-8 bg-slate-900/50 border-b border-slate-800/50">
+            <div className="p-8 bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800/50">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-purple-500 transition-colors">
@@ -1755,7 +1755,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                             placeholder="Buscar pago o tienda..."
                             value={auditSearchTerm}
                             onChange={(e) => setAuditSearchTerm(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-100 dark:bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600"
                         />
                     </div>
                     <div className="relative group">
@@ -1765,7 +1765,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         <select 
                             value={auditUserFilter}
                             onChange={(e) => setAuditUserFilter(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all appearance-none cursor-pointer"
+                            className="w-full bg-slate-100 dark:bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all appearance-none cursor-pointer"
                         >
                             <option value="all">Todos los auditores</option>
                             {uniqueAuditUsers.filter(u => u !== 'all').map(user => (
@@ -1784,7 +1784,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                             type="date"
                             value={auditDateFilter}
                             onChange={(e) => setAuditDateFilter(e.target.value)}
-                            className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all [color-scheme:dark]"
+                            className="w-full bg-slate-100 dark:bg-slate-800/30 border border-slate-700/50 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all [color-scheme:dark]"
                         />
                         {auditDateFilter && (
                             <button 
@@ -1801,21 +1801,21 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/50">
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha y Hora</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Auditor</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Acción</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pago / Tienda</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
-                    <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nota</th>
+                  <tr className="bg-slate-100 dark:bg-slate-800/50">
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fecha y Hora</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Auditor</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acción</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pago / Tienda</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Monto ($)</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nota</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {auditorActivity.map((log, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={idx} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
                       <td className="p-4 text-sm font-medium text-slate-300">{formatDateTime(log.date)}</td>
                       <td className="p-4">
-                        <div className="font-bold text-white">{log.actorName}</div>
+                        <div className="font-bold text-slate-900 dark:text-white">{log.actorName}</div>
                         <div className="text-[10px] text-slate-500 uppercase tracking-wider">{log.role}</div>
                       </td>
                       <td className="p-4">
@@ -1828,11 +1828,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                         </span>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm font-bold text-white">{log.specificType}</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">{log.specificType}</div>
                         <div className="text-xs text-slate-500">{log.storeName} ({log.paymentId})</div>
                       </td>
-                      <td className="p-4 text-sm font-bold text-white text-right font-mono">${log.amount.toLocaleString()}</td>
-                      <td className="p-4 text-xs text-slate-400 italic max-w-xs truncate" title={log.note}>
+                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white text-right font-mono">${log.amount.toLocaleString()}</td>
+                      <td className="p-4 text-xs text-slate-500 dark:text-slate-400 italic max-w-xs truncate" title={log.note}>
                         {log.note || '-'}
                       </td>
                     </tr>

@@ -12,11 +12,12 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { EvaluationModule } from './components/EvaluationModule';
-import { CloudSync } from './components/CloudSync.tsx';
 import { STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { api } from './services/api';
+import { authService } from './services/auth';
+import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
@@ -32,9 +33,27 @@ function App({ isDemoMode = false }: AppProps) {
     isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
   );
   const [isAuthenticated, setIsAuthenticated] = useState(isDemoMode);
+  const [isAuthReady, setIsAuthReady] = useState(isDemoMode);
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setIsAuthReady(true);
+      return;
+    }
+    
+    const unsubscribe = authService.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+      setIsAuthenticated(!!user);
+      setIsAuthReady(true);
+    });
+    
+    return () => unsubscribe();
+  }, [isDemoMode]);
 
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('payments');
+
+  // --- MOBILE & PWA STATE ---
   const [payments, setPayments] = useState<Payment[]>([]);
   const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -55,112 +74,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
-
-  // --- GOOGLE SYNC STATE ---
-  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  useEffect(() => {
-    const checkGoogleAuth = async () => {
-      const status = await api.getAuthStatus();
-      setIsGoogleAuthenticated(status.authenticated);
-    };
-    checkGoogleAuth();
-  }, []);
-
-  const handleGoogleLogin = async () => {
-    try {
-      const urlRes = await fetch('/api/auth/google/url');
-      const data = await urlRes.json();
-      
-      if (!urlRes.ok) {
-        setNotification(`❌ Error: ${data.error || 'No se pudo generar la URL de autenticación'}`);
-        return;
-      }
-
-      const authWindow = window.open(
-        data.url,
-        'oauth_popup',
-        'width=600,height=700'
-      );
-
-      if (!authWindow) {
-        setNotification('⚠️ Por favor permite las ventanas emergentes (popups) para iniciar sesión con Google.');
-      }
-    } catch (e) {
-      setNotification('❌ Error al conectar con Google');
-    }
-  };
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
-        return;
-      }
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        setIsGoogleAuthenticated(true);
-        setNotification('✅ Autenticación con Google exitosa');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const handlePushSync = async () => {
-    if (!isGoogleAuthenticated) return;
-    setIsSyncing(true);
-    try {
-      const appState = {
-        payments,
-        payrollEntries,
-        employees,
-        budgets,
-        exchangeRate
-      };
-      const res = await api.pushSync(appState);
-      if (res.success) {
-        setNotification('✅ Datos sincronizados con Google Drive');
-      } else {
-        setNotification('❌ Error al sincronizar: ' + res.error);
-      }
-    } catch (e) {
-      setNotification('❌ Error de red al sincronizar');
-    } finally {
-      setIsSyncing(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handlePullSync = async () => {
-    if (!isGoogleAuthenticated) return;
-    if (!confirm("¿Deseas cargar los datos desde Google Drive? Esto reemplazará los datos actuales.")) return;
-    setIsSyncing(true);
-    try {
-      const res = await api.pullSync();
-      if (res.success && res.data) {
-        const data = res.data;
-        if (data.payments) setPayments(data.payments);
-        if (data.payrollEntries) setPayrollEntries(data.payrollEntries);
-        if (data.employees) setEmployees(data.employees);
-        if (data.budgets) setBudgets(data.budgets);
-        if (data.exchangeRate) {
-          setExchangeRate(data.exchangeRate);
-          setExchangeRateInput(data.exchangeRate);
-        }
-        setNotification('✅ Datos recuperados de Google Drive');
-      } else {
-        setNotification('❌ No se encontraron datos o error: ' + res.error);
-      }
-    } catch (e) {
-      setNotification('❌ Error de red al recuperar datos');
-    } finally {
-      setIsSyncing(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  // --- MOBILE & PWA STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(true);
@@ -233,7 +147,7 @@ function App({ isDemoMode = false }: AppProps) {
     
     try {
       if (!isDemoMode) {
-        await api.createPayrollEntry(newEntry);
+        await firestoreService.createPayrollEntry(newEntry);
       }
       setPayrollEntries([newEntry, ...payrollEntries]);
       setNotification('✅ Nómina cargada exitosamente');
@@ -249,7 +163,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.updatePayrollEntry(entry);
+        await firestoreService.updatePayrollEntry(entry);
       }
       setPayrollEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
       setNotification('✅ Nómina actualizada');
@@ -265,7 +179,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.deletePayrollEntry(id);
+        await firestoreService.deletePayrollEntry(id);
       }
       setPayrollEntries(payrollEntries.filter(e => e.id !== id));
       setNotification('🗑️ Registro de nómina eliminado');
@@ -281,7 +195,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.createEmployee(employee);
+        await firestoreService.createEmployee(employee);
       }
       setEmployees(prev => [...prev, employee]);
       setNotification('✅ Expediente de empleado creado');
@@ -297,7 +211,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.updateEmployee(employee);
+        await firestoreService.updateEmployee(employee);
       }
       setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
       setNotification('✅ Expediente actualizado');
@@ -313,7 +227,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.deleteEmployee(id);
+        await firestoreService.deleteEmployee(id);
       }
       setEmployees(prev => prev.filter(e => e.id !== id));
       setNotification('🗑️ Expediente eliminado');
@@ -329,7 +243,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.createBudget(budget);
+        await firestoreService.createBudget(budget);
       }
       setBudgets(prev => [...prev, budget]);
       setNotification('✅ Presupuesto cargado');
@@ -345,7 +259,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (!isDemoMode) {
-        await api.deleteBudget(id);
+        await firestoreService.deleteBudget(id);
       }
       setBudgets(prev => prev.filter(b => b.id !== id));
       setNotification('🗑️ Presupuesto eliminado');
@@ -357,7 +271,10 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!isDemoMode) {
+      await authService.logout();
+    }
     setCurrentUser(null);
     setIsAuthenticated(false);
     setPayments([]);
@@ -367,7 +284,7 @@ function App({ isDemoMode = false }: AppProps) {
     setIsLoading(true);
     try {
       if (isDemoMode) {
-        // Mock data for demo mode
+        // ... (mock data remains same)
         const mockPayments: Payment[] = [
           {
             id: 'PAG-1001',
@@ -469,12 +386,12 @@ function App({ isDemoMode = false }: AppProps) {
         setPayrollEntries(mockPayroll);
       } else {
         const [data, employeesData, payrollData, budgetsData, settingsData, usersData] = await Promise.all([
-          api.getPayments(),
-          api.getEmployees(),
-          api.getPayrollEntries(),
-          api.getBudgets(),
-          api.getSettings(),
-          api.getUsers()
+          firestoreService.getPayments(),
+          firestoreService.getEmployees(),
+          firestoreService.getPayrollEntries(),
+          firestoreService.getBudgets(),
+          firestoreService.getSettings(),
+          firestoreService.getUsers()
         ]);
 
         setPayments(data.sort((a,b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
@@ -491,27 +408,14 @@ function App({ isDemoMode = false }: AppProps) {
         }
       }
     } catch (error) {
-      setNotification('❌ Error conectando con Google Sheets');
+      setNotification('❌ Error conectando con Firestore');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSetupDatabase = async () => {
-    if (isDemoMode) {
-      setNotification('✅ Base de datos configurada (Modo Demo)');
-      return;
-    }
-    if(!confirm("¿Estás seguro? Esto creará las hojas en tu Google Sheet si no existen.")) return;
-    setIsLoading(true);
-    try {
-      const res = await api.setupDatabase();
-      setNotification(`✅ Base de datos configurada: ${res.message}`);
-    } catch (e) {
-      setNotification('❌ Error configurando BD');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSetupDatabase = () => {
+    setNotification('✅ Base de datos configurada (Firebase)');
   };
 
   const requestPermission = () => {
@@ -634,13 +538,13 @@ function App({ isDemoMode = false }: AppProps) {
 
     try {
         if (isUpdate) {
-            if (!isDemoMode) await api.updatePayment(paymentToSave);
+            if (!isDemoMode) await firestoreService.updatePayment(paymentToSave);
             setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
             setNotification('✅ Pago corregido y enviado a revisión.');
         } else {
-            if (!isDemoMode) await api.createPayment(paymentToSave);
+            if (!isDemoMode) await firestoreService.createPayment(paymentToSave);
             setPayments(prev => [paymentToSave, ...prev]);
-            setNotification('✅ Pago guardado en Google Sheets.');
+            setNotification('✅ Pago guardado en Firestore.');
             
             // Notificar a involucrados (Auditores/Admins)
             notificationService.notifyNewPayment(paymentToSave, users, settings);
@@ -711,7 +615,7 @@ function App({ isDemoMode = false }: AppProps) {
         }
 
         try {
-            if (!isDemoMode) await api.updatePayment(updatedPayment);
+            if (!isDemoMode) await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
 
@@ -759,7 +663,7 @@ function App({ isDemoMode = false }: AppProps) {
       try {
           if (!isDemoMode) {
               for (const p of updatedPayments) {
-                  await api.updatePayment(p);
+                  await firestoreService.updatePayment(p);
               }
           }
           setPayments(prev => prev.map(p => {
@@ -795,7 +699,7 @@ function App({ isDemoMode = false }: AppProps) {
           };
 
           try {
-            if (!isDemoMode) await api.updatePayment(updatedPayment);
+            if (!isDemoMode) await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Rechazado y Sincronizado`);
 
@@ -845,7 +749,7 @@ function App({ isDemoMode = false }: AppProps) {
       const payment = payments.find(p => p.id === paymentId);
       if (payment) {
         const updatedPayment = { ...payment, status: PaymentStatus.PAID };
-        await api.updatePayment(updatedPayment);
+        await firestoreService.updatePayment(updatedPayment);
         setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
         setNotification('✅ Pago procesado exitosamente');
       }
@@ -1091,7 +995,7 @@ function App({ isDemoMode = false }: AppProps) {
                                onClick={async () => {
                                    setIsLoading(true);
                                    try {
-                                       const currentSettings = await api.getSettings() || {
+                                       const currentSettings = await firestoreService.getSettings() || {
                                            whatsappEnabled: false,
                                            whatsappPhone: '',
                                            whatsappGatewayUrl: '',
@@ -1100,9 +1004,9 @@ function App({ isDemoMode = false }: AppProps) {
                                            emailEnabled: false,
                                            exchangeRate: 1
                                        };
-                                       await api.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
-                                       if (isGoogleAuthenticated) {
-                                           await api.saveExchangeRate(exchangeRateInput);
+                                       await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
+                                       if (true) {
+                                           await firestoreService.saveExchangeRate(exchangeRateInput);
                                        }
                                        setExchangeRate(exchangeRateInput);
                                        localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
@@ -1123,14 +1027,6 @@ function App({ isDemoMode = false }: AppProps) {
                        </p>
                    </div>
                 </div>
-
-                <CloudSync 
-                    isAuthenticated={isGoogleAuthenticated}
-                    isSyncing={isSyncing}
-                    onLogin={handleGoogleLogin}
-                    onPush={handlePushSync}
-                    onPull={handlePullSync}
-                />
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
@@ -1162,6 +1058,14 @@ function App({ isDemoMode = false }: AppProps) {
       setCurrentView(getInitialView(currentUser.role));
     }
   }, [currentView, currentUser]);
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLogin} isDemoMode={isDemoMode} />;
@@ -1240,7 +1144,7 @@ function App({ isDemoMode = false }: AppProps) {
           {isLoading && (
               <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
                   <RefreshCw size={12} className="animate-spin" />
-                  Sincronizando...
+                  Procesando...
               </div>
           )}
 
