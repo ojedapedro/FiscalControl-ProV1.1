@@ -14,7 +14,9 @@ import {
   Download,
   X,
   Users,
-  TrendingUp
+  TrendingUp,
+  Activity,
+  BarChart3
 } from 'lucide-react';
 import { Role } from '../types';
 import { useTheme } from './ThemeContext';
@@ -59,7 +61,9 @@ export const Sidebar: FC<SidebarProps> = ({
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'calendar', label: 'Calendario Fiscal', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
-    { id: 'evaluation', label: 'Evaluación', icon: TrendingUp, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
+    { id: 'annual-budget', label: 'Presupuesto Anual', icon: TrendingUp, roles: [Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
+    { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },
     { id: 'presidency', label: 'Presidencia', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },

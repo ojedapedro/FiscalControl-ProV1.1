@@ -12,8 +12,10 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { EvaluationModule } from './components/EvaluationModule';
+import { AnnualBudgetManager } from './components/AnnualBudgetManager';
+import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, AnnualBudget } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { api } from './services/api';
 import { authService } from './services/auth';
@@ -58,6 +60,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
+  const [annualBudgets, setAnnualBudgets] = useState<AnnualBudget[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
@@ -384,12 +387,38 @@ function App({ isDemoMode = false }: AppProps) {
           }
         ];
         setPayrollEntries(mockPayroll);
+
+        // Mock Annual Budgets
+        const mockAnnualBudgets: AnnualBudget[] = [
+          {
+            id: 'budget-2025',
+            year: 2025,
+            months: {
+              '01': 5000, '02': 5500, '03': 6000, '04': 5800, '05': 6200, '06': 6500,
+              '07': 7000, '08': 7200, '09': 6800, '10': 7500, '11': 8000, '12': 9000
+            },
+            total: 82500,
+            storeId: 'all'
+          },
+          {
+            id: 'budget-2026',
+            year: 2026,
+            months: {
+              '01': 6000, '02': 6200, '03': 6500, '04': 6300, '05': 6800, '06': 7000,
+              '07': 7500, '08': 7800, '09': 7200, '10': 8000, '11': 8500, '12': 10000
+            },
+            total: 87800,
+            storeId: 'all'
+          }
+        ];
+        setAnnualBudgets(mockAnnualBudgets);
       } else {
-        const [data, employeesData, payrollData, budgetsData, settingsData, usersData] = await Promise.all([
+        const [data, employeesData, payrollData, budgetsData, annualBudgetsData, settingsData, usersData] = await Promise.all([
           firestoreService.getPayments(),
           firestoreService.getEmployees(),
           firestoreService.getPayrollEntries(),
           firestoreService.getBudgets(),
+          firestoreService.getAnnualBudgets(),
           firestoreService.getSettings(),
           firestoreService.getUsers()
         ]);
@@ -398,6 +427,7 @@ function App({ isDemoMode = false }: AppProps) {
         setEmployees(employeesData);
         setPayrollEntries(payrollData.sort((a: any, b: any) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()));
         setBudgets(budgetsData);
+        setAnnualBudgets(annualBudgetsData);
         setSettings(settingsData);
         setUsers(usersData);
 
@@ -943,6 +973,10 @@ function App({ isDemoMode = false }: AppProps) {
             settings={settings}
           />
         );
+      case 'annual-budget':
+        return <AnnualBudgetManager onBudgetSaved={loadData} />;
+      case 'predictive':
+        return <PredictiveDashboard payments={payments} annualBudgets={annualBudgets} />;
       case 'settings':
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
@@ -1047,12 +1081,12 @@ function App({ isDemoMode = false }: AppProps) {
 
   useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency', 'evaluation'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency', 'evaluation', 'annual-budget', 'predictive'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
       [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'reports', 'evaluation'],
-      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency']
+      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive'],
+      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency', 'annual-budget', 'predictive']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
       setCurrentView(getInitialView(currentUser.role));
