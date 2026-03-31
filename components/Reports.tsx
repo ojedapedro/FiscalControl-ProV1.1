@@ -1254,7 +1254,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 {annualData.map((month, idx) => {
                     const isOver = month.total > month.budget;
                     const isEmpty = month.total === 0;
-                    const percentage = (month.total / month.budget) * 100;
+                    const percentage = month.budget > 0 ? (month.total / month.budget) * 100 : (month.total > 0 ? 100 : 0);
                     
                     return (
                         <motion.div 
