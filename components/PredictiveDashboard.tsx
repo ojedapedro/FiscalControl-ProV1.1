@@ -9,15 +9,14 @@ import {
   ArrowUpRight, ArrowDownRight, Activity, Zap, Target, BarChart3,
   ChevronRight, Info
 } from 'lucide-react';
-import { Payment, PaymentStatus, AnnualBudget } from '../types';
+import { Payment, PaymentStatus } from '../types';
 import { motion } from 'motion/react';
 
 interface PredictiveDashboardProps {
   payments: Payment[];
-  annualBudgets: AnnualBudget[];
 }
 
-export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ payments, annualBudgets }) => {
+export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ payments }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [growthFactor, setGrowthFactor] = useState(10); // 10% default growth/inflation
 
@@ -25,10 +24,6 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
     "Ene", "Feb", "Mar", "Abr", "May", "Jun",
     "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
   ];
-
-  const currentYearBudget = useMemo(() => 
-    annualBudgets.find(b => b.year === selectedYear), 
-  [annualBudgets, selectedYear]);
 
   const chartData = useMemo(() => {
     const data = monthNames.map((name, index) => {
@@ -50,7 +45,6 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
         })
         .reduce((sum, p) => sum + (p.proposedAmount || p.amount), 0);
 
-      const budget = currentYearBudget?.months[monthNum] || 0;
       const totalCommitted = actual + proposed;
       
       // Projection for next year
@@ -61,26 +55,22 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
         actual,
         proposed,
         totalCommitted,
-        budget,
-        projection,
-        variance: budget > 0 ? ((totalCommitted - budget) / budget) * 100 : 0
+        projection
       };
     });
 
     return data;
-  }, [payments, currentYearBudget, selectedYear, growthFactor]);
+  }, [payments, selectedYear, growthFactor]);
 
   const totals = useMemo(() => {
     return chartData.reduce((acc, curr) => ({
       actual: acc.actual + curr.actual,
       proposed: acc.proposed + curr.proposed,
-      budget: acc.budget + curr.budget,
       projection: acc.projection + curr.projection
-    }), { actual: 0, proposed: 0, budget: 0, projection: 0 });
+    }), { actual: 0, proposed: 0, projection: 0 });
   }, [chartData]);
 
   const totalCommitted = totals.actual + totals.proposed;
-  const budgetVariance = totals.budget > 0 ? ((totalCommitted - totals.budget) / totals.budget) * 100 : 0;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -90,7 +80,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
             <Activity className="text-blue-600" size={32} />
             Análisis Predictivo
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Proyección financiera basada en presupuesto y ejecución actual.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Proyección financiera basada en ejecución actual y tendencias.</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -124,33 +114,19 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
       </header>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ejecutado + Propuesto</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
               ${totalCommitted.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </h3>
-            <div className={`flex items-center gap-1 text-xs font-bold mt-2 ${budgetVariance > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-              {budgetVariance > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              {Math.abs(budgetVariance).toFixed(1)}% vs Presupuesto
+            <div className="flex items-center gap-1 text-xs font-bold mt-2 text-blue-500">
+              <Activity size={14} />
+              Flujo Total {selectedYear}
             </div>
           </div>
           <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full blur-xl group-hover:scale-125 transition-transform"></div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Presupuesto Anual</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-              ${totals.budget.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-            </h3>
-            <div className="flex items-center gap-1 text-xs font-bold mt-2 text-blue-500">
-              <Target size={14} />
-              Meta Establecida
-            </div>
-          </div>
-          <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-full blur-xl group-hover:scale-125 transition-transform"></div>
         </div>
 
         <div className="bg-slate-900 dark:bg-blue-600 p-6 rounded-3xl shadow-xl text-white relative overflow-hidden group">
@@ -169,13 +145,13 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eficiencia Presupuestaria</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Crecimiento Estimado</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {totals.budget > 0 ? (100 - Math.abs(budgetVariance)).toFixed(1) : 0}%
+              +${(totals.projection - totalCommitted).toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </h3>
             <div className="flex items-center gap-1 text-xs font-bold mt-2 text-slate-500">
-              <BarChart3 size={14} />
-              Alineación con metas
+              <TrendingUp size={14} />
+              Incremento Proyectado
             </div>
           </div>
           <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-purple-50 dark:bg-purple-900/20 rounded-full blur-xl group-hover:scale-125 transition-transform"></div>
@@ -186,8 +162,8 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Comparativa y Proyección Mensual</h3>
-            <p className="text-slate-500 text-xs font-medium">Visualización de ejecución vs presupuesto y estimación futura.</p>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tendencia y Proyección Mensual</h3>
+            <p className="text-slate-500 text-xs font-medium">Visualización de ejecución y estimación futura.</p>
           </div>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
@@ -197,10 +173,6 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-300"></div>
               <span className="text-[10px] font-black uppercase text-slate-500">Propuesto</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-              <span className="text-[10px] font-black uppercase text-slate-500">Presupuesto</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-amber-500"></div>
@@ -237,7 +209,6 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
               />
               <Bar dataKey="actual" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={40} />
               <Bar dataKey="proposed" stackId="a" fill="#93c5fd" radius={[10, 10, 0, 0]} barSize={40} />
-              <Bar dataKey="budget" fill="#e2e8f0" radius={[10, 10, 0, 0]} barSize={40} />
               <Line 
                 type="monotone" 
                 dataKey="projection" 
@@ -264,30 +235,22 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50">
                 <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mes</th>
-                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Presupuesto</th>
                 <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ejecutado + Propuesto</th>
-                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Variación</th>
                 <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Proyección {selectedYear + 1}</th>
-                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tendencia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {chartData.map((row, i) => (
                 <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                   <td className="p-6 font-black text-slate-900 dark:text-white">{row.name}</td>
-                  <td className="p-6 font-bold text-slate-500">${row.budget.toLocaleString()}</td>
                   <td className="p-6 font-bold text-slate-900 dark:text-white">${row.totalCommitted.toLocaleString()}</td>
-                  <td className={`p-6 font-black ${row.variance > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {row.variance > 0 ? '+' : ''}{row.variance.toFixed(1)}%
-                  </td>
                   <td className="p-6 font-black text-blue-600">${row.projection.toLocaleString()}</td>
                   <td className="p-6">
-                    {row.variance > 10 ? (
-                      <span className="px-3 py-1 bg-red-100 text-red-600 text-[10px] font-black uppercase rounded-full">Crítico</span>
-                    ) : row.variance > 0 ? (
-                      <span className="px-3 py-1 bg-amber-100 text-amber-600 text-[10px] font-black uppercase rounded-full">Alerta</span>
+                    {row.totalCommitted > 0 ? (
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase rounded-full">Activo</span>
                     ) : (
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase rounded-full">Optimizado</span>
+                      <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase rounded-full">Sin Datos</span>
                     )}
                   </td>
                 </tr>
@@ -311,13 +274,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
             </li>
             <li className="flex gap-3 text-sm font-medium text-blue-800 dark:text-blue-300">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-              La desviación acumulada actual es del <span className="font-black">{budgetVariance.toFixed(1)}%</span> respecto al presupuesto establecido.
-            </li>
-            <li className="flex gap-3 text-sm font-medium text-blue-800 dark:text-blue-300">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-              {budgetVariance > 0 
-                ? "Se recomienda revisar los costos operativos para alinear la ejecución con el presupuesto anual."
-                : "La ejecución se mantiene dentro de los márgenes saludables del presupuesto anual."}
+              La proyección se basa en un factor de crecimiento del <span className="font-black">{growthFactor}%</span> sobre la ejecución actual.
             </li>
           </ul>
         </div>
