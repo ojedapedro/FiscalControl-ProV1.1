@@ -880,7 +880,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
     }
-    if (!amount || parseFloat(amount) <= 0) newErrors.amount = "Monto inválido";
+    const parsedAmount = parseFloat(amount);
+    
+    if (amount === '' || isNaN(parsedAmount) || (isTaxCategory ? parsedAmount < 0 : parsedAmount <= 0)) {
+      newErrors.amount = "Monto inválido";
+    }
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
@@ -932,7 +936,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             proposedDueDate,
             proposedDaysToExpire,
             proposedJustification,
-            proposedStatus: proposedAmount || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
+            proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
         });
         resetForm();
     } catch (error) {
@@ -1337,6 +1341,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                     )}
                                 </div>
+                                {parseFloat(amount) === 0 && !!getTaxConfig(category) && (
+                                    <p className="text-[10px] font-black text-emerald-500 uppercase mt-2 ml-1 tracking-tighter flex items-center gap-1 animate-in fade-in slide-in-from-left-1">
+                                        <CheckCircle2 size={10} /> Trámite Exonerado / Pago Cero
+                                    </p>
+                                )}
                                 {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 
                                 {effectiveExchangeRate !== undefined && (
