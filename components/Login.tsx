@@ -2,6 +2,7 @@
 import React, { useState, FC, FormEvent } from 'react';
 import { User } from '../types';
 import { authService } from '../services/auth';
+import firebaseConfig from '../firebase-applet-config.json';
 import { 
   Loader2, 
   Mail, 
@@ -82,6 +83,8 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
     }
   };
 
+  const [showDebug, setShowDebug] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 lg:p-0 overflow-hidden font-sans transition-colors duration-500">
       <div className="w-full max-w-7xl h-full lg:h-[85vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-200 dark:border-slate-800/50 transition-all duration-500">
@@ -101,7 +104,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                     src="https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg?w=740&t=st=1708450000~exp=1708450600~hmac=a1b2c3d4" 
                     alt="3D Character" 
                     className="w-full h-full object-contain drop-shadow-2xl animate-in fade-in zoom-in duration-700"
-                    style={{ mixBlendMode: 'normal' }} // Fallback image if user provided url fails or for generic use
+                    style={{ mixBlendMode: 'normal' }} 
                 />
                 
                 {/* Floating Card: Profit */}
@@ -147,7 +150,14 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
         <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-white dark:bg-slate-900 relative transition-colors duration-500">
             
             {/* Theme Toggle (Login Screen) */}
-            <div className="absolute top-6 right-6">
+            <div className="absolute top-6 right-6 flex gap-2">
+                <button 
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all border border-slate-200 dark:border-slate-700/50 shadow-sm"
+                    title="Información de Depuración"
+                >
+                    <BarChart3 size={20} />
+                </button>
                 <button 
                     onClick={toggleTheme}
                     className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all border border-slate-200 dark:border-slate-700/50 shadow-sm"
@@ -164,153 +174,191 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
             </div>
 
             <div className="max-w-md w-full mx-auto">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                    {isRecovering ? 'Recuperar Cuenta' : 'Bienvenido de nuevo'}
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400 mb-8">
-                    {isRecovering 
-                        ? 'Ingrese su correo para recibir instrucciones.' 
-                        : 'Ingrese sus credenciales para acceder al panel.'}
-                </p>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    
-                    {/* Email Input */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Correo Electrónico</label>
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
-                            </div>
-                            <input 
-                                type="email" 
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
-                                placeholder="usuario@fiscal.com"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {/* Password Input (Hidden if recovering) */}
-                    {!isRecovering && (
+                {showDebug ? (
+                  <div className="space-y-6 animate-in slide-in-from-right duration-300">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Información de Depuración</h2>
+                    <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dominio Actual</p>
+                        <code className="text-xs text-brand-600 dark:text-brand-400 font-mono break-all">{window.location.hostname}</code>
+                        <p className="text-[10px] text-slate-500 mt-1">Asegúrate de que este dominio esté en "Authorized domains" en Firebase Console.</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Configuración Firebase</p>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
-                            </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-500 uppercase">API Key:</span>
+                            <code className="text-[10px] font-bold text-brand-600 dark:text-brand-400 font-mono">{firebaseConfig.apiKey.substring(0, 10)}...</code>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-500 uppercase">Email/Pass:</span>
+                            <span className="text-[10px] font-bold text-amber-500">Verificar en Consola</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-500 uppercase">Google Auth:</span>
+                            <span className="text-[10px] font-bold text-amber-500">Verificar en Consola</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowDebug(false)}
+                      className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm"
+                    >
+                      Volver al Login
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                        {isRecovering ? 'Recuperar Cuenta' : 'Bienvenido de nuevo'}
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8">
+                        {isRecovering 
+                            ? 'Ingrese su correo para recibir instrucciones.' 
+                            : 'Ingrese sus credenciales para acceder al panel.'}
+                    </p>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        
+                        {/* Email Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Correo Electrónico</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
+                                    <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
                                 </div>
                                 <input 
-                                    type={showPassword ? "text" : "password"} 
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
-                                    placeholder="••••••••"
+                                    type="email" 
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                    placeholder="usuario@fiscal.com"
                                     required
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                            </div>
+                        </div>
+
+                        {/* Password Input (Hidden if recovering) */}
+                        {!isRecovering && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
+                                    </div>
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                        placeholder="••••••••"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Forgot Password Link */}
+                        {!isRecovering && (
+                            <div className="flex justify-end">
+                                <button 
+                                    type="button" 
+                                    onClick={() => { setIsRecovering(true); setError(null); }}
+                                    className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:text-brand-500 dark:hover:text-brand-300 transition-colors"
                                 >
-                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    ¿Olvidó su contraseña?
                                 </button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Forgot Password Link */}
-                    {!isRecovering && (
-                        <div className="flex justify-end">
-                            <button 
-                                type="button" 
-                                onClick={() => { setIsRecovering(true); setError(null); }}
-                                className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:text-brand-500 dark:hover:text-brand-300 transition-colors"
-                            >
-                                ¿Olvidó su contraseña?
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Feedback Messages */}
-                    {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 text-sm animate-in fade-in">
-                            <ShieldCheck size={16} />
-                            {error}
-                        </div>
-                    )}
-                    {successMsg && (
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-xl flex items-center gap-2 text-green-600 dark:text-green-400 text-sm animate-in fade-in">
-                            <CheckCircle2 size={16} />
-                            {successMsg}
-                        </div>
-                    )}
-
-                    {/* Submit Button */}
-                    <button 
-                        type="submit" 
-                        disabled={isLoading}
-                        className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="animate-spin" />
-                        ) : isRecovering ? (
-                            'Enviar Enlace de Recuperación'
-                        ) : (
-                            <>
-                                <span>Iniciar Sesión</span>
-                                <ArrowRight size={20} />
-                            </>
                         )}
-                    </button>
 
-                    {!isRecovering && (
-                        <div className="relative py-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                        {/* Feedback Messages */}
+                        {error && (
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 text-sm animate-in fade-in">
+                                <ShieldCheck size={16} />
+                                {error}
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">O continuar con</span>
+                        )}
+                        {successMsg && (
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-xl flex items-center gap-2 text-green-600 dark:text-green-400 text-sm animate-in fade-in">
+                                <CheckCircle2 size={16} />
+                                {successMsg}
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {!isRecovering && (
+                        {/* Submit Button */}
                         <button 
-                            type="button"
-                            onClick={handleGoogleLogin}
+                            type="submit" 
                             disabled={isLoading}
-                            className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-4 rounded-xl border border-slate-200 dark:border-slate-700 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3"
+                            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                         >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                            <span>Iniciar sesión con Google</span>
+                            {isLoading ? (
+                                <Loader2 className="animate-spin" />
+                            ) : isRecovering ? (
+                                'Enviar Enlace de Recuperación'
+                            ) : (
+                                <>
+                                    <span>Iniciar Sesión</span>
+                                    <ArrowRight size={20} />
+                                </>
+                            )}
+                        </button>
+
+                        {!isRecovering && (
+                            <div className="relative py-4">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">O continuar con</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isRecovering && (
+                            <button 
+                                type="button"
+                                onClick={handleGoogleLogin}
+                                disabled={isLoading}
+                                className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-4 rounded-xl border border-slate-200 dark:border-slate-700 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                                <span>Iniciar sesión con Google</span>
+                            </button>
+                        )}
+                    </form>
+
+                    {/* Back to Login (if recovering) */}
+                    {isRecovering && (
+                        <button 
+                            onClick={() => { setIsRecovering(false); setError(null); setSuccessMsg(null); }}
+                            className="mt-6 w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-colors"
+                        >
+                            ← Volver al inicio de sesión
                         </button>
                     )}
-                </form>
-
-                {/* Back to Login (if recovering) */}
-                {isRecovering && (
-                    <button 
-                        onClick={() => { setIsRecovering(false); setError(null); setSuccessMsg(null); }}
-                        className="mt-6 w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-colors"
-                    >
-                        ← Volver al inicio de sesión
-                    </button>
-                )}
-                
-                {/* Demo Roles Shortcut (Solo para demostración) */}
-                {!isRecovering && isDemoMode && (
-                    <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
-                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
-                        <div className="flex gap-2 justify-center">
-                            <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Admin</button>
-                            <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Auditor</button>
-                            <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Presidente</button>
+                    
+                    {/* Demo Roles Shortcut (Solo para demostración) */}
+                    {!isRecovering && isDemoMode && (
+                        <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
+                            <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Admin</button>
+                                <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Auditor</button>
+                                <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Presidente</button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                  </>
                 )}
             </div>
         </div>
