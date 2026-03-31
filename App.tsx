@@ -274,6 +274,30 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
+  const handleSaveAnnualBudget = async (budget: AnnualBudget) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await firestoreService.saveAnnualBudget(budget);
+      }
+      setAnnualBudgets(prev => {
+        const existingIndex = prev.findIndex(b => b.id === budget.id);
+        if (existingIndex >= 0) {
+          const newBudgets = [...prev];
+          newBudgets[existingIndex] = budget;
+          return newBudgets;
+        }
+        return [...prev, budget];
+      });
+      setNotification('✅ Presupuesto anual guardado');
+    } catch (error) {
+      setNotification('❌ Error guardando presupuesto anual');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   const handleLogout = async () => {
     if (!isDemoMode) {
       await authService.logout();
@@ -797,6 +821,9 @@ function App({ isDemoMode = false }: AppProps) {
   const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
   const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
   const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
+  const filteredAnnualBudgets = userStoreId 
+    ? annualBudgets.filter(b => b.storeId === userStoreId || b.storeId === 'all') 
+    : annualBudgets;
 
   const renderContent = () => {
     if (!isAuthenticated) return null;
@@ -945,7 +972,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'network':
         return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} />;
       case 'calendar':
-        return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={budgets} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} currentUser={currentUser} />;
+        return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={budgets} annualBudgets={filteredAnnualBudgets} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} onSaveAnnualBudget={handleSaveAnnualBudget} currentUser={currentUser} />;
       case 'payroll':
         return (
           <PayrollModule 
@@ -976,7 +1003,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'annual-budget':
         return <AnnualBudgetManager onBudgetSaved={loadData} />;
       case 'predictive':
-        return <PredictiveDashboard payments={payments} annualBudgets={annualBudgets} />;
+        return <PredictiveDashboard payments={payments} annualBudgets={filteredAnnualBudgets} />;
       case 'settings':
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">

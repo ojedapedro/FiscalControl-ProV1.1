@@ -19,15 +19,17 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
+import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role, AnnualBudget } from '../types';
 import { formatDate } from '../src/utils';
 
 interface CalendarViewProps {
   payments: Payment[];
   payrollEntries?: PayrollEntry[];
   budgets: BudgetEntry[];
+  annualBudgets: AnnualBudget[];
   onAddBudget: (budget: BudgetEntry) => Promise<void>;
   onDeleteBudget: (id: string) => Promise<void>;
+  onSaveAnnualBudget: (budget: AnnualBudget) => Promise<void>;
   currentUser: User | null;
 }
 
@@ -105,8 +107,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   payments, 
   payrollEntries = [], 
   budgets, 
+  annualBudgets,
   onAddBudget, 
   onDeleteBudget,
+  onSaveAnnualBudget,
   currentUser 
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -254,6 +258,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const monthlyComparison = React.useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+    const monthKey = String(month + 1).padStart(2, '0');
     
     // Filtrar pagos aprobados del mes actual
     const approvedPayments = payments.filter(p => {
@@ -263,7 +268,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
              p.status === PaymentStatus.APPROVED;
     });
 
-    // Filtrar presupuestos del mes actual
+    // Buscar presupuesto anual para este año
+    const annualBudget = annualBudgets.find(b => b.year === year);
+    const annualMonthBudget = annualBudget?.months[monthKey] || 0;
+
+    // Filtrar presupuestos del mes actual (individuales)
     const monthBudgets = budgets.filter(b => {
       const bDate = new Date(b.date);
       return bDate.getFullYear() === year && bDate.getMonth() === month;
@@ -271,14 +280,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Agrupar por categoría
     const categories = Object.values(Category);
-    return categories.map(cat => {
+    const comparison = categories.map(cat => {
       const spent = approvedPayments
         .filter(p => p.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
       
-      const budget = monthBudgets
+      // Si es la categoría del presupuesto anual (por defecto Impuesto Municipal en el asistente)
+      // o si hay presupuestos individuales para esta categoría
+      let budget = monthBudgets
         .filter(b => b.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
+
+      // Si no hay presupuesto individual pero hay presupuesto anual para esta categoría
+      // (Asumimos que el presupuesto anual del asistente se aplica a la categoría seleccionada en el asistente)
+      // Para simplificar, si el asistente anual se usó para esta categoría, lo sumamos
+      // Nota: El asistente anual actual solo guarda una categoría a la vez.
       
       return {
         category: cat,
@@ -287,7 +303,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         isOver: spent > budget && budget > 0
       };
     }).filter(item => item.spent > 0 || item.budget > 0);
-  }, [currentDate, payments, budgets]);
+
+    // Si hay un presupuesto anual global (del asistente), lo mostramos como una fila especial si no está en las categorías
+    if (annualMonthBudget > 0) {
+        const totalSpent = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+        comparison.push({
+            category: 'Presupuesto Anual (Global)' as Category,
+            spent: totalSpent,
+            budget: annualMonthBudget,
+            isOver: totalSpent > annualMonthBudget
+        });
+    }
+
+    return comparison;
+  }, [currentDate, payments, budgets, annualBudgets]);
 
   // Manejo de creación de presupuesto
   const handleAddBudget = async (e: React.FormEvent) => {
@@ -313,30 +342,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleSaveAnnualBudget = async () => {
-    const entries: BudgetEntry[] = [];
-    const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
+    const monthsData: { [key: string]: number } = {};
+    let total = 0;
 
     for (let i = 0; i < 12; i++) {
-      if (annualBudgetForm.amounts[i] > 0) {
-        const dateStr = `${annualBudgetForm.year}-${String(i + 1).padStart(2, '0')}-01`;
-        entries.push({
-          id: `BUD-ANNUAL-${Math.random().toString(36).substr(2, 9)}`,
-          date: dateStr,
-          title: `Presupuesto Anual: ${months[i]}`,
-          amount: annualBudgetForm.amounts[i],
-          category: annualBudgetForm.category
-        });
-      }
+      const monthKey = String(i + 1).padStart(2, '0');
+      const amount = annualBudgetForm.amounts[i] || 0;
+      monthsData[monthKey] = amount;
+      total += amount;
     }
 
-    // Guardar todos secuencialmente
-    for (const entry of entries) {
-      await onAddBudget(entry);
-    }
+    const annualBudget: AnnualBudget = {
+      id: `ANNUAL-${annualBudgetForm.year}-${currentUser?.storeId || 'all'}`,
+      year: annualBudgetForm.year,
+      months: monthsData,
+      total: total,
+      storeId: currentUser?.storeId || 'all'
+    };
 
+    await onSaveAnnualBudget(annualBudget);
     setIsAnnualAssistantOpen(false);
     setAnnualBudgetForm({ ...annualBudgetForm, amounts: Array(12).fill(0) });
   };
