@@ -5,10 +5,14 @@ import {
   signInWithEmailAndPassword, 
   sendPasswordResetEmail,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { cleanObject } from './firestoreService';
+
+const googleProvider = new GoogleAuthProvider();
 
 export const authService = {
   login: async (email: string, password: string): Promise<User> => {
@@ -38,7 +42,39 @@ export const authService = {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         throw new Error('Credenciales incorrectas.');
       }
+      if (error.code === 'auth/operation-not-allowed') {
+        throw new Error('El inicio de sesión con correo/contraseña no está habilitado en Firebase Console.');
+      }
       throw new Error(error.message || 'Error al iniciar sesión.');
+    }
+  },
+
+  loginWithGoogle: async (): Promise<User> => {
+    try {
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = userCredential.user;
+
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+      if (userDoc.exists()) {
+        return { id: firebaseUser.uid, ...userDoc.data() } as User;
+      } else {
+        const defaultUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+          email: firebaseUser.email || '',
+          role: Role.ADMIN,
+          avatar: firebaseUser.photoURL || null
+        };
+        await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
+        return defaultUser;
+      }
+    } catch (error: any) {
+      console.error('Google Login error:', error);
+      if (error.code === 'auth/operation-not-allowed') {
+        throw new Error('El inicio de sesión con Google no está habilitado en Firebase Console.');
+      }
+      throw new Error(error.message || 'Error al iniciar sesión con Google.');
     }
   },
 

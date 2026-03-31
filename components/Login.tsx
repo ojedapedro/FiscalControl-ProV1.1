@@ -69,6 +69,19 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const user = await authService.loginWithGoogle();
+      onLoginSuccess(user);
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión con Google.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 lg:p-0 overflow-hidden font-sans transition-colors duration-500">
       <div className="w-full max-w-7xl h-full lg:h-[85vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-200 dark:border-slate-800/50 transition-all duration-500">
@@ -253,6 +266,29 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                             </>
                         )}
                     </button>
+
+                    {!isRecovering && (
+                        <div className="relative py-4">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">O continuar con</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {!isRecovering && (
+                        <button 
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={isLoading}
+                            className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-4 rounded-xl border border-slate-200 dark:border-slate-700 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3"
+                        >
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                            <span>Iniciar sesión con Google</span>
+                        </button>
+                    )}
                 </form>
 
                 {/* Back to Login (if recovering) */}
