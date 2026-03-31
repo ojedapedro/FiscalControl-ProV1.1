@@ -177,35 +177,6 @@
         "notes": { "type": "string" }
       },
       "required": ["id", "date", "title", "amount", "category"]
-    },
-    "AnnualBudget": {
-      "title": "AnnualBudget",
-      "description": "Annual budget breakdown by month",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "year": { "type": "number" },
-        "months": {
-          "type": "object",
-          "properties": {
-            "01": { "type": "number" },
-            "02": { "type": "number" },
-            "03": { "type": "number" },
-            "04": { "type": "number" },
-            "05": { "type": "number" },
-            "06": { "type": "number" },
-            "07": { "type": "number" },
-            "08": { "type": "number" },
-            "09": { "type": "number" },
-            "10": { "type": "number" },
-            "11": { "type": "number" },
-            "12": { "type": "number" }
-          }
-        },
-        "total": { "type": "number" },
-        "storeId": { "type": "string" }
-      },
-      "required": ["id", "year", "months", "total"]
     }
   },
   "firestore": {
@@ -236,10 +207,6 @@
     "/budgets/{budgetId}": {
       "schema": "BudgetEntry",
       "description": "Budget entries"
-    },
-    "/annual_budgets/{budgetId}": {
-      "schema": "AnnualBudget",
-      "description": "Annual budgets"
     }
   }
 }
