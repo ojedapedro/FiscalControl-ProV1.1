@@ -131,6 +131,11 @@ service cloud.firestore {
       allow write: if isAdmin() || isSuperAdmin();
     }
 
+    match /annual_budgets/{budgetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isSuperAdmin();
+    }
+
     match /test/connection {
       allow read: if true;
     }
