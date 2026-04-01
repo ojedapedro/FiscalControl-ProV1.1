@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, FC } from 'react';
-import {
-  FileText,
-  CheckSquare,
-  PieChart,
-  Calendar,
-  Settings,
+import { 
+  FileText, 
+  CheckSquare, 
+  PieChart, 
+  Calendar, 
+  Settings, 
   LogOut,
   Building2,
   BellRing,
@@ -37,10 +37,10 @@ interface SidebarProps {
   onPaymentsClick?: () => void;
 }
 
-export const Sidebar: FC<SidebarProps> = ({
-  currentView,
-  setCurrentView,
-  currentRole,
+export const Sidebar: FC<SidebarProps> = ({ 
+  currentView, 
+  setCurrentView, 
+  currentRole, 
   currentUser,
   onLogout,
   isMobileOpen,
@@ -55,7 +55,7 @@ export const Sidebar: FC<SidebarProps> = ({
   useEffect(() => {
     setImgError(false);
   }, [APP_LOGO_URL]);
-
+  
   const navItems = [
     { id: 'payments', label: 'Categoría Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
@@ -76,7 +76,7 @@ export const Sidebar: FC<SidebarProps> = ({
     <>
       {/* Backdrop para Móvil */}
       {isMobileOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={closeMobileMenu}
         ></div>
@@ -89,17 +89,17 @@ export const Sidebar: FC<SidebarProps> = ({
         flex flex-col transition-transform duration-300 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-
+        
         {/* Header Logo & User Profile */}
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xl shadow-brand-500/20 bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10">
                 {!imgError ? (
-                  <img
-                    src={APP_LOGO_URL}
-                    alt="FiscalCtl Logo"
-                    className="w-full h-full object-cover"
+                  <img 
+                    src={APP_LOGO_URL} 
+                    alt="FiscalCtl Logo" 
+                    className="w-full h-full object-cover" 
                     onError={() => setImgError(true)}
                     referrerPolicy="no-referrer"
                   />
@@ -113,8 +113,12 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
             </div>
             {/* Botón Cerrar solo en móvil */}
-            <button onClick={closeMobileMenu} className="lg:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-              <X size={20} />
+            <button 
+              onClick={closeMobileMenu} 
+              className="lg:hidden p-3 -mr-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-90"
+              aria-label="Cerrar menú"
+            >
+              <X size={24} />
             </button>
           </div>
 
@@ -153,10 +157,11 @@ export const Sidebar: FC<SidebarProps> = ({
                   }
                   closeMobileMenu();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${isActive
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20'
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group active:scale-[0.98] ${
+                  isActive 
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                }`}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors'} />
                 <span className="font-medium text-sm">{item.label}</span>
@@ -168,10 +173,10 @@ export const Sidebar: FC<SidebarProps> = ({
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-900 space-y-3 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-sm">
-
+          
           {/* Install PWA Button (Visible only if installable) */}
           {installPrompt && (
-            <button
+            <button 
               onClick={onInstallClick}
               className="w-full flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl text-white font-bold shadow-lg shadow-brand-600/20 hover:scale-[1.02] active:scale-95 transition-all animate-pulse"
             >
@@ -181,17 +186,17 @@ export const Sidebar: FC<SidebarProps> = ({
           )}
 
           {/* Theme Toggle */}
-          <button
+          <button 
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-800/50"
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-800/50 active:scale-[0.98]"
           >
-            <div className="flex items-center gap-3">
-              {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-slate-600" />}
-              <span className="font-medium text-xs">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
-            </div>
+             <div className="flex items-center gap-3">
+               {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}
+               <span className="font-medium text-xs">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+             </div>
           </button>
 
-          <div className="px-4 py-2 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
+          <div className="px-4 py-3 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
             <div className="flex items-center justify-between">
               <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Rol</span>
               <div className="text-[10px] text-brand-600 dark:text-brand-400 font-mono bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/20 truncate max-w-[100px]" title={currentRole}>
@@ -199,12 +204,12 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
             </div>
           </div>
-
-          <button
+          
+          <button 
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all group active:scale-[0.98]"
           >
-            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium text-sm">Cerrar Sesión</span>
           </button>
         </div>

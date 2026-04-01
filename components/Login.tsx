@@ -153,14 +153,14 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
             <div className="absolute top-6 right-6 flex gap-2">
                 <button 
                     onClick={() => setShowDebug(!showDebug)}
-                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all border border-slate-200 dark:border-slate-700/50 shadow-sm"
+                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all active:scale-90 border border-slate-200 dark:border-slate-700/50 shadow-sm"
                     title="Información de Depuración"
                 >
                     <BarChart3 size={20} />
                 </button>
                 <button 
                     onClick={toggleTheme}
-                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all border border-slate-200 dark:border-slate-700/50 shadow-sm"
+                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-all active:scale-90 border border-slate-200 dark:border-slate-700/50 shadow-sm"
                     title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
                 >
                     {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}
@@ -352,9 +352,9 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                         <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
                             <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
                             <div className="flex gap-2 justify-center">
-                                <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Admin</button>
-                                <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Auditor</button>
-                                <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors">Presidente</button>
+                                <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Admin</button>
+                                <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Auditor</button>
+                                <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Presidente</button>
                             </div>
                         </div>
                     )}

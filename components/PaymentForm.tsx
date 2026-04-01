@@ -1107,7 +1107,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     type="button"
                                     disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
-                                    className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group ${
+                                    className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${
                                         isSelected 
                                         ? 'border-brand-500 bg-brand-500/10 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
                                         : 'border-slate-200 dark:border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800'
@@ -1166,7 +1166,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 setTaxGroup(item.key);
                                                 setTaxItem(''); 
                                             }}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group active:scale-[0.98] ${
                                                 taxGroup === item.key 
                                                 ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
                                                 : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
@@ -1210,7 +1210,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                         type="button"
                                                         disabled={isSubmitting}
                                                         onClick={() => setTaxItem(item.code)}
-                                                        className={`w-full flex flex-col p-3 rounded-xl border transition-all text-left group relative ${
+                                                        className={`w-full flex flex-col p-3 rounded-xl border transition-all text-left group relative active:scale-[0.98] ${
                                                             taxItem === item.code 
                                                             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-md' 
                                                             : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
