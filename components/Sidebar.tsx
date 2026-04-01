@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, FC } from 'react';
-import { 
-  FileText, 
-  CheckSquare, 
-  PieChart, 
-  Calendar, 
-  Settings, 
+import {
+  FileText,
+  CheckSquare,
+  PieChart,
+  Calendar,
+  Settings,
   LogOut,
   Building2,
   BellRing,
@@ -28,18 +28,17 @@ interface SidebarProps {
   currentRole: Role;
   onChangeRole: (role: Role) => void;
   onLogout: () => void;
-  // Nuevas props para manejo móvil y PWA
   isMobileOpen: boolean;
   closeMobileMenu: () => void;
-  installPrompt: any; // Evento PWA
+  installPrompt: any;
   onInstallClick: () => void;
   onPaymentsClick?: () => void;
 }
 
-export const Sidebar: FC<SidebarProps> = ({ 
-  currentView, 
-  setCurrentView, 
-  currentRole, 
+export const Sidebar: FC<SidebarProps> = ({
+  currentView,
+  setCurrentView,
+  currentRole,
   onLogout,
   isMobileOpen,
   closeMobileMenu,
@@ -53,73 +52,118 @@ export const Sidebar: FC<SidebarProps> = ({
   useEffect(() => {
     setImgError(false);
   }, [APP_LOGO_URL]);
-  
+
   const navItems = [
-    { id: 'payments', label: 'Categoría Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
-    { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
-    { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
-    { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
-    { id: 'calendar', label: 'Asistente de Presupuesto Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
-    { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
-    { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
-    { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
-    { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },
-    { id: 'presidency', label: 'Presidencia', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN] },
-    { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'payments',    label: 'Categoría Fiscal',              icon: FileText,    roles: [Role.ADMIN, Role.SUPER_ADMIN] },
+    { id: 'notifications',label:'Notificaciones',                icon: BellRing,    roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'approvals',   label: 'Aprobaciones',                  icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'network',     label: 'Estado de Red',                 icon: Building2,   roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'calendar',    label: 'Asistente Presupuesto Anual',   icon: Calendar,    roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'payroll',     label: 'Nómina',                        icon: Users,       roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'predictive',  label: 'Análisis Predictivo',           icon: Activity,    roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
+    { id: 'evaluation',  label: 'Evaluación',                    icon: BarChart3,   roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
+    { id: 'reports',     label: 'Reportes',                      icon: PieChart,    roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },
+    { id: 'presidency',  label: 'Presidencia',                   icon: PieChart,    roles: [Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'settings',    label: 'Configuración',                 icon: Settings,    roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
   ];
 
   const filteredItems = navItems.filter(item => item.roles.includes(currentRole));
 
   return (
     <>
-      {/* Backdrop para Móvil */}
+      {/* Mobile overlay */}
       {isMobileOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }}
+          className="lg:hidden"
           onClick={closeMobileMenu}
-        ></div>
+        />
       )}
 
-      {/* Sidebar Container */}
-      <div className={`
-        fixed top-0 bottom-0 left-0 z-50
-        w-64 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-900
-        flex flex-col transition-transform duration-300 ease-in-out
-        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        
-        {/* Header Logo */}
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xl shadow-brand-500/20 bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10">
+      {/* ── Sidebar ── */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          zIndex: 50,
+          width: 200,
+          background: '#d4d0c8',
+          borderRight: '2px solid #404040',
+          boxShadow: '2px 0 0 #808080',
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily: 'Tahoma, Arial, sans-serif',
+          fontSize: '11px',
+          transform: isMobileOpen ? 'translateX(0)' : undefined,
+          transition: 'transform 0.2s',
+        }}
+        className={!isMobileOpen ? '-translate-x-full lg:translate-x-0' : ''}
+      >
+
+        {/* Title bar */}
+        <div className="win-titlebar" style={{ padding: '4px 6px', gap: '6px', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Logo */}
+            <div style={{
+              width: 16, height: 16,
+              background: '#ffffff',
+              border: '1px solid #000080',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}>
               {!imgError ? (
-                <img 
-                  src={APP_LOGO_URL} 
-                  alt="FiscalCtl Logo" 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={APP_LOGO_URL}
+                  alt="FiscalCtl"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={() => setImgError(true)}
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <Building2 className="text-brand-500 w-6 h-6" />
+                <Building2 size={12} style={{ color: '#000080' }} />
               )}
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white leading-none">FiscalCtl</span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
-            </div>
+            <span style={{ fontWeight: 'bold', fontSize: '11px', color: '#ffffff' }}>FiscalCtl</span>
           </div>
-          {/* Botón Cerrar solo en móvil */}
-          <button onClick={closeMobileMenu} className="lg:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-            <X size={20} />
+
+          {/* Close button (mobile) */}
+          <button
+            onClick={closeMobileMenu}
+            className="lg:hidden"
+            style={{
+              width: 16, height: 14,
+              background: '#d4d0c8',
+              border: '1px solid',
+              borderColor: '#ffffff #404040 #404040 #ffffff',
+              color: '#000000',
+              fontSize: '9px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              lineHeight: 1
+            }}
+          >
+            ×
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
-          <div className="px-4 mb-4">
-            <span className="label-caps">Navegación</span>
-          </div>
+        {/* Menu header */}
+        <div style={{
+          background: 'linear-gradient(to bottom, #4a86c8, #2060b0)',
+          padding: '6px 8px',
+          color: '#ffffff',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          borderBottom: '1px solid #0a246a'
+        }}>
+          Navegación Principal
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '2px 0' }} className="no-scrollbar">
           {filteredItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -128,66 +172,119 @@ export const Sidebar: FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => {
                   setCurrentView(item.id);
-                  if (item.id === 'payments' && onPaymentsClick) {
-                    onPaymentsClick();
-                  }
+                  if (item.id === 'payments' && onPaymentsClick) onPaymentsClick();
                   closeMobileMenu();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                  isActive 
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 8px',
+                  background: isActive ? '#316ac5' : 'transparent',
+                  color: isActive ? '#ffffff' : '#000000',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontFamily: 'Tahoma, Arial, sans-serif',
+                  borderBottom: '1px solid transparent',
+                }}
+                onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = '#316ac5'; (e.currentTarget as HTMLElement).style.color = '#ffffff'; } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#000000'; } }}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors'} />
-                <span className="font-medium text-sm">{item.label}</span>
-                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
+                <Icon size={14} />
+                <span>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-900 space-y-3 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-sm">
-          
-          {/* Install PWA Button (Visible only if installable) */}
+        {/* Separator */}
+        <div style={{ height: 1, background: '#808080', boxShadow: '0 1px 0 #ffffff' }} />
+
+        {/* Footer */}
+        <div style={{ padding: '6px', background: '#d4d0c8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+
+          {/* Install PWA */}
           {installPrompt && (
-            <button 
+            <button
               onClick={onInstallClick}
-              className="w-full flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl text-white font-bold shadow-lg shadow-brand-600/20 hover:scale-[1.02] active:scale-95 transition-all animate-pulse"
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '4px 8px',
+                background: '#d4d0c8',
+                borderTop: '1px solid #ffffff',
+                borderLeft: '1px solid #ffffff',
+                borderRight: '1px solid #404040',
+                borderBottom: '1px solid #404040',
+                boxShadow: 'inset 1px 1px 0 #e8e4de, inset -1px -1px 0 #808080',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontFamily: 'Tahoma, Arial, sans-serif',
+              }}
             >
-              <Download size={18} />
-              <span className="font-medium text-sm">Instalar App</span>
+              <Download size={14} />
+              <span>Instalar App</span>
             </button>
           )}
 
-          {/* Theme Toggle */}
-          <button 
+          {/* Theme toggle */}
+          <button
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-800/50"
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '4px 8px',
+              background: '#d4d0c8',
+              borderTop: '1px solid #ffffff',
+              borderLeft: '1px solid #ffffff',
+              borderRight: '1px solid #404040',
+              borderBottom: '1px solid #404040',
+              boxShadow: 'inset 1px 1px 0 #e8e4de, inset -1px -1px 0 #808080',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontFamily: 'Tahoma, Arial, sans-serif',
+            }}
           >
-             <div className="flex items-center gap-3">
-               {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-slate-600" />}
-               <span className="font-medium text-xs">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
-             </div>
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            <span>Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
           </button>
 
-          <div className="px-4 py-2 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Rol</span>
-              <div className="text-[10px] text-brand-600 dark:text-brand-400 font-mono bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/20 truncate max-w-[100px]" title={currentRole}>
-                {currentRole}
-              </div>
-            </div>
+          {/* Role display */}
+          <div className="win-sunken" style={{ padding: '3px 8px', background: '#ffffff', fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '9px', color: '#404040' }}>Rol:</span>
+            <span style={{ color: '#000080', fontWeight: 'bold', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentRole}</span>
           </div>
-          
-          <button 
+
+          {/* Logout */}
+          <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all group"
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '4px 8px',
+              background: '#d4d0c8',
+              borderTop: '1px solid #ffffff',
+              borderLeft: '1px solid #ffffff',
+              borderRight: '1px solid #404040',
+              borderBottom: '1px solid #404040',
+              boxShadow: 'inset 1px 1px 0 #e8e4de, inset -1px -1px 0 #808080',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontFamily: 'Tahoma, Arial, sans-serif',
+              color: '#cc0000',
+            }}
           >
-            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium text-sm">Cerrar Sesión</span>
+            <LogOut size={14} />
+            <span>Cerrar Sesión</span>
           </button>
+        </div>
+
+        {/* Status bar */}
+        <div className="win-statusbar" style={{ fontSize: '10px', color: '#000000', padding: '2px 6px', borderTop: '1px solid #808080' }}>
+          FiscalCtl Enterprise v2.2
         </div>
       </div>
     </>
