@@ -1041,8 +1041,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <select 
                                 value={store}
                                 onChange={(e) => setStore(e.target.value)}
-                                disabled={isSubmitting}
-                                className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-50 cursor-pointer`}
+                                disabled={isSubmitting || !!currentUser?.storeId}
+                                className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer`}
                             >
                                 <option value="" className="bg-slate-50 dark:bg-slate-900">Seleccionar ubicación...</option>
                                 {category === Category.PAYROLL && !currentUser?.storeId && (

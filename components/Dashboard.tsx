@@ -46,8 +46,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
   const [paymentToPay, setPaymentToPay] = React.useState<Payment | null>(null);
-  const [sortConfig, setSortConfig] = React.useState<{ key: 'dueDate' | 'amount' | 'submittedDate', direction: 'asc' | 'desc' }>({
-    key: 'dueDate',
+  const [sortConfig, setSortConfig] = React.useState<{ key: 'dueDate' | 'amount' | 'submittedDate' | 'paymentDate', direction: 'asc' | 'desc' }>({
+    key: 'submittedDate',
     direction: 'desc'
   });
   const { exchangeRate } = useExchangeRate();
@@ -208,6 +208,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (sortConfig.key === 'submittedDate') {
         valA = new Date(a.submittedDate || a.dueDate).getTime();
         valB = new Date(b.submittedDate || b.dueDate).getTime();
+      } else if (sortConfig.key === 'paymentDate') {
+        valA = a.paymentDate ? new Date(a.paymentDate).getTime() : 0;
+        valB = b.paymentDate ? new Date(b.paymentDate).getTime() : 0;
       } else if (sortConfig.key === 'amount') {
         valA = a.amount;
         valB = b.amount;
@@ -221,14 +224,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return result;
   }, [payments, filter, sortConfig]);
 
-  const handleSort = (key: 'dueDate' | 'amount' | 'submittedDate') => {
+  const handleSort = (key: 'dueDate' | 'amount' | 'submittedDate' | 'paymentDate') => {
     setSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
   };
 
-  const getSortIcon = (key: 'dueDate' | 'amount' | 'submittedDate') => {
+  const getSortIcon = (key: 'dueDate' | 'amount' | 'submittedDate' | 'paymentDate') => {
     if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
     return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
   };
@@ -534,21 +537,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Table Headers for Sorting */}
         <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          <div className="col-span-5">Concepto / Tienda</div>
+          <div className="col-span-4">Concepto / Tienda</div>
           <div 
             className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-all active:scale-95"
-            onClick={() => handleSort('dueDate')}
+            onClick={() => handleSort('paymentDate')}
           >
-            Vencimiento {getSortIcon('dueDate')}
+            F. Pago {getSortIcon('paymentDate')}
           </div>
           <div 
             className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-all active:scale-95"
             onClick={() => handleSort('submittedDate')}
           >
-            Envío {getSortIcon('submittedDate')}
+            F. Envío {getSortIcon('submittedDate')}
           </div>
           <div 
-            className="col-span-3 flex items-center justify-end gap-1 cursor-pointer hover:text-blue-600 transition-all active:scale-95"
+            className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-all active:scale-95"
+            onClick={() => handleSort('dueDate')}
+          >
+            Venc. {getSortIcon('dueDate')}
+          </div>
+          <div 
+            className="col-span-2 flex items-center justify-end gap-1 cursor-pointer hover:text-blue-600 transition-all active:scale-95"
             onClick={() => handleSort('amount')}
           >
             Monto {getSortIcon('amount')}
@@ -573,7 +582,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800'
                 }`}
               >
-                <div className="col-span-5 flex items-center gap-4">
+                <div className="col-span-4 flex items-center gap-4">
                   <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
                     {getIconForType(payment.specificType)}
                   </div>
@@ -584,16 +593,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 
                 <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Vencimiento</p>
+                  <p className="text-slate-900 dark:text-white text-sm font-medium">{payment.paymentDate ? formatDate(payment.paymentDate) : '---'}</p>
+                  <p className="text-[10px] text-slate-500">Pago</p>
                 </div>
 
                 <div className="col-span-2 hidden sm:block">
                   <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Enviado</p>
+                  <p className="text-[10px] text-slate-500">Envío</p>
                 </div>
 
-                <div className="col-span-3 flex flex-col items-end gap-1 w-full sm:w-auto">
+                <div className="col-span-2 hidden sm:block">
+                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.dueDate)}</p>
+                  <p className="text-[10px] text-slate-500">Vencimiento</p>
+                </div>
+
+                <div className="col-span-2 flex flex-col items-end gap-1 w-full sm:w-auto">
                     <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <div className="flex flex-col items-end gap-1">

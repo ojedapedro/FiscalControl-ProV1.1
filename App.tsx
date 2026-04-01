@@ -1006,8 +1006,6 @@ function App({ isDemoMode = false }: AppProps) {
             onReject={handleReject} 
             currentUser={currentUser} 
             onApproveAll={handleApproveAll}
-            onLoadMore={loadMorePayments}
-            hasMore={hasMorePayments}
           />
         );
       case 'reports':
