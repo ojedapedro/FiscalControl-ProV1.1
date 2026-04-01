@@ -898,15 +898,15 @@ function App({ isDemoMode = false }: AppProps) {
               </div>
             )}
 
-            <Dashboard
+            <PaymentForm
+              initialData={editingPayment}
               payments={filteredPayments}
-              payrollEntries={filteredPayrollEntries}
-              onNewPayment={() => setIsFormOpen(true)}
-              onEditPayment={(payment) => {
-                setEditingPayment(payment);
-                setIsFormOpen(true);
+              onSubmit={handleNewPayment}
+              onCancel={() => {
+                setEditingPayment(null);
+                setIsFormOpen(false);
               }}
-              onPaymentSuccess={handlePaymentSuccess}
+              isEmbedded={true}
               currentUser={currentUser}
             />
 
@@ -1030,6 +1030,7 @@ function App({ isDemoMode = false }: AppProps) {
             onUpdateEmployee={handleUpdateEmployee}
             onDeleteEmployee={handleDeleteEmployee}
             currentUser={currentUser}
+            settings={settings}
             onLoadMorePayroll={loadMorePayroll}
             hasMorePayroll={hasMorePayroll}
             onLoadMoreEmployees={loadMoreEmployees}
@@ -1290,7 +1291,7 @@ function App({ isDemoMode = false }: AppProps) {
           )}
 
           {/* Modal Formulario */}
-          {isFormOpen && (
+          {isFormOpen && currentView !== 'payments' && (
             <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
               <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                 <PaymentForm

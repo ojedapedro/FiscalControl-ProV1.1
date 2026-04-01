@@ -782,19 +782,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     if (filteredEntries.length === 0) return;
     setIsSendingEmails(true);
     try {
-      // 1. Verificar conexión con el servidor (Ping)
-      console.log('🔍 Verificando conexión con el servidor...');
-      const pingResponse = await fetch('/api/ping').catch(() => null);
-      if (!pingResponse || !pingResponse.ok) {
-        setNotification('❌ No se pudo conectar con el servidor de correos. Es posible que el servidor se esté reiniciando.');
-        return;
-      }
-      const pingData = await pingResponse.json();
-      if (!pingData.env.hasResendKey) {
-        setNotification('❌ La API Key de Resend no está configurada. Por favor, agrégala en Settings > Environment Variables como RESEND_API_KEY.');
-        return;
-      }
-
       const entriesWithEmails = filteredEntries.map(entry => {
         const employee = employees.find(e => e.id === entry.employeeId);
         return {
@@ -814,21 +801,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries: entriesWithEmails })
+      }).catch(err => {
+        console.error('Fetch error:', err);
+        return null;
       });
+
+      if (!response) {
+        setNotification('❌ No se pudo conectar con el servidor. Por favor, intenta de nuevo en unos segundos.');
+        return;
+      }
 
       if (!response.ok) {
         let errorMsg = 'Error de servidor';
         const text = await response.text().catch(() => '');
         console.error('🔴 Server returned error status:', response.status, response.statusText);
-        console.error('🔴 Response body:', text);
 
         try {
           const errorData = JSON.parse(text);
           errorMsg = errorData.error || errorData.details || errorMsg;
         } catch (e) {
-          errorMsg = `Error del servidor (no JSON). Status: ${response.status} ${response.statusText}. Inicio de respuesta: ${text.substring(0, 100) || 'Respuesta vacía'}`;
+          errorMsg = `Error del servidor. Status: ${response.status}. ${text.substring(0, 50)}`;
         }
-        setNotification(`❌ Error al enviar correos: ${errorMsg}`);
+        setNotification(`❌ Error: ${errorMsg}`);
         return;
       }
 
@@ -1058,6 +1052,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 )}
                 {isSendingEmails ? 'Enviando...' : 'Enviar Recibos por Correo'}
               </button>
+              {activeTab === 'payroll' && (
+                <p className="text-[10px] text-gray-400 mt-1 text-center w-full block">
+                  * Nota: Si usas el modo de prueba de Resend, solo podrás enviar correos a tu propia dirección verificada.
+                </p>
+              )}
             </>
           ) : activeTab === 'employees' ? (
             <button
