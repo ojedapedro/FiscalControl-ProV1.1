@@ -875,7 +875,7 @@ function App({ isDemoMode = false }: AppProps) {
       case 'payments':
         const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
         return (
-          <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-900 custom-scrollbar">
+          <div className="flex-1 h-full overflow-y-auto custom-scrollbar" style={{ background: '#d4d0c8' }}>
             {rejectedPayments.length > 0 && (
               <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-b border-pink-100 dark:border-pink-900/30">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -1169,7 +1169,7 @@ function App({ isDemoMode = false }: AppProps) {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#008080' }}>
         <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
       </div>
     );
@@ -1181,7 +1181,7 @@ function App({ isDemoMode = false }: AppProps) {
 
   return (
     <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
+      <div className="flex min-h-screen overflow-hidden" style={{ background: '#008080', fontFamily: 'Tahoma, Arial, sans-serif' }}>
 
         {/* Sidebar Responsive */}
         <Sidebar
@@ -1201,79 +1201,49 @@ function App({ isDemoMode = false }: AppProps) {
         />
 
         {/* Contenedor Principal */}
-        <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
+        <main className="flex-1 lg:ml-[200px] relative transition-all duration-300 flex flex-col h-screen overflow-hidden" style={{ background: '#d4d0c8' }}>
 
           {/* PWA Install Banner */}
           {installPrompt && showInstallBanner && (
-            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Download size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
-                  <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
-                </div>
+            <div style={{ background: '#d4d0c8', borderBottom: '2px solid #404040', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', fontFamily: 'Tahoma, Arial, sans-serif', flexShrink: 0, zIndex: 40 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Download size={14} />
+                <span style={{ fontWeight: 'bold' }}>Instala FiscalCtl Pro</span>
+                <span style={{ color: '#404040' }}>— Accede más rápido y recibe notificaciones.</span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleInstallClick}
-                  className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                >
-                  Instalar
-                </button>
-                <button
-                  onClick={() => setShowInstallBanner(false)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X size={18} />
-                </button>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button className="win-btn" onClick={handleInstallClick} style={{ minWidth: 'unset', padding: '2px 10px', fontSize: '11px' }}>Instalar</button>
+                <button className="win-btn" onClick={() => setShowInstallBanner(false)} style={{ minWidth: 'unset', padding: '2px 6px', fontSize: '11px' }}>×</button>
               </div>
             </div>
           )}
 
           {/* Push Notification Permission Banner */}
           {pushPermission === 'default' && (
-            <div className="bg-indigo-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0 border-b border-indigo-500">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <BellRing size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">Activar Notificaciones</p>
-                  <p className="text-[10px] opacity-80">Recibe alertas sobre aprobaciones y pagos vencidos al instante.</p>
-                </div>
+            <div style={{ background: '#ffffc0', borderBottom: '1px solid #808080', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', fontFamily: 'Tahoma, Arial, sans-serif', flexShrink: 0, zIndex: 40 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BellRing size={14} />
+                <span style={{ fontWeight: 'bold' }}>Activar Notificaciones</span>
+                <span style={{ color: '#404040' }}>— Recibe alertas de aprobaciones y pagos vencidos.</span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={requestPermission}
-                  className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
-                >
-                  Permitir
-                </button>
-              </div>
+              <button className="win-btn" onClick={requestPermission} style={{ minWidth: 'unset', padding: '2px 10px', fontSize: '11px' }}>Permitir</button>
             </div>
           )}
 
           {/* Header Móvil */}
-          <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 text-white hover:bg-slate-800 rounded-lg"
-              >
-                <Menu size={24} />
+          <div className="lg:hidden win-titlebar shrink-0 z-30" style={{ padding: '6px 10px', justifyContent: 'space-between', minHeight: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button onClick={() => setIsMobileMenuOpen(true)} style={{ background: '#d4d0c8', border: '1px solid #ffffff', borderRight: '1px solid #404040', borderBottom: '1px solid #404040', padding: '2px 6px', cursor: 'pointer', color: '#000000', fontSize: '11px' }}>
+                <Menu size={14} />
               </button>
-              <span className="font-bold text-lg text-white">FiscalCtl</span>
+              <span style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '11px' }}>FiscalCtl</span>
             </div>
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
-              <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-            </div>
+            <img src={APP_LOGO_URL} alt="Logo" style={{ width: 20, height: 20, objectFit: 'cover' }} />
           </div>
 
           {/* Loading Overlay */}
           {isLoading && (
-            <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+            <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 50, background: '#d4d0c8', border: '1px solid #808080', borderTop: '1px solid #ffffff', borderLeft: '1px solid #ffffff', padding: '3px 10px', fontSize: '11px', fontFamily: 'Tahoma, Arial, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <RefreshCw size={12} className="animate-spin" />
               Procesando...
             </div>
@@ -1281,13 +1251,14 @@ function App({ isDemoMode = false }: AppProps) {
 
           {/* Notificaciones Toast */}
           {notification && (
-            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-              <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-                <span className="font-medium">{notification}</span>
-                <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            <div style={{ position: 'fixed', top: 40, right: 16, zIndex: 60 }}>
+              <div className="win-panel" style={{ padding: '8px 14px', fontSize: '11px', fontFamily: 'Tahoma, Arial, sans-serif', display: 'flex', alignItems: 'center', gap: '10px', background: '#d4d0c8', minWidth: 220, boxShadow: '2px 2px 4px rgba(0,0,0,0.4)' }}>
+                <span>{notification}</span>
+                <button onClick={() => setNotification(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', color: '#000000', lineHeight: 1 }}>×</button>
               </div>
             </div>
           )}
+
 
           {/* Modal Formulario */}
           {isFormOpen && (

@@ -61,7 +61,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const { jsPDF } = w.jspdf;
     const doc = new jsPDF();
 
-    // Grouping
     const grouped = payments.reduce((acc, p) => {
       if (!acc[p.category]) acc[p.category] = {};
       if (!acc[p.category][p.specificType]) acc[p.category][p.specificType] = [];
@@ -82,17 +81,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let y = 50;
 
     Object.entries(grouped).forEach(([category, subcategories]) => {
-      // Calculate category total
       let categoryTotal = 0;
       Object.values(subcategories).forEach(subList => {
         categoryTotal += subList.reduce((sum, p) => sum + p.amount, 0);
       });
 
-      // Check for page break
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
+      if (y > 270) { doc.addPage(); y = 20; }
 
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
@@ -103,12 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       Object.entries(subcategories).forEach(([subCategory, subPayments]) => {
         const subTotal = subPayments.reduce((sum, p) => sum + p.amount, 0);
-
-        // Check for page break
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
+        if (y > 270) { doc.addPage(); y = 20; }
 
         doc.setFontSize(12);
         doc.setTextColor(50, 50, 50);
@@ -128,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
             body: tableData,
             theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+            headStyles: { fillColor: [10, 36, 106], textColor: 255 },
             styles: { fontSize: 8, cellPadding: 2 },
             margin: { left: 20 },
             columnStyles: {
@@ -140,17 +129,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           });
           y = (doc as any).lastAutoTable.finalY + 10;
         } else {
-          console.warn("AutoTable plugin not found");
           y += 10;
         }
       });
-      y += 5; // Extra space between categories
+      y += 5;
     });
 
     doc.save(`Balance_Gestion_Fiscal_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Calcular totales reales basados en el estado de los pagos
   const totalDue = payments
     .filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status))
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -159,14 +146,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .filter(p => p.status === PaymentStatus.OVERDUE)
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  // Calcular total de pasivos laborales
   const totalLiabilities = payrollEntries.reduce((acc, entry) => {
     const entryLiabilities = entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
     return acc + entryLiabilities;
   }, 0);
 
-  // Nuevas Estadísticas
-  // Nota: pendingCount incluye PENDING y UPLOADED
   const pendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
   const rejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
 
@@ -174,7 +158,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
   const averagePayment = approvedPayments.length > 0 ? totalApproved / approvedPayments.length : 0;
 
-  // Budget Logic
   const MONTHLY_BUDGET = 6000;
   const budgetUtilization = (totalApproved / MONTHLY_BUDGET) * 100;
   const overBudgetPayments = payments.filter(p => p.isOverBudget);
@@ -186,7 +169,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     })
     .slice(0, 5);
 
-  // Filtrado de la lista para visualización
   const filteredPayments = React.useMemo(() => {
     let result = payments.filter(payment => {
       if (filter === 'all') return true;
@@ -197,11 +179,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return true;
     });
 
-    // Aplicar ordenamiento
     result.sort((a, b) => {
       let valA: any;
       let valB: any;
-
       if (sortConfig.key === 'dueDate') {
         valA = new Date(a.dueDate).getTime();
         valB = new Date(b.dueDate).getTime();
@@ -212,7 +192,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         valA = a.amount;
         valB = b.amount;
       }
-
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
       if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -229,410 +208,306 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const getSortIcon = (key: 'dueDate' | 'amount' | 'submittedDate') => {
-    if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
-    return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+    if (sortConfig.key !== key) return <ArrowUpDown size={12} style={{ opacity: 0.4 }} />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
   };
 
   const getIconForType = (type: string) => {
-    // Adjusted logic for Spanish terms
     if (type.includes('Impuesto')) return <BuildingIcon />;
-    if (type.includes('Electricidad')) return <Zap className="text-yellow-600 dark:text-yellow-400" />;
-    if (type.includes('Internet')) return <Wifi className="text-purple-600 dark:text-purple-400" />;
-    if (type.includes('Agua')) return <Droplets className="text-blue-600 dark:text-blue-400" />;
-    return <FileText className="text-slate-600 dark:text-slate-400" />;
+    if (type.includes('Electricidad')) return <Zap size={14} />;
+    if (type.includes('Internet')) return <Wifi size={14} />;
+    if (type.includes('Agua')) return <Droplets size={14} />;
+    return <FileText size={14} />;
   };
 
-  const getBgForType = (type: string) => {
-    if (type.includes('Impuesto')) return 'bg-blue-100 dark:bg-blue-900/30';
-    if (type.includes('Electricidad')) return 'bg-yellow-100 dark:bg-yellow-900/30';
-    if (type.includes('Internet')) return 'bg-purple-100 dark:bg-purple-900/30';
-    if (type.includes('Agua')) return 'bg-blue-50 dark:bg-blue-900/20';
-    return 'bg-slate-100 dark:bg-slate-800';
+  const getStatusColor = (status: PaymentStatus) => {
+    switch (status) {
+      case PaymentStatus.APPROVED: return { background: '#008000', color: '#ffffff' };
+      case PaymentStatus.REJECTED: return { background: '#cc0000', color: '#ffffff' };
+      case PaymentStatus.OVERDUE:  return { background: '#cc0000', color: '#ffffff' };
+      case PaymentStatus.PENDING:  return { background: '#d4d0c8', color: '#000000', border: '1px solid #808080' };
+      default:                     return { background: '#d4d0c8', color: '#000000', border: '1px solid #808080' };
+    }
   };
-
-  const getFilterButtonClass = (isActive: boolean) =>
-    isActive
-      ? "px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm transition-all"
-      : "px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm transition-all";
 
   console.log("Dashboard rendering...");
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos (Actualizado)</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
-        </div>
-        <div className="flex gap-4 w-full md:w-auto justify-end">
-          <button
-            onClick={handleDownloadFiscalCategoryPDF}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm border border-white/20"
-          >
-            <Download size={16} />
-            <span>Generar Reporte PDF</span>
-          </button>
-          <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
-            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
-            <span className="text-xl">🔔</span>
-          </button>
-          <div className="w-10 h-10 bg-orange-200 dark:bg-orange-900/50 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm">
-            JD
-          </div>
-        </div>
-      </header>
+    <div style={{ padding: '8px', fontFamily: 'Tahoma, Arial, sans-serif', fontSize: '11px', background: '#d4d0c8', minHeight: '100vh' }}>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        {/* Card 1: Total Due */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <DollarSign size={18} className="text-blue-500" />
-              Total por Pagar
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Bs. {(totalDue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
-              <TrendingUp size={14} />
-              +12% vs semana
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+      {/* ── Toolbar ── */}
+      <div className="win-panel" style={{ padding: '4px 6px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        {/* Title bar icon + label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '8px' }}>
+          <img src="/favicon.ico" alt="" width={16} height={16} style={{ imageRendering: 'pixelated' }} onError={e => (e.currentTarget.style.display = 'none')} />
+          <span style={{ fontWeight: 'bold', fontSize: '11px' }}>Gestión de Pagos</span>
         </div>
 
-        {/* Card 2: Overdue Amount */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <AlertTriangle size={18} className="text-red-500" />
-              Monto Vencido
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Bs. {(totalOverdue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
-              <TrendingDown size={14} />
-              Acción Inmediata
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
+        <div style={{ width: 1, height: 22, background: '#808080', margin: '0 2px', borderRight: '1px solid #ffffff' }} />
 
-        {/* Card 3: Total Liabilities */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <AlertCircle size={18} className="text-orange-500" />
-              Pasivos Laborales
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
-              SSO, LPH, INCES
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
+        <button className="win-btn" onClick={handleDownloadFiscalCategoryPDF} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Download size={14} />
+          Generar Reporte PDF
+        </button>
 
-        {/* Card 4: Rejected Count */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <XCircle size={18} className="text-pink-500" />
-              Pagos Rechazados
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{rejectedCount}</div>
-            <div className="flex items-center gap-1 text-pink-600 dark:text-pink-400 text-xs font-semibold mt-3 bg-pink-50 dark:bg-pink-900/20 w-fit px-2 py-1 rounded-lg">
-              Corregir
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-50 dark:bg-pink-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
+        <button className="win-btn" onClick={onNewPayment} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Plus size={14} />
+          Nuevo Pago
+        </button>
 
-        {/* Card 5: Pending Count */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <Clock size={18} className="text-yellow-500" />
-              Pagos Pendientes
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</div>
-            <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold mt-3 bg-yellow-50 dark:bg-yellow-900/20 w-fit px-2 py-1 rounded-lg">
-              En cola de revisión
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-yellow-50 dark:bg-yellow-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
+        <div style={{ width: 1, height: 22, background: '#808080', margin: '0 2px', borderRight: '1px solid #ffffff' }} />
 
-        {/* Card 6: Average Payment */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
-              <Activity size={18} className="text-purple-500" />
-              Promedio Pago
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${averagePayment.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Bs. {(averagePayment * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold mt-3 bg-purple-50 dark:bg-purple-900/20 w-fit px-2 py-1 rounded-lg">
-              Base: {approvedPayments.length} pagos
-            </div>
-          </div>
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
+        <span style={{ color: '#000080', fontSize: '11px' }}>
+          Tasa: Bs. {exchangeRate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
       </div>
 
-      {/* Action Button */}
-      <button
-        onClick={onNewPayment}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 flex items-center justify-center gap-2 font-semibold text-lg transition-transform active:scale-[0.99]"
-      >
-        <Plus size={24} />
-        Cargar Nuevo Pago
-      </button>
-
-      {/* Quick Summary Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Budget Status Card */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <Wallet className="text-blue-500" size={20} />
-              Estado del Presupuesto
-            </h3>
-            <span className={`text-xs font-bold px-2 py-1 rounded-full ${budgetUtilization > 90 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-              Meta: ${MONTHLY_BUDGET.toLocaleString()}
-            </span>
+      {/* ── Stat Cards (Win2000 groupboxes) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '6px', marginBottom: '6px' }}>
+        {/* Card 1 */}
+        <Win2kGroupBox title="Total por Pagar" icon={<DollarSign size={12} />}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#000080' }}>${totalDue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: '10px', color: '#000000' }}>Bs. {(totalDue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px', color: '#008000', fontSize: '10px' }}>
+            <TrendingUp size={11} /> +12% vs semana
           </div>
+        </Win2kGroupBox>
 
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-500 dark:text-slate-400">Utilización Mensual</span>
-                <span className="font-bold text-slate-900 dark:text-white">{budgetUtilization.toFixed(1)}%</span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-1000 ${budgetUtilization > 90 ? 'bg-red-500' : budgetUtilization > 70 ? 'bg-yellow-500' : 'bg-blue-500'}`}
-                  style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Ejecutado</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">${totalApproved.toLocaleString()}</p>
-              </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Excedentes</p>
-                <p className="text-lg font-bold text-red-600">{overBudgetPayments.length}</p>
-              </div>
-            </div>
-
-            {overBudgetPayments.length > 0 && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
-                <div className="flex items-center gap-2 text-red-700 dark:text-red-400 text-xs font-bold mb-2">
-                  <AlertCircle size={14} />
-                  Alertas de Presupuesto
-                </div>
-                <div className="space-y-2">
-                  {overBudgetPayments.slice(0, 2).map(p => (
-                    <div key={p.id} className="flex justify-between items-center text-[10px]">
-                      <span className="text-slate-600 dark:text-slate-400 truncate max-w-[120px]">{p.specificType}</span>
-                      <span className="font-bold text-red-600">+${(p.amount - (p.originalBudget || 0)).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Card 2 */}
+        <Win2kGroupBox title="Monto Vencido" icon={<AlertTriangle size={12} />}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cc0000' }}>${totalOverdue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: '10px', color: '#000000' }}>Bs. {(totalOverdue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '4px', color: '#cc0000', fontSize: '10px' }}>
+            <TrendingDown size={11} /> Acción Inmediata
           </div>
-        </div>
+        </Win2kGroupBox>
 
-        {/* Recent Activity Summary */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <Activity className="text-blue-500" size={20} />
-              Resumen de Actividad
-            </h3>
-            <button className="text-xs text-blue-600 font-bold hover:underline">Ver todo</button>
-          </div>
+        {/* Card 3 */}
+        <Win2kGroupBox title="Pasivos Laborales" icon={<AlertCircle size={12} />}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#804000' }}>${totalLiabilities.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: '10px', color: '#000000' }}>Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ marginTop: '4px', fontSize: '10px', color: '#804000' }}>SSO, LPH, INCES</div>
+        </Win2kGroupBox>
 
-          <div className="space-y-4">
-            {recentPayments.map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${getBgForType(payment.specificType)} rounded-lg flex items-center justify-center shrink-0`}>
-                    {getIconForType(payment.specificType)}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{payment.specificType}</h4>
-                    <p className="text-[10px] text-slate-500">{payment.storeName} • {formatDate(payment.submittedDate)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-500">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  <span className={`text-[10px] font-bold ${payment.status === PaymentStatus.APPROVED ? 'text-green-600' :
-                      payment.status === PaymentStatus.REJECTED ? 'text-red-600' : 'text-orange-600'
-                    }`}>
-                    {payment.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Card 4 */}
+        <Win2kGroupBox title="Pagos Rechazados" icon={<XCircle size={12} />}>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#cc0000' }}>{rejectedCount}</div>
+          <div style={{ marginTop: '4px', fontSize: '10px', color: '#cc0000' }}>Requiere Corrección</div>
+        </Win2kGroupBox>
+
+        {/* Card 5 */}
+        <Win2kGroupBox title="Pagos Pendientes" icon={<Clock size={12} />}>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#804000' }}>{pendingCount}</div>
+          <div style={{ marginTop: '4px', fontSize: '10px', color: '#804000' }}>En cola de revisión</div>
+        </Win2kGroupBox>
+
+        {/* Card 6 */}
+        <Win2kGroupBox title="Promedio Pago" icon={<Activity size={12} />}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#000080' }}>${averagePayment.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: '10px', color: '#000000' }}>Bs. {(averagePayment * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          <div style={{ marginTop: '4px', fontSize: '10px', color: '#000080' }}>Base: {approvedPayments.length} pagos</div>
+        </Win2kGroupBox>
       </div>
 
-      {/* Recent Payments List */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto flex-wrap">
-            <button
-              onClick={() => setFilter('all')}
-              className={getFilterButtonClass(filter === 'all')}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setFilter('pending')}
-              className={getFilterButtonClass(filter === 'pending')}
-            >
-              Pendientes
-            </button>
-            <button
-              onClick={() => setFilter('overdue')}
-              className={getFilterButtonClass(filter === 'overdue')}
-            >
-              Vencidos
-            </button>
-            <button
-              onClick={() => setFilter('approved')}
-              className={getFilterButtonClass(filter === 'approved')}
-            >
-              Aprobados
-            </button>
-            <button
-              onClick={() => setFilter('rejected')}
-              className={getFilterButtonClass(filter === 'rejected')}
-            >
-              Rechazados
-            </button>
+      {/* ── Middle row: Budget + Activity ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '6px', marginBottom: '6px' }}>
+
+        {/* Budget GroupBox */}
+        <Win2kGroupBox title="Estado del Presupuesto" icon={<Wallet size={12} />}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10px' }}>
+            <span>Utilización Mensual</span>
+            <span style={{ fontWeight: 'bold' }}>{budgetUtilization.toFixed(1)}%</span>
           </div>
+          {/* Progress bar Win2k style */}
+          <div className="win-sunken" style={{ height: '16px', overflow: 'hidden', background: '#ffffff', marginBottom: '6px' }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min(budgetUtilization, 100)}%`,
+              background: budgetUtilization > 90 ? '#cc0000' : budgetUtilization > 70 ? '#cc8800' : '#316ac5',
+              transition: 'width 0.5s'
+            }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '6px' }}>
+            <div className="win-sunken" style={{ padding: '4px', background: '#ffffff', fontSize: '10px' }}>
+              <div style={{ color: '#404040', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '9px' }}>Ejecutado</div>
+              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>${totalApproved.toLocaleString()}</div>
+            </div>
+            <div className="win-sunken" style={{ padding: '4px', background: '#ffffff', fontSize: '10px' }}>
+              <div style={{ color: '#404040', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '9px' }}>Excedentes</div>
+              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#cc0000' }}>{overBudgetPayments.length}</div>
+            </div>
+          </div>
+
+          {overBudgetPayments.length > 0 && (
+            <div style={{ background: '#ffffc0', border: '1px solid #cc0000', padding: '4px', fontSize: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#cc0000', fontWeight: 'bold', marginBottom: '2px' }}>
+                <AlertCircle size={11} /> Alertas de Presupuesto
+              </div>
+              {overBudgetPayments.slice(0, 2).map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                  <span style={{ maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.specificType}</span>
+                  <span style={{ color: '#cc0000', fontWeight: 'bold' }}>+${(p.amount - (p.originalBudget || 0)).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Win2kGroupBox>
+
+        {/* Activity GroupBox */}
+        <Win2kGroupBox title="Resumen de Actividad Reciente" icon={<Activity size={12} />}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <thead>
+              <tr>
+                <th className="win-raised" style={{ padding: '3px 6px', textAlign: 'left', background: '#d4d0c8', fontWeight: 'bold' }}>Tipo</th>
+                <th className="win-raised" style={{ padding: '3px 6px', textAlign: 'left', background: '#d4d0c8', fontWeight: 'bold' }}>Tienda</th>
+                <th className="win-raised" style={{ padding: '3px 6px', textAlign: 'left', background: '#d4d0c8', fontWeight: 'bold' }}>Fecha</th>
+                <th className="win-raised" style={{ padding: '3px 6px', textAlign: 'right', background: '#d4d0c8', fontWeight: 'bold' }}>Monto</th>
+                <th className="win-raised" style={{ padding: '3px 6px', textAlign: 'center', background: '#d4d0c8', fontWeight: 'bold' }}>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentPayments.map((payment, i) => {
+                const sc = getStatusColor(payment.status);
+                return (
+                  <tr key={payment.id} style={{ background: i % 2 === 0 ? '#ffffff' : '#f0ede8' }}>
+                    <td style={{ padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {getIconForType(payment.specificType)}
+                      <span>{payment.specificType}</span>
+                    </td>
+                    <td style={{ padding: '3px 6px' }}>{payment.storeName}</td>
+                    <td style={{ padding: '3px 6px' }}>{formatDate(payment.submittedDate)}</td>
+                    <td style={{ padding: '3px 6px', textAlign: 'right', fontWeight: 'bold' }}>${payment.amount.toLocaleString()}</td>
+                    <td style={{ padding: '3px 6px', textAlign: 'center' }}>
+                      <span style={{ ...sc, padding: '1px 6px', fontSize: '10px', fontWeight: 'bold', border: '1px solid #808080' }}>
+                        {payment.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Win2kGroupBox>
+      </div>
+
+      {/* ── Transactions Table ── */}
+      <Win2kGroupBox title="Transacciones Recientes" icon={<FileText size={12} />}>
+        {/* Filter toolbar */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '11px', marginRight: '4px' }}>Filtrar:</span>
+          {(['all', 'pending', 'overdue', 'approved', 'rejected'] as const).map(f => {
+            const labels: Record<string, string> = { all: 'Todos', pending: 'Pendientes', overdue: 'Vencidos', approved: 'Aprobados', rejected: 'Rechazados' };
+            return (
+              <button
+                key={f}
+                className={filter === f ? 'win-btn' : 'win-btn'}
+                onClick={() => setFilter(f)}
+                style={filter === f ? {
+                  borderTop: '1px solid #404040',
+                  borderLeft: '1px solid #404040',
+                  borderRight: '1px solid #ffffff',
+                  borderBottom: '1px solid #ffffff',
+                  background: '#c8c4bc',
+                  fontWeight: 'bold'
+                } : {}}
+              >
+                {labels[f]}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Table Headers for Sorting */}
-        <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          <div className="col-span-5">Concepto / Tienda</div>
-          <div
-            className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
-            onClick={() => handleSort('dueDate')}
-          >
-            Vencimiento {getSortIcon('dueDate')}
-          </div>
-          <div
-            className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
-            onClick={() => handleSort('submittedDate')}
-          >
-            Envío {getSortIcon('submittedDate')}
-          </div>
-          <div
-            className="col-span-3 flex items-center justify-end gap-1 cursor-pointer hover:text-blue-600 transition-colors"
-            onClick={() => handleSort('amount')}
-          >
-            Monto {getSortIcon('amount')}
-          </div>
-        </div>
-
-        <div className="space-y-3">
+        {/* Table */}
+        <div className="win-sunken" style={{ background: '#ffffff', overflow: 'auto' }}>
           {filteredPayments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-3">
-                <Filter size={24} />
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 font-medium">No hay pagos en esta categoría.</p>
+            <div style={{ padding: '24px', textAlign: 'center', color: '#808080', fontSize: '11px' }}>
+              <Filter size={24} style={{ display: 'inline-block', marginBottom: '6px', opacity: 0.4 }} />
+              <br />No hay pagos en esta categoría.
             </div>
           ) : (
-            filteredPayments.map((payment) => (
-              <div
-                key={payment.id}
-                className={`p-4 rounded-2xl shadow-sm border flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4 transition-colors ${payment.status === PaymentStatus.REJECTED
-                    ? 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800 hover:border-pink-300 dark:hover:border-pink-700'
-                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800'
-                  }`}
-              >
-                <div className="col-span-5 flex items-center gap-4">
-                  <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
-                    {getIconForType(payment.specificType)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{payment.specificType}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs truncate">{payment.storeName}</p>
-                  </div>
-                </div>
-
-                <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Vencimiento</p>
-                </div>
-
-                <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Enviado</p>
-                </div>
-
-                <div className="col-span-3 flex flex-col items-end gap-1 w-full sm:w-auto">
-                  <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                        payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                      {payment.status === PaymentStatus.REJECTED ? 'Devuelto para Corrección' : payment.status}
-                    </span>
-                    {payment.status === PaymentStatus.REJECTED && payment.rejectionReason && (
-                      <p className="text-[10px] text-pink-600 dark:text-pink-400 italic max-w-[200px] text-right">
-                        Obs: {payment.rejectionReason}
-                      </p>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      {payment.status === PaymentStatus.REJECTED && (
-                        <button
-                          onClick={() => onEditPayment(payment)}
-                          className="text-[10px] bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
-                        >
-                          <RefreshCw size={10} />
-                          Corregir Ahora
-                        </button>
-                      )}
-                      {payment.status === PaymentStatus.APPROVED && (
-                        <button
-                          onClick={() => setPaymentToPay(payment)}
-                          className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
-                        >
-                          <Wallet size={10} />
-                          Pagar Ahora
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
+            <table className="win-table">
+              <thead>
+                <tr>
+                  <th>Tipo / Tienda</th>
+                  <th onClick={() => handleSort('dueDate')} style={{ cursor: 'pointer' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Vencimiento {getSortIcon('dueDate')}</span>
+                  </th>
+                  <th onClick={() => handleSort('submittedDate')} style={{ cursor: 'pointer' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Envío {getSortIcon('submittedDate')}</span>
+                  </th>
+                  <th onClick={() => handleSort('amount')} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>Monto {getSortIcon('amount')}</span>
+                  </th>
+                  <th style={{ textAlign: 'center' }}>Estado</th>
+                  <th style={{ textAlign: 'center' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPayments.map((payment, i) => {
+                  const sc = getStatusColor(payment.status);
+                  return (
+                    <tr key={payment.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}>
+                            {getIconForType(payment.specificType)}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 'bold' }}>{payment.specificType}</div>
+                            <div style={{ fontSize: '10px', color: '#404040' }}>{payment.storeName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{formatDate(payment.dueDate)}</td>
+                      <td>{formatDate(payment.submittedDate || payment.dueDate)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 'bold' }}>${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize: '10px', color: '#404040' }}>Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ ...sc, padding: '1px 6px', fontSize: '10px', fontWeight: 'bold', border: '1px solid #808080', display: 'inline-block' }}>
+                          {payment.status === PaymentStatus.REJECTED ? 'Devuelto' : payment.status}
+                        </span>
+                        {payment.status === PaymentStatus.REJECTED && payment.rejectionReason && (
+                          <div style={{ fontSize: '10px', color: '#cc0000', fontStyle: 'italic', marginTop: '2px' }}>
+                            {payment.rejectionReason}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          {payment.status === PaymentStatus.REJECTED && (
+                            <button className="win-btn" onClick={() => onEditPayment(payment)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', minWidth: 'unset', padding: '2px 6px' }}>
+                              <RefreshCw size={11} /> Corregir
+                            </button>
+                          )}
+                          {payment.status === PaymentStatus.APPROVED && (
+                            <button className="win-btn" onClick={() => setPaymentToPay(payment)} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', minWidth: 'unset', padding: '2px 6px' }}>
+                              <Wallet size={11} /> Pagar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
+        </div>
+      </Win2kGroupBox>
+
+      {/* ── Status Bar ── */}
+      <div style={{ display: 'flex', gap: '0', marginTop: '6px' }}>
+        <div className="win-raised" style={{ flex: 1, padding: '2px 8px', fontSize: '11px', background: '#d4d0c8' }}>
+          {filteredPayments.length} elemento(s)
+        </div>
+        <div className="win-raised" style={{ padding: '2px 16px', fontSize: '11px', background: '#d4d0c8' }}>
+          Total mostrado: ${filteredPayments.reduce((s, p) => s + p.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        </div>
+        <div className="win-raised" style={{ padding: '2px 16px', fontSize: '11px', background: '#d4d0c8' }}>
+          FiscalCtl Pro v2.2
         </div>
       </div>
 
@@ -649,8 +524,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 };
 
+/* ── Small helper: Win2000 GroupBox ── */
+const Win2kGroupBox: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
+  <div style={{
+    border: '1px solid #808080',
+    boxShadow: 'inset 1px 1px 0 #ffffff',
+    background: '#d4d0c8',
+    padding: '8px',
+    position: 'relative',
+    marginTop: '6px'
+  }}>
+    {/* GroupBox legend */}
+    <div style={{
+      position: 'absolute',
+      top: '-8px',
+      left: '10px',
+      background: '#d4d0c8',
+      padding: '0 4px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
+    }}>
+      {icon}{title}
+    </div>
+    <div style={{ marginTop: '4px' }}>{children}</div>
+  </div>
+);
+
 const BuildingIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-blue-600 dark:text-blue-400">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
     <path d="M3 21h18" />
     <path d="M5 21V7l8-4 8 4v14" />
     <path d="M17 21v-8.8" />
