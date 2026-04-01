@@ -1057,6 +1057,74 @@ function App({ isDemoMode = false }: AppProps) {
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
 
+            {/* Sección Mi Perfil */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+              <h3 className="font-bold mb-6 flex items-center gap-2 text-blue-500">
+                <Users size={20} /> Mi Perfil de Usuario
+              </h3>
+
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-900 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden flex items-center justify-center text-4xl font-bold text-slate-400">
+                    {currentUser?.avatar ? (
+                      <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      currentUser?.name?.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
+                    <Plus size={20} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file && currentUser) {
+                          setIsLoading(true);
+                          try {
+                            const base64 = await fileToBase64(file);
+                            const updatedUser = { ...currentUser, avatar: base64 };
+                            await firestoreService.updateUser(updatedUser);
+                            setCurrentUser(updatedUser);
+                            setNotification('✅ Avatar actualizado correctamente');
+                          } catch (err) {
+                            setNotification('❌ Error al actualizar avatar');
+                          } finally {
+                            setIsLoading(false);
+                            setTimeout(() => setNotification(null), 3000);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre</label>
+                    <p className="text-lg font-bold">{currentUser?.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correo</label>
+                    <p className="text-slate-600 dark:text-slate-400">{currentUser?.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Rol</label>
+                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800/50">
+                      {currentUser?.role}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      {currentUser?.storeId ? STORES.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {currentUser?.role === Role.SUPER_ADMIN && (
               <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
                 <div className="p-2 bg-indigo-500 rounded-lg text-white">
@@ -1189,6 +1257,7 @@ function App({ isDemoMode = false }: AppProps) {
           currentView={currentView}
           setCurrentView={setCurrentView}
           currentRole={currentUser?.role || Role.ADMIN}
+          currentUser={currentUser}
           onChangeRole={() => { }}
           onLogout={handleLogout}
           isMobileOpen={isMobileMenuOpen}
