@@ -115,6 +115,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   
   // Estado para Presupuestos Manuales (Eliminado: Usando props)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isAnnualAssistantOpen, setIsAnnualAssistantOpen] = useState(false);
+  
+  // Estado para el asistente anual
+  const [annualBudgetForm, setAnnualBudgetForm] = useState<{
+    year: number;
+    category: Category;
+    amounts: number[];
+  }>({
+    year: new Date().getFullYear(),
+    category: Category.MUNICIPAL_TAX,
+    amounts: Array(12).fill(0)
+  });
   
   // Formulario de presupuesto
   const [newBudget, setNewBudget] = useState<{
@@ -242,7 +254,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const monthlyComparison = React.useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const monthKey = String(month + 1).padStart(2, '0');
     
     // Filtrar pagos aprobados del mes actual
     const approvedPayments = payments.filter(p => {
@@ -252,7 +263,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
              p.status === PaymentStatus.APPROVED;
     });
 
-    // Filtrar presupuestos del mes actual (individuales)
+    // Filtrar presupuestos del mes actual
     const monthBudgets = budgets.filter(b => {
       const bDate = new Date(b.date);
       return bDate.getFullYear() === year && bDate.getMonth() === month;
@@ -260,7 +271,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Agrupar por categoría
     const categories = Object.values(Category);
-    const comparison = categories.map(cat => {
+    return categories.map(cat => {
       const spent = approvedPayments
         .filter(p => p.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
@@ -268,7 +279,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const budget = monthBudgets
         .filter(b => b.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
-
+      
       return {
         category: cat,
         spent,
@@ -276,8 +287,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         isOver: spent > budget && budget > 0
       };
     }).filter(item => item.spent > 0 || item.budget > 0);
-
-    return comparison;
   }, [currentDate, payments, budgets]);
 
   // Manejo de creación de presupuesto
@@ -301,6 +310,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     await onAddBudget(entry);
     setIsBudgetModalOpen(false);
     setNewBudget({ title: '', amount: '', category: Category.MUNICIPAL_TAX }); // Reset
+  };
+
+  const handleSaveAnnualBudget = async () => {
+    const entries: BudgetEntry[] = [];
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      if (annualBudgetForm.amounts[i] > 0) {
+        const dateStr = `${annualBudgetForm.year}-${String(i + 1).padStart(2, '0')}-01`;
+        entries.push({
+          id: `BUD-ANNUAL-${Math.random().toString(36).substr(2, 9)}`,
+          date: dateStr,
+          title: `Presupuesto Anual: ${months[i]}`,
+          amount: annualBudgetForm.amounts[i],
+          category: annualBudgetForm.category
+        });
+      }
+    }
+
+    // Guardar todos secuencialmente
+    for (const entry of entries) {
+      await onAddBudget(entry);
+    }
+
+    setIsAnnualAssistantOpen(false);
+    setAnnualBudgetForm({ ...annualBudgetForm, amounts: Array(12).fill(0) });
   };
 
   const handleDeleteBudget = async (id: string) => {
@@ -431,6 +469,208 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
       
+      {/* Modal Asistente Anual */}
+      <AnimatePresence>
+        {isAnnualAssistantOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col border border-white/20"
+            >
+              {/* Header Refinado */}
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-gradient-to-br from-cyan-600 to-blue-700 text-white relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                      <TrendingUp size={24} className="text-white" />
+                    </div>
+                    <h2 className="text-3xl font-black tracking-tight">Asistente de Presupuesto Anual</h2>
+                  </div>
+                  <p className="text-cyan-100/80 text-lg font-medium">Proyección estratégica para el ciclo fiscal {annualBudgetForm.year}</p>
+                </div>
+                
+                <button 
+                  onClick={() => setIsAnnualAssistantOpen(false)} 
+                  className="relative z-10 p-3 hover:bg-white/20 rounded-2xl transition-all active:scale-90"
+                >
+                  <X size={28} />
+                </button>
+
+                {/* Decoración de fondo */}
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-cyan-400/20 rounded-full blur-2xl"></div>
+              </div>
+
+              <div className="p-8 overflow-y-auto flex-1 bg-slate-50/50 dark:bg-slate-950/50 custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                  {/* Configuración General */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Tag size={16} /> Configuración de Partida
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">CATEGORÍA FISCAL</label>
+                          <select 
+                            value={annualBudgetForm.category}
+                            onChange={(e) => setAnnualBudgetForm({...annualBudgetForm, category: e.target.value as Category})}
+                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-cyan-500 dark:text-white rounded-2xl outline-none transition-all font-bold"
+                          >
+                            {Object.values(Category).map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">ACCIÓN RÁPIDA (REPETIR MONTO)</label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                              <input 
+                                type="number" 
+                                placeholder="Monto mensual..."
+                                className="w-full pl-8 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-cyan-500 dark:text-white rounded-2xl outline-none transition-all font-mono font-bold"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const val = parseFloat((e.target as HTMLInputElement).value);
+                                    if (!isNaN(val)) {
+                                      setAnnualBudgetForm({...annualBudgetForm, amounts: Array(12).fill(val)});
+                                      (e.target as HTMLInputElement).value = '';
+                                    }
+                                  }
+                                }}
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const input = document.querySelector('input[placeholder="Monto mensual..."]') as HTMLInputElement;
+                                const val = parseFloat(input.value);
+                                if (!isNaN(val)) {
+                                  setAnnualBudgetForm({...annualBudgetForm, amounts: Array(12).fill(val)});
+                                  input.value = '';
+                                }
+                              }}
+                              className="px-6 bg-cyan-600 text-white font-black rounded-2xl hover:bg-cyan-700 transition-all active:scale-95 shadow-lg shadow-cyan-200 dark:shadow-none"
+                            >
+                              Aplicar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumen de Proyección */}
+                  <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group">
+                    <div className="relative z-10">
+                      <h3 className="text-cyan-400 text-xs font-black uppercase tracking-widest mb-6">Resumen Anual Proyectado</h3>
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-slate-400 text-xs font-bold mb-1">TOTAL AÑO {annualBudgetForm.year}</p>
+                          <p className="text-4xl font-black tracking-tighter">
+                            <span className="text-cyan-500 mr-1">$</span>
+                            {annualBudgetForm.amounts.reduce((a, b) => a + b, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs font-bold">
+                            <span className="text-slate-400">COBERTURA MENSUAL</span>
+                            <span className="text-cyan-400">{annualBudgetForm.amounts.filter(a => a > 0).length} / 12 MESES</span>
+                          </div>
+                          <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(annualBudgetForm.amounts.filter(a => a > 0).length / 12) * 100}%` }}
+                              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                            />
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => setAnnualBudgetForm({...annualBudgetForm, amounts: Array(12).fill(0)})}
+                          className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                        >
+                          Limpiar Todo
+                        </button>
+                      </div>
+                    </div>
+                    {/* Decoración */}
+                    <DollarSign size={120} className="absolute -right-8 -bottom-8 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {[
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                  ].map((month, idx) => (
+                    <motion.div 
+                      key={month} 
+                      whileHover={{ y: -5 }}
+                      className={`p-6 rounded-[2rem] border-2 transition-all ${
+                        annualBudgetForm.amounts[idx] > 0 
+                        ? 'bg-white dark:bg-slate-900 border-cyan-500/30 shadow-xl shadow-cyan-500/5' 
+                        : 'bg-white/50 dark:bg-slate-900/50 border-transparent'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <span className={`text-xs font-black uppercase tracking-widest ${annualBudgetForm.amounts[idx] > 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`}>
+                          {month}
+                        </span>
+                        {annualBudgetForm.amounts[idx] > 0 && (
+                          <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl">$</span>
+                        <input 
+                          type="number"
+                          placeholder="0.00"
+                          value={annualBudgetForm.amounts[idx] || ''}
+                          onChange={(e) => {
+                            const newAmounts = [...annualBudgetForm.amounts];
+                            newAmounts[idx] = parseFloat(e.target.value) || 0;
+                            setAnnualBudgetForm({...annualBudgetForm, amounts: newAmounts});
+                          }}
+                          className="w-full pl-6 pr-0 py-2 bg-transparent border-none outline-none text-2xl font-black text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-800 font-mono"
+                        />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3 text-slate-400">
+                  <AlertCircle size={20} />
+                  <p className="text-sm font-medium">Se crearán registros individuales para cada mes con monto mayor a cero.</p>
+                </div>
+                <div className="flex gap-4 w-full sm:w-auto">
+                  <button 
+                    onClick={() => setIsAnnualAssistantOpen(false)}
+                    className="flex-1 sm:flex-none px-8 py-4 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSaveAnnualBudget}
+                    disabled={annualBudgetForm.amounts.every(a => a === 0)}
+                    className="flex-1 sm:flex-none px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-cyan-500/20 hover:shadow-cyan-500/40 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-3"
+                  >
+                    <CheckCircle2 size={22} />
+                    Confirmar Proyección
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Budget Modal */}
       {isBudgetModalOpen && (
           <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -829,6 +1069,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         >
             <Plus size={20} />
             Cargar Presupuesto
+        </button>
+
+        <button 
+            onClick={() => setIsAnnualAssistantOpen(true)}
+            disabled={currentUser?.role !== Role.ADMIN && currentUser?.role !== Role.SUPER_ADMIN}
+            className="mt-3 w-full py-3 bg-white dark:bg-slate-800 border-2 border-cyan-600 text-cyan-600 dark:text-cyan-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-cyan-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            <Calendar size={20} />
+            Asistente Anual
         </button>
       </div>
     </div>
