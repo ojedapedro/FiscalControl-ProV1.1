@@ -1,17 +1,19 @@
 
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
   onSnapshot,
-  getDocFromServer
+  getDocFromServer,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry } from '../types';
@@ -162,14 +164,23 @@ export const firestoreService = {
   },
 
   // Payments
-  getPayments: async (): Promise<Payment[]> => {
+  getPayments: async (limitCount?: number, lastDoc?: any): Promise<{ payments: Payment[], lastVisible: any }> => {
     const path = 'payments';
     try {
-      const snapshot = await getDocs(query(collection(db, path), orderBy('submittedDate', 'desc')));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+      let q = query(collection(db, path), orderBy('submittedDate', 'desc'));
+      if (limitCount) {
+        q = query(q, limit(limitCount));
+      }
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      const snapshot = await getDocs(q);
+      const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      return { payments, lastVisible };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
-      return [];
+      return { payments: [], lastVisible: null };
     }
   },
 
@@ -214,14 +225,23 @@ export const firestoreService = {
   },
 
   // Employees
-  getEmployees: async (): Promise<Employee[]> => {
+  getEmployees: async (limitCount?: number, lastDoc?: any): Promise<{ employees: Employee[], lastVisible: any }> => {
     const path = 'employees';
     try {
-      const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee));
+      let q = query(collection(db, path), orderBy('lastName', 'asc'));
+      if (limitCount) {
+        q = query(q, limit(limitCount));
+      }
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      const snapshot = await getDocs(q);
+      const employees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee));
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      return { employees, lastVisible };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
-      return [];
+      return { employees: [], lastVisible: null };
     }
   },
 
@@ -256,14 +276,23 @@ export const firestoreService = {
   },
 
   // Payroll
-  getPayrollEntries: async (): Promise<PayrollEntry[]> => {
+  getPayrollEntries: async (limitCount?: number, lastDoc?: any): Promise<{ entries: PayrollEntry[], lastVisible: any }> => {
     const path = 'payroll';
     try {
-      const snapshot = await getDocs(query(collection(db, path), orderBy('submittedDate', 'desc')));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PayrollEntry));
+      let q = query(collection(db, path), orderBy('submittedDate', 'desc'));
+      if (limitCount) {
+        q = query(q, limit(limitCount));
+      }
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      const snapshot = await getDocs(q);
+      const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PayrollEntry));
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      return { entries, lastVisible };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
-      return [];
+      return { entries: [], lastVisible: null };
     }
   },
 
@@ -352,6 +381,31 @@ export const firestoreService = {
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  bootstrap: async () => {
+    try {
+      const settings = await firestoreService.getSettings();
+      if (!settings) {
+        const defaultSettings: SystemSettings = {
+          whatsappEnabled: false,
+          whatsappPhone: '',
+          whatsappGatewayUrl: '',
+          daysBeforeWarning: 7,
+          daysBeforeCritical: 3,
+          emailEnabled: false,
+          exchangeRate: 1,
+          pushEnabled: false,
+          notifyPending: true,
+          notifyOverdue: true,
+          refreshInterval: 30000
+        };
+        await firestoreService.saveSettings(defaultSettings);
+        console.log("System settings bootstrapped successfully.");
+      }
+    } catch (error) {
+      console.error("Error during bootstrap:", error);
     }
   },
 

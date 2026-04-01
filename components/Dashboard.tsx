@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  DollarSign, 
-  FileText, 
-  Zap, 
-  Wifi, 
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  DollarSign,
+  FileText,
+  Zap,
+  Wifi,
   Droplets,
   Plus,
   Filter,
@@ -17,7 +17,10 @@ import {
   Wallet,
   AlertCircle,
   RefreshCw,
-  Download
+  Download,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry, Role, User } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
@@ -33,16 +36,20 @@ interface DashboardProps {
   currentUser?: User | null;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ 
-  payments, 
-  payrollEntries, 
-  onNewPayment, 
+export const Dashboard: React.FC<DashboardProps> = ({
+  payments,
+  payrollEntries,
+  onNewPayment,
   onEditPayment,
   onPaymentSuccess,
   currentUser
 }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
   const [paymentToPay, setPaymentToPay] = React.useState<Payment | null>(null);
+  const [sortConfig, setSortConfig] = React.useState<{ key: 'dueDate' | 'amount' | 'submittedDate', direction: 'asc' | 'desc' }>({
+    key: 'dueDate',
+    direction: 'desc'
+  });
   const { exchangeRate } = useExchangeRate();
 
   const handleDownloadFiscalCategoryPDF = () => {
@@ -67,18 +74,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     doc.setFontSize(10);
     doc.text(`Generado: ${formatDateTime(new Date())}`, 14, 30);
     doc.text(`Total de Pagos: ${payments.length}`, 14, 35);
-    
+
     const grandTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     doc.setFontSize(12);
     doc.text(`Monto Total General: $${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 42);
 
     let y = 50;
-    
+
     Object.entries(grouped).forEach(([category, subcategories]) => {
       // Calculate category total
       let categoryTotal = 0;
       Object.values(subcategories).forEach(subList => {
-          categoryTotal += subList.reduce((sum, p) => sum + p.amount, 0);
+        categoryTotal += subList.reduce((sum, p) => sum + p.amount, 0);
       });
 
       // Check for page break
@@ -96,11 +103,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       Object.entries(subcategories).forEach(([subCategory, subPayments]) => {
         const subTotal = subPayments.reduce((sum, p) => sum + p.amount, 0);
-        
+
         // Check for page break
         if (y > 270) {
-            doc.addPage();
-            y = 20;
+          doc.addPage();
+          y = 20;
         }
 
         doc.setFontSize(12);
@@ -116,25 +123,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         ]);
 
         if (doc.autoTable) {
-            doc.autoTable({
-              startY: y,
-              head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
-              body: tableData,
-              theme: 'grid',
-              headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-              styles: { fontSize: 8, cellPadding: 2 },
-              margin: { left: 20 },
-              columnStyles: {
-                  0: { cellWidth: 30 },
-                  1: { cellWidth: 'auto' },
-                  2: { cellWidth: 30, halign: 'right' },
-                  3: { cellWidth: 30 }
-              }
-            });
-            y = (doc as any).lastAutoTable.finalY + 10;
+          doc.autoTable({
+            startY: y,
+            head: [['Fecha', 'Tienda', 'Monto', 'Estado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+            styles: { fontSize: 8, cellPadding: 2 },
+            margin: { left: 20 },
+            columnStyles: {
+              0: { cellWidth: 30 },
+              1: { cellWidth: 'auto' },
+              2: { cellWidth: 30, halign: 'right' },
+              3: { cellWidth: 30 }
+            }
+          });
+          y = (doc as any).lastAutoTable.finalY + 10;
         } else {
-            console.warn("AutoTable plugin not found");
-            y += 10;
+          console.warn("AutoTable plugin not found");
+          y += 10;
         }
       });
       y += 5; // Extra space between categories
@@ -180,15 +187,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .slice(0, 5);
 
   // Filtrado de la lista para visualización
-  const filteredPayments = payments.filter(payment => {
-    if (filter === 'all') return true;
-    // MODIFICACIÓN: Incluimos PaymentStatus.UPLOADED en el filtro 'pending'
-    if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
-    if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
-    if (filter === 'approved') return payment.status === PaymentStatus.APPROVED;
-    if (filter === 'rejected') return payment.status === PaymentStatus.REJECTED;
-    return true;
-  });
+  const filteredPayments = React.useMemo(() => {
+    let result = payments.filter(payment => {
+      if (filter === 'all') return true;
+      if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
+      if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
+      if (filter === 'approved') return payment.status === PaymentStatus.APPROVED;
+      if (filter === 'rejected') return payment.status === PaymentStatus.REJECTED;
+      return true;
+    });
+
+    // Aplicar ordenamiento
+    result.sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      if (sortConfig.key === 'dueDate') {
+        valA = new Date(a.dueDate).getTime();
+        valB = new Date(b.dueDate).getTime();
+      } else if (sortConfig.key === 'submittedDate') {
+        valA = new Date(a.submittedDate || a.dueDate).getTime();
+        valB = new Date(b.submittedDate || b.dueDate).getTime();
+      } else if (sortConfig.key === 'amount') {
+        valA = a.amount;
+        valB = b.amount;
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [payments, filter, sortConfig]);
+
+  const handleSort = (key: 'dueDate' | 'amount' | 'submittedDate') => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const getSortIcon = (key: 'dueDate' | 'amount' | 'submittedDate') => {
+    if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
 
   const getIconForType = (type: string) => {
     // Adjusted logic for Spanish terms
@@ -207,8 +250,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-slate-100 dark:bg-slate-800';
   };
 
-  const getFilterButtonClass = (isActive: boolean) => 
-    isActive 
+  const getFilterButtonClass = (isActive: boolean) =>
+    isActive
       ? "px-4 py-1 bg-slate-900 dark:bg-slate-700 text-white rounded-md text-sm font-medium shadow-sm transition-all"
       : "px-4 py-1 text-slate-600 dark:text-slate-400 rounded-md text-sm font-medium hover:bg-white dark:hover:bg-slate-600 hover:shadow-sm transition-all";
 
@@ -222,20 +265,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto justify-end">
-            <button 
-              onClick={handleDownloadFiscalCategoryPDF}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm border border-white/20"
-            >
-              <Download size={16} />
-              <span>Generar Reporte PDF</span>
-            </button>
-            <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
-                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
-                <span className="text-xl">🔔</span>
-            </button>
-            <div className="w-10 h-10 bg-orange-200 dark:bg-orange-900/50 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm">
-                JD
-            </div>
+          <button
+            onClick={handleDownloadFiscalCategoryPDF}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm border border-white/20"
+          >
+            <Download size={16} />
+            <span>Generar Reporte PDF</span>
+          </button>
+          <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-colors">
+            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+            <span className="text-xl">🔔</span>
+          </button>
+          <div className="w-10 h-10 bg-orange-200 dark:bg-orange-900/50 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm">
+            JD
+          </div>
         </div>
       </header>
 
@@ -262,7 +305,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Card 2: Overdue Amount */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
+          <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <AlertTriangle size={18} className="text-red-500" />
               Monto Vencido
@@ -271,17 +314,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
               Bs. {(totalOverdue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-             <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingDown size={14} />
               Acción Inmediata
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
         {/* Card 3: Total Liabilities */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
+          <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <AlertCircle size={18} className="text-orange-500" />
               Pasivos Laborales
@@ -290,46 +333,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
               Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-             <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
               SSO, LPH, INCES
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
         {/* Card 4: Rejected Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
+          <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <XCircle size={18} className="text-pink-500" />
               Pagos Rechazados
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-white">{rejectedCount}</div>
-             <div className="flex items-center gap-1 text-pink-600 dark:text-pink-400 text-xs font-semibold mt-3 bg-pink-50 dark:bg-pink-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-pink-600 dark:text-pink-400 text-xs font-semibold mt-3 bg-pink-50 dark:bg-pink-900/20 w-fit px-2 py-1 rounded-lg">
               Corregir
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-50 dark:bg-pink-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-50 dark:bg-pink-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
         {/* Card 5: Pending Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
+          <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <Clock size={18} className="text-yellow-500" />
               Pagos Pendientes
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</div>
-             <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold mt-3 bg-yellow-50 dark:bg-yellow-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold mt-3 bg-yellow-50 dark:bg-yellow-900/20 w-fit px-2 py-1 rounded-lg">
               En cola de revisión
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-yellow-50 dark:bg-yellow-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-yellow-50 dark:bg-yellow-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
         {/* Card 6: Average Payment */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
+          <div className="relative z-10">
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
               <Activity size={18} className="text-purple-500" />
               Promedio Pago
@@ -338,16 +381,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
               Bs. {(averagePayment * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-             <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold mt-3 bg-purple-50 dark:bg-purple-900/20 w-fit px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold mt-3 bg-purple-50 dark:bg-purple-900/20 w-fit px-2 py-1 rounded-lg">
               Base: {approvedPayments.length} pagos
             </div>
           </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
       </div>
 
       {/* Action Button */}
-      <button 
+      <button
         onClick={onNewPayment}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 flex items-center justify-center gap-2 font-semibold text-lg transition-transform active:scale-[0.99]"
       >
@@ -376,7 +419,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="font-bold text-slate-900 dark:text-white">{budgetUtilization.toFixed(1)}%</span>
               </div>
               <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={`h-full transition-all duration-1000 ${budgetUtilization > 90 ? 'bg-red-500' : budgetUtilization > 70 ? 'bg-yellow-500' : 'bg-blue-500'}`}
                   style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
                 ></div>
@@ -438,10 +481,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</p>
                   <p className="text-[10px] text-slate-500">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  <span className={`text-[10px] font-bold ${
-                    payment.status === PaymentStatus.APPROVED ? 'text-green-600' : 
-                    payment.status === PaymentStatus.REJECTED ? 'text-red-600' : 'text-orange-600'
-                  }`}>
+                  <span className={`text-[10px] font-bold ${payment.status === PaymentStatus.APPROVED ? 'text-green-600' :
+                      payment.status === PaymentStatus.REJECTED ? 'text-red-600' : 'text-orange-600'
+                    }`}>
                     {payment.status}
                   </span>
                 </div>
@@ -454,92 +496,132 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Recent Payments List */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto flex-wrap">
-                <button 
-                  onClick={() => setFilter('all')}
-                  className={getFilterButtonClass(filter === 'all')}
-                >
-                  Todos
-                </button>
-                <button 
-                  onClick={() => setFilter('pending')}
-                  className={getFilterButtonClass(filter === 'pending')}
-                >
-                  Pendientes
-                </button>
-                <button 
-                  onClick={() => setFilter('overdue')}
-                  className={getFilterButtonClass(filter === 'overdue')}
-                >
-                  Vencidos
-                </button>
-                <button 
-                  onClick={() => setFilter('approved')}
-                  className={getFilterButtonClass(filter === 'approved')}
-                >
-                  Aprobados
-                </button>
-                <button 
-                  onClick={() => setFilter('rejected')}
-                  className={getFilterButtonClass(filter === 'rejected')}
-                >
-                  Rechazados
-                </button>
-            </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto flex-wrap">
+            <button
+              onClick={() => setFilter('all')}
+              className={getFilterButtonClass(filter === 'all')}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={getFilterButtonClass(filter === 'pending')}
+            >
+              Pendientes
+            </button>
+            <button
+              onClick={() => setFilter('overdue')}
+              className={getFilterButtonClass(filter === 'overdue')}
+            >
+              Vencidos
+            </button>
+            <button
+              onClick={() => setFilter('approved')}
+              className={getFilterButtonClass(filter === 'approved')}
+            >
+              Aprobados
+            </button>
+            <button
+              onClick={() => setFilter('rejected')}
+              className={getFilterButtonClass(filter === 'rejected')}
+            >
+              Rechazados
+            </button>
+          </div>
+        </div>
+
+        {/* Table Headers for Sorting */}
+        <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="col-span-5">Concepto / Tienda</div>
+          <div
+            className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => handleSort('dueDate')}
+          >
+            Vencimiento {getSortIcon('dueDate')}
+          </div>
+          <div
+            className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => handleSort('submittedDate')}
+          >
+            Envío {getSortIcon('submittedDate')}
+          </div>
+          <div
+            className="col-span-3 flex items-center justify-end gap-1 cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => handleSort('amount')}
+          >
+            Monto {getSortIcon('amount')}
+          </div>
         </div>
 
         <div className="space-y-3">
           {filteredPayments.length === 0 ? (
-             <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-3">
-                   <Filter size={24} />
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">No hay pagos en esta categoría.</p>
-             </div>
+            <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-3">
+                <Filter size={24} />
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">No hay pagos en esta categoría.</p>
+            </div>
           ) : (
             filteredPayments.map((payment) => (
-              <div key={payment.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
-                <div className="flex items-center gap-4">
+              <div
+                key={payment.id}
+                className={`p-4 rounded-2xl shadow-sm border flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4 transition-colors ${payment.status === PaymentStatus.REJECTED
+                    ? 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800 hover:border-pink-300 dark:hover:border-pink-700'
+                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800'
+                  }`}
+              >
+                <div className="col-span-5 flex items-center gap-4">
                   <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
                     {getIconForType(payment.specificType)}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">{payment.specificType}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">Vence: {formatDate(payment.dueDate)}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{payment.specificType}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs truncate">{payment.storeName}</p>
                   </div>
                 </div>
-                  <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
-                    <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                          payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+
+                <div className="col-span-2 hidden sm:block">
+                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.dueDate)}</p>
+                  <p className="text-[10px] text-slate-500">Vencimiento</p>
+                </div>
+
+                <div className="col-span-2 hidden sm:block">
+                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
+                  <p className="text-[10px] text-slate-500">Enviado</p>
+                </div>
+
+                <div className="col-span-3 flex flex-col items-end gap-1 w-full sm:w-auto">
+                  <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                           payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
+                              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                       }`}>
-                          {payment.status === PaymentStatus.REJECTED ? 'Devuelto para Corrección' : payment.status}
-                      </span>
-                      {payment.status === PaymentStatus.REJECTED && payment.rejectionReason && (
-                        <p className="text-[10px] text-pink-600 dark:text-pink-400 italic max-w-[200px] text-right">
-                          Obs: {payment.rejectionReason}
-                        </p>
-                      )}
+                      {payment.status === PaymentStatus.REJECTED ? 'Devuelto para Corrección' : payment.status}
+                    </span>
+                    {payment.status === PaymentStatus.REJECTED && payment.rejectionReason && (
+                      <p className="text-[10px] text-pink-600 dark:text-pink-400 italic max-w-[200px] text-right">
+                        Obs: {payment.rejectionReason}
+                      </p>
+                    )}
+                    <div className="flex gap-2 mt-2">
                       {payment.status === PaymentStatus.REJECTED && (
-                        <button 
+                        <button
                           onClick={() => onEditPayment(payment)}
-                          className="mt-2 text-[10px] bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
+                          className="text-[10px] bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
                         >
                           <RefreshCw size={10} />
                           Corregir Ahora
                         </button>
                       )}
                       {payment.status === PaymentStatus.APPROVED && (
-                        <button 
+                        <button
                           onClick={() => setPaymentToPay(payment)}
-                          className="mt-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
+                          className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1"
                         >
                           <Wallet size={10} />
                           Pagar Ahora
@@ -547,13 +629,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       )}
                     </div>
                   </div>
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
 
-      <StripePaymentModal 
+      <StripePaymentModal
         payment={paymentToPay}
         isOpen={!!paymentToPay}
         onClose={() => setPaymentToPay(null)}
