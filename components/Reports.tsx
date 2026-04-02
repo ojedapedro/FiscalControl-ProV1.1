@@ -45,10 +45,10 @@ const CustomPieTooltip = ({ active, payload }: any) => {
       <div className="bg-white dark:bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95">
         <div className="flex items-center gap-2 mb-1">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.color }}></span>
-            <p className="font-bold text-slate-900 dark:text-white text-sm">{data.name}</p>
+            <p className="font-bold text-slate-950 dark:text-slate-50 text-sm">{data.name}</p>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          <span className="font-mono text-lg text-slate-900 dark:text-white font-bold">{data.value}</span> Pagos
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          <span className="font-mono text-lg text-slate-950 dark:text-slate-50 font-bold">{data.value}</span> Pagos
         </p>
       </div>
     );
@@ -73,7 +73,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
 
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
-        <p className="font-bold text-slate-200 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
+        <p className="font-bold text-slate-950 dark:text-slate-50 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
         
         <div className="space-y-3">
           {/* Gasto Ejecutado */}

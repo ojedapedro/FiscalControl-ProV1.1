@@ -1140,7 +1140,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         {/* Header Dinámico */}
                         <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${globalStatus.color} text-slate-900 dark:text-white shadow-sm`}>
+                                <div className={`p-2 rounded-full ${globalStatus.color} text-slate-950 dark:text-slate-50 shadow-sm`}>
                                     <Calculator size={20} />
                                 </div>
                                 <div>
@@ -1288,8 +1288,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <MapPin className="text-brand-400 shrink-0 mt-0.5" size={20} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                                 <div>
-                                    <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Municipio / Alcaldía</span>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{storeMunicipality || 'No especificado'}</p>
+                                    <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Municipio / Alcaldía</p>
+                                    <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{storeMunicipality || 'No especificado'}</p>
                                 </div>
                                 <div>
                                     <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Dirección de Sucursal</span>

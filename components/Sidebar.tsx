@@ -61,7 +61,7 @@ export const Sidebar: FC<SidebarProps> = ({
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
-    { id: 'calendar', label: 'Asistente de Presupuesto Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'calendar', label: 'Presupuesto Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
     { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
@@ -85,7 +85,7 @@ export const Sidebar: FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <div className={`
         fixed top-0 bottom-0 left-0 z-50
-        w-64 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-900
+        w-64 bg-white dark:bg-slate-950 text-slate-950 dark:text-slate-50 border-r border-slate-200 dark:border-slate-900
         flex flex-col transition-transform duration-300 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -108,14 +108,14 @@ export const Sidebar: FC<SidebarProps> = ({
                 )}
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white leading-none">FiscalCtl</span>
+                <span className="font-bold text-lg tracking-tight text-slate-950 dark:text-slate-50 leading-none">FiscalCtl</span>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
               </div>
             </div>
             {/* Botón Cerrar solo en móvil */}
             <button 
               onClick={closeMobileMenu} 
-              className="lg:hidden p-3 -mr-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-90"
+              className="lg:hidden p-3 -mr-2 text-slate-500 hover:text-slate-950 dark:hover:text-slate-50 transition-colors active:scale-90"
               aria-label="Cerrar menú"
             >
               <X size={24} />
@@ -132,8 +132,8 @@ export const Sidebar: FC<SidebarProps> = ({
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{currentUser.email}</span>
+                <span className="text-sm font-bold text-slate-950 dark:text-slate-50 truncate">{currentUser.name}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{currentUser.email}</span>
               </div>
             </div>
           )}
@@ -160,7 +160,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group active:scale-[0.98] ${
                   isActive 
                     ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-950 dark:hover:text-slate-50'
                 }`}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors'} />
@@ -188,7 +188,7 @@ export const Sidebar: FC<SidebarProps> = ({
           {/* Theme Toggle */}
           <button 
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-800/50 active:scale-[0.98]"
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-50 transition-all border border-slate-200 dark:border-slate-800/50 active:scale-[0.98]"
           >
              <div className="flex items-center gap-3">
                {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}

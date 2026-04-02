@@ -264,8 +264,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Gestión de Pagos (Actualizado)</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
+          <h1 className="text-3xl font-bold text-slate-950 dark:text-slate-50">Gestión de Pagos (Actualizado)</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto justify-end">
             <button 
@@ -290,12 +290,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 1: Total Due */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
           <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <DollarSign size={18} className="text-blue-500" />
               Total por Pagar
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
               Bs. {(totalDue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
@@ -309,12 +309,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 2: Overdue Amount */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <AlertTriangle size={18} className="text-red-500" />
               Monto Vencido
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
               Bs. {(totalOverdue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
              <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
@@ -328,12 +328,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 3: Total Liabilities */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <AlertCircle size={18} className="text-orange-500" />
               Pasivos Laborales
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
               Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
              <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
@@ -346,11 +346,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 4: Rejected Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <XCircle size={18} className="text-pink-500" />
               Pagos Rechazados
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{rejectedCount}</div>
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">{rejectedCount}</div>
              <div className="flex items-center gap-1 text-pink-600 dark:text-pink-400 text-xs font-semibold mt-3 bg-pink-50 dark:bg-pink-900/20 w-fit px-2 py-1 rounded-lg">
               Corregir
             </div>
@@ -361,11 +361,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 5: Pending Count */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <Clock size={18} className="text-yellow-500" />
               Pagos Pendientes
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</div>
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">{pendingCount}</div>
              <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold mt-3 bg-yellow-50 dark:bg-yellow-900/20 w-fit px-2 py-1 rounded-lg">
               En cola de revisión
             </div>
@@ -376,11 +376,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 6: Average Payment */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
            <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium mb-2">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
               <Activity size={18} className="text-purple-500" />
               Promedio Pago
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">${averagePayment.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${averagePayment.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
               Bs. {(averagePayment * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
@@ -406,7 +406,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Budget Status Card */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-bold text-lg text-slate-950 dark:text-slate-50 flex items-center gap-2">
               <Wallet className="text-blue-500" size={20} />
               Estado del Presupuesto
             </h3>
@@ -418,8 +418,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="space-y-6">
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-500 dark:text-slate-400">Utilización Mensual</span>
-                <span className="font-bold text-slate-900 dark:text-white">{budgetUtilization.toFixed(1)}%</span>
+                <span className="text-slate-600 dark:text-slate-400">Utilización Mensual</span>
+                <span className="font-bold text-slate-950 dark:text-slate-50">{budgetUtilization.toFixed(1)}%</span>
               </div>
               <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div 
@@ -431,8 +431,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Ejecutado</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">${totalApproved.toLocaleString()}</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold mb-1">Ejecutado</p>
+                <p className="text-lg font-bold text-slate-950 dark:text-slate-50">${totalApproved.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Excedentes</p>
@@ -462,7 +462,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Recent Activity Summary */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-bold text-lg text-slate-950 dark:text-slate-50 flex items-center gap-2">
               <Activity className="text-blue-500" size={20} />
               Resumen de Actividad
             </h3>
@@ -477,12 +477,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {getIconForType(payment.specificType)}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{payment.specificType}</h4>
-                    <p className="text-[10px] text-slate-500">{payment.storeName} • {formatDate(payment.submittedDate)}</p>
+                    <h4 className="text-sm font-bold text-slate-950 dark:text-slate-50">{payment.specificType}</h4>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">{payment.storeName} • {formatDate(payment.submittedDate)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString()}</p>
                   <p className="text-[10px] text-slate-500">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   <span className={`text-[10px] font-bold ${
                     payment.status === PaymentStatus.APPROVED ? 'text-green-600' : 
@@ -500,7 +500,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Recent Payments List */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Transacciones Recientes</h2>
+            <h2 className="text-xl font-bold text-slate-950 dark:text-slate-50">Transacciones Recientes</h2>
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto flex-wrap">
                 <button 
                   onClick={() => setFilter('all')}
@@ -587,28 +587,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {getIconForType(payment.specificType)}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{payment.specificType}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs truncate">{payment.storeName}</p>
+                    <h3 className="font-bold text-slate-950 dark:text-slate-50 truncate">{payment.specificType}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs truncate">{payment.storeName}</p>
                   </div>
                 </div>
                 
                 <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{payment.paymentDate ? formatDate(payment.paymentDate) : '---'}</p>
-                  <p className="text-[10px] text-slate-500">Pago</p>
+                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{payment.paymentDate ? formatDate(payment.paymentDate) : '---'}</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Pago</p>
                 </div>
 
                 <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Envío</p>
+                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Envío</p>
                 </div>
 
                 <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-900 dark:text-white text-sm font-medium">{formatDate(payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-500">Vencimiento</p>
+                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{formatDate(payment.dueDate)}</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Vencimiento</p>
                 </div>
 
                 <div className="col-span-2 flex flex-col items-end gap-1 w-full sm:w-auto">
-                    <span className="font-bold text-lg text-slate-900 dark:text-slate-100">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="font-bold text-lg text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${

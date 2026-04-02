@@ -176,7 +176,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
             <div className="max-w-md w-full mx-auto">
                 {showDebug ? (
                   <div className="space-y-6 animate-in slide-in-from-right duration-300">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Información de Depuración</h2>
+                    <h2 className="text-2xl font-bold text-slate-950 dark:text-slate-50 mb-2">Información de Depuración</h2>
                     <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dominio Actual</p>
@@ -210,10 +210,10 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h2 className="text-3xl font-bold text-slate-950 dark:text-slate-50 mb-2">
                         {isRecovering ? 'Recuperar Cuenta' : 'Bienvenido de nuevo'}
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mb-8">
+                    <p className="text-slate-600 dark:text-slate-400 mb-8">
                         {isRecovering 
                             ? 'Ingrese su correo para recibir instrucciones.' 
                             : 'Ingrese sus credenciales para acceder al panel.'}
@@ -232,7 +232,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                                     type="email" 
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                     placeholder="usuario@fiscal.com"
                                     required
                                 />
@@ -253,7 +253,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                                         type={showPassword ? "text" : "password"} 
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                         placeholder="••••••••"
                                         required
                                     />
@@ -341,7 +341,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                     {isRecovering && (
                         <button 
                             onClick={() => { setIsRecovering(false); setError(null); setSuccessMsg(null); }}
-                            className="mt-6 w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-colors"
+                            className="mt-6 w-full text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-50 text-sm font-medium transition-colors"
                         >
                             ← Volver al inicio de sesión
                         </button>

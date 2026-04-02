@@ -222,7 +222,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       {/* Formulario de Creación / Edición */}
       {showForm && (
         <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+          <h3 className="font-bold text-slate-950 dark:text-slate-50 mb-4">
             {editingUserId ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
           </h3>
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,24 +256,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Nombre Completo</label>
               <input 
                 type="text" 
                 required
                 value={newUser.name}
                 onChange={e => setNewUser({...newUser, name: e.target.value})}
-                className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Ej. Juan Pérez"
               />
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rol de Acceso</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Rol de Acceso</label>
               <div className="relative">
                 <select 
                   value={newUser.role}
                   onChange={e => setNewUser({...newUser, role: e.target.value as Role})}
-                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                 >
                   <option value={Role.ADMIN}>Administrador</option>
                   <option value={Role.AUDITOR}>Auditor</option>
@@ -285,14 +285,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Correo Electrónico</label>
               <div className="relative">
                 <input 
                   type="email" 
                   required
                   value={newUser.email}
                   onChange={e => setNewUser({...newUser, email: e.target.value})}
-                  className="w-full p-3 pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-3 pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="usuario@fiscal.com"
                 />
                 <Mail className="absolute left-3 top-3 text-slate-400" size={16} />

@@ -41,11 +41,21 @@ interface ApprovalsProps {
   onReject: (id: string, reason: string) => void;
   currentUser?: User;
   onApproveAll: () => void;
+  onLoadMore?: () => Promise<void>;
+  hasMore?: boolean;
 }
 
 type SortOption = 'urgency' | 'date_desc' | 'amount_desc' | 'amount_asc';
 
-export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onReject, currentUser, onApproveAll }) => {
+export const Approvals: React.FC<ApprovalsProps> = ({ 
+  payments, 
+  onApprove, 
+  onReject, 
+  currentUser, 
+  onApproveAll,
+  onLoadMore,
+  hasMore = false
+}) => {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [rejectionNote, setRejectionNote] = React.useState('');
   const [isRejecting, setIsRejecting] = React.useState(false);
@@ -309,7 +319,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                               <ShieldCheck size={28} strokeWidth={1.5} />
                           </div>
                           <div>
-                              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                              <h3 className="text-xl font-bold text-slate-950 dark:text-slate-50 tracking-tight">
                                   Confirmar Aprobación
                               </h3>
                               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
@@ -325,10 +335,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                           <div className="flex justify-between items-start">
                               <div className="space-y-1">
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">{selectedPayment.storeName}</p>
-                                  <h4 className="text-base font-bold text-slate-900 dark:text-white leading-tight">{selectedPayment.specificType}</h4>
+                                  <h4 className="text-base font-bold text-slate-950 dark:text-slate-50 leading-tight">{selectedPayment.specificType}</h4>
                               </div>
                               <div className="text-right">
-                                  <p className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">${selectedPayment.amount.toLocaleString()}</p>
+                                  <p className="text-xl font-black text-slate-950 dark:text-slate-50 font-mono tracking-tighter">${selectedPayment.amount.toLocaleString()}</p>
                                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">REF: {selectedPayment.id.slice(-8).toUpperCase()}</p>
                               </div>
                           </div>
@@ -592,6 +602,18 @@ export const Approvals: React.FC<ApprovalsProps> = ({ payments, onApprove, onRej
                         </div>
                     );
                 })
+            )}
+            
+            {hasMore && onLoadMore && (
+                <div className="pt-4 pb-8 flex justify-center">
+                    <button 
+                        onClick={onLoadMore}
+                        className="px-6 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2 group"
+                    >
+                        <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                        Cargar más pagos
+                    </button>
+                </div>
             )}
         </div>
       </div>
