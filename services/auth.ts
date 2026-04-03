@@ -26,10 +26,12 @@ export const authService = {
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
-        if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
-          const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
-          await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
-          return { id: firebaseUser.uid, ...updatedUser } as User;
+        if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+          if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
+            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+            await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+            return { id: firebaseUser.uid, ...updatedUser } as User;
+          }
         }
         return { id: firebaseUser.uid, ...userData } as User;
       } else {
@@ -70,10 +72,12 @@ export const authService = {
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
-        if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
-          const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
-          await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
-          return { id: firebaseUser.uid, ...updatedUser } as User;
+        if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+          if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
+            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+            await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+            return { id: firebaseUser.uid, ...updatedUser } as User;
+          }
         }
         return { id: firebaseUser.uid, ...userData } as User;
       } else {
@@ -121,10 +125,14 @@ export const authService = {
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           // Force Super Admin role for the bootstrap email
-          if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
-            const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
-            await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
-            callback({ id: firebaseUser.uid, ...updatedUser } as User);
+          if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+            if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
+              const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+              await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+              callback({ id: firebaseUser.uid, ...updatedUser } as User);
+            } else {
+              callback({ id: firebaseUser.uid, ...userData } as User);
+            }
           } else {
             callback({ id: firebaseUser.uid, ...userData } as User);
           }

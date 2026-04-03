@@ -413,7 +413,7 @@ export const firestoreService = {
     }
   },
 
-  seedData: async (payments: Payment[], stores: Store[]) => {
+  seedData: async (payments: Payment[], stores: Store[], employees: Employee[], payroll: PayrollEntry[], budgets: BudgetEntry[]) => {
     try {
       console.log("Seeding initial data to Firestore...");
       
@@ -425,6 +425,21 @@ export const firestoreService = {
       // Seed Payments
       for (const payment of payments) {
         await firestoreService.createPayment(payment);
+      }
+
+      // Seed Employees
+      for (const employee of employees) {
+        await firestoreService.createEmployee(employee);
+      }
+
+      // Seed Payroll
+      for (const entry of payroll) {
+        await firestoreService.createPayrollEntry(entry);
+      }
+
+      // Seed Budgets
+      for (const budget of budgets) {
+        await firestoreService.createBudget(budget);
       }
       
       console.log("Initial data seeded successfully.");

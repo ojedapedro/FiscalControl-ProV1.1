@@ -1,5 +1,5 @@
 
-import { Category, Payment, PaymentStatus, Store, AlertItem, Role } from './types';
+import { Category, Payment, PaymentStatus, Store, AlertItem, Role, Employee, PayrollEntry, BudgetEntry } from './types';
 
 // URL del Logo de la Aplicación
 // Nota: Si la imagen falla, la sidebar mostrará un icono por defecto.
@@ -150,6 +150,108 @@ export const INITIAL_PAYMENTS: Payment[] = [
     history: [
       { date: '2023-10-23T16:45:00', action: 'CREACION', actorName: 'Juan Pérez', role: Role.ADMIN }
     ]
+  }
+];
+
+export const INITIAL_EMPLOYEES: Employee[] = [
+  {
+    id: 'V-12345678',
+    code: 'EMP001',
+    nationality: 'V',
+    name: 'Juan',
+    lastName: 'Pérez',
+    age: 35,
+    educationLevel: 'Universitario',
+    position: 'Analista de Datos',
+    department: 'IT',
+    positionDescription: 'Análisis de métricas fiscales',
+    hireDate: '2022-01-15',
+    email: 'juan.perez@example.com',
+    directPhone: '0414-1234567',
+    emergencyPhone: '0412-7654321',
+    homeAddress: 'Caracas, Venezuela',
+    gender: 'M',
+    wearsGlasses: 'No',
+    hasCondition: 'No',
+    height: '1.75',
+    storeId: 'S101',
+    baseSalary: 1000,
+    isActive: true,
+    defaultBonuses: [{ name: 'Bono Alimentación', amount: 200 }],
+    defaultDeductions: [],
+    defaultEmployerLiabilities: []
+  },
+  {
+    id: 'V-87654321',
+    code: 'EMP002',
+    nationality: 'V',
+    name: 'Maria',
+    lastName: 'Gomez',
+    age: 28,
+    educationLevel: 'Técnico Superior',
+    position: 'Gerente de Tienda',
+    department: 'Operaciones',
+    positionDescription: 'Gestión de sucursal',
+    hireDate: '2021-06-20',
+    email: 'maria.gomez@example.com',
+    directPhone: '0424-9876543',
+    emergencyPhone: '0416-1112233',
+    homeAddress: 'Maracaibo, Zulia',
+    gender: 'F',
+    wearsGlasses: 'Sí',
+    hasCondition: 'No',
+    height: '1.65',
+    storeId: 'S145',
+    baseSalary: 1200,
+    isActive: true,
+    defaultBonuses: [{ name: 'Bono Alimentación', amount: 200 }, { name: 'Bono Responsabilidad', amount: 300 }],
+    defaultDeductions: [],
+    defaultEmployerLiabilities: []
+  }
+];
+
+export const INITIAL_PAYROLL: PayrollEntry[] = [
+  {
+    id: 'PAY-202310-001',
+    employeeName: 'Juan Pérez',
+    employeeId: 'V-12345678',
+    storeId: 'S101',
+    month: '2023-10',
+    baseSalary: 1000,
+    bonuses: [{ name: 'Bono Alimentación', amount: 200 }],
+    deductions: [
+      { name: 'SSO (4%)', amount: 40.00 },
+      { name: 'RPE (0.5%)', amount: 5.00 },
+      { name: 'FAOV / LPH (1%)', amount: 10.00 }
+    ],
+    employerLiabilities: [
+      { name: 'SSO Patronal (9%)', amount: 90.00 },
+      { name: 'RPE Patronal (2%)', amount: 20.00 },
+      { name: 'FAOV Patronal (2%)', amount: 20.00 }
+    ],
+    totalWorkerNet: 1145.00,
+    totalEmployerCost: 1330.00,
+    status: 'PROCESADO',
+    submittedDate: '2023-10-31T10:00:00Z'
+  }
+];
+
+export const INITIAL_BUDGETS: BudgetEntry[] = [
+  {
+    id: 'BUD-001',
+    date: '2023-11-01',
+    title: 'Presupuesto Impuestos Noviembre',
+    amount: 5000,
+    category: Category.NATIONAL_TAX,
+    notes: 'Estimado para IVA e ISLR'
+  },
+  {
+    id: 'BUD-002',
+    date: '2023-11-01',
+    title: 'Presupuesto Servicios Noviembre',
+    amount: 2000,
+    category: Category.UTILITY,
+    notes: 'Electricidad, Agua e Internet'
   }
 ];
 

@@ -528,8 +528,8 @@ function App({ isDemoMode = false }: AppProps) {
     
     setIsLoading(true);
     try {
-      const { INITIAL_PAYMENTS, STORES } = await import('./constants');
-      const result = await firestoreService.seedData(INITIAL_PAYMENTS, STORES);
+      const { INITIAL_PAYMENTS, STORES, INITIAL_EMPLOYEES, INITIAL_PAYROLL, INITIAL_BUDGETS } = await import('./constants');
+      const result = await firestoreService.seedData(INITIAL_PAYMENTS, STORES, INITIAL_EMPLOYEES, INITIAL_PAYROLL, INITIAL_BUDGETS);
       if (result.success) {
         setNotification('✅ Datos sembrados exitosamente.');
         await loadData();
@@ -949,7 +949,9 @@ function App({ isDemoMode = false }: AppProps) {
   };
 
   // Filter data based on user's assigned store
-  const userStoreId = currentUser?.storeId;
+  const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
+  const userStoreId = isGlobalUser ? null : currentUser?.storeId;
+  
   const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
   const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
   const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
