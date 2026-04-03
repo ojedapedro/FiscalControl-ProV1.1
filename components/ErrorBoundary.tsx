@@ -48,11 +48,11 @@ export class ErrorBoundary extends Component<Props, State> {
               {isFirestoreError ? 'Error de Base de Datos' : 'Algo salió mal'}
             </h1>
             <p className="text-slate-300 mb-6">
-              {isFirestoreError
+              {isFirestoreError 
                 ? 'Hubo un problema al comunicarse con la base de datos. Esto puede deberse a permisos insuficientes o problemas de conexión.'
                 : 'La aplicación encontró un error inesperado. Por favor, intenta recargar la página.'}
             </p>
-
+            
             {isFirestoreError && firestoreInfo && (
               <div className="mb-6 space-y-2">
                 <div className="flex justify-between text-xs">
@@ -69,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="bg-black/30 p-4 rounded-lg overflow-auto max-h-40 mb-6 font-mono text-xs text-red-300">
               {errorDetails}
             </div>
-
+            
             <button
               onClick={() => window.location.reload()}
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors"

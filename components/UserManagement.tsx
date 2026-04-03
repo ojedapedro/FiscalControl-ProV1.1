@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { User, Role } from '../types';
+import { User, Role, Store as StoreType } from '../types';
 import { firestoreService } from '../services/firestoreService';
-import { STORES } from '../constants';
 import { 
   UserPlus, 
   Shield, 
@@ -13,16 +12,17 @@ import {
   AlertCircle,
   Search,
   Users,
-  Store,
+  Store as StoreIcon,
   Edit2,
   Trash2
 } from 'lucide-react';
 
 interface UserManagementProps {
   currentUser?: User | null;
+  stores: StoreType[];
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) => {
+export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, stores }) => {
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -309,7 +309,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                   className="w-full p-3 pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="+584120000000"
                 />
-                <Store className="absolute left-3 top-3 text-slate-400" size={16} />
+                <StoreIcon className="absolute left-3 top-3 text-slate-400" size={16} />
               </div>
             </div>
 
@@ -339,11 +339,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                   >
                     <option value="" disabled>Seleccione una tienda...</option>
-                    {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(store => (
+                    {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
                       <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
                     ))}
                   </select>
-                  <Store className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
+                  <StoreIcon className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">Este usuario solo tendrá acceso a los datos de la tienda seleccionada.</p>
               </div>
@@ -418,7 +418,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                        {user.storeId ? STORES.find(s => s.id === user.storeId)?.name || 'Desconocida' : 'Todas (Global)'}
+                        {user.storeId ? stores.find(s => s.id === user.storeId)?.name || 'Desconocida' : 'Todas (Global)'}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-400 text-xs">

@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { STORES } from '../constants';
-import { Payment, PaymentStatus } from '../types';
+import { Payment, PaymentStatus, Store } from '../types';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -31,18 +30,19 @@ import VenezuelaMap from './VenezuelaMap';
 interface StoreStatusProps {
   payments: Payment[];
   userStoreId?: string;
+  stores: Store[];
 }
 
-export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId }) => {
+export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId, stores }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
 
   // Calcular el estado dinámico de las tiendas basado en los pagos reales
   const dynamicStores = useMemo(() => {
-    let storesToProcess = STORES;
+    let storesToProcess = stores;
     if (userStoreId) {
-      storesToProcess = STORES.filter(s => s.id === userStoreId);
+      storesToProcess = stores.filter(s => s.id === userStoreId);
     }
 
     return storesToProcess.map(store => {
@@ -88,7 +88,7 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId 
             }
         };
     });
-  }, [payments]);
+  }, [payments, stores, userStoreId]);
 
   const toggleStoreSelection = (id: string) => {
     setSelectedStoreIds(prev => 

@@ -21,7 +21,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl"
+      className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-4 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden group shadow-2xl"
     >
       <div className="flex justify-between items-center w-full mb-6 z-10">
         <div className="flex items-center gap-3">
@@ -30,7 +30,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
         </div>
       </div>
 
-      <div className="relative w-full h-[450px] rounded-2xl overflow-hidden border border-slate-700/50">
+      <div className="relative w-full h-[300px] sm:h-[450px] rounded-2xl overflow-hidden border border-slate-700/50">
         <APIProvider apiKey={apiKey}>
           <Map
             defaultCenter={{ lat: 7.5, lng: -66.5 }}

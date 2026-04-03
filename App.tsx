@@ -14,8 +14,9 @@ import { PayrollModule } from './components/PayrollModule';
 import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
-import { STORES } from './constants';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings } from './types';
+import { StoreManagement } from './components/StoreManagement';
+import { STORES as INITIAL_STORES } from './constants';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { api } from './services/api';
 import { authService } from './services/auth';
@@ -61,6 +62,7 @@ function App({ isDemoMode = false }: AppProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [stores, setStores] = useState<Store[]>(INITIAL_STORES);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
@@ -282,6 +284,54 @@ function App({ isDemoMode = false }: AppProps) {
     }
   };
 
+  const handleAddStore = async (store: Store) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await firestoreService.createStore(store);
+      }
+      setStores(prev => [...prev, store]);
+      setNotification('✅ Tienda creada exitosamente');
+    } catch (error) {
+      setNotification('❌ Error guardando tienda');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleUpdateStore = async (store: Store) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await firestoreService.updateStore(store);
+      }
+      setStores(prev => prev.map(s => s.id === store.id ? store : s));
+      setNotification('✅ Tienda actualizada');
+    } catch (error) {
+      setNotification('❌ Error actualizando tienda');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleDeleteStore = async (id: string) => {
+    setIsLoading(true);
+    try {
+      if (!isDemoMode) {
+        await firestoreService.deleteStore(id);
+      }
+      setStores(prev => prev.filter(s => s.id !== id));
+      setNotification('🗑️ Tienda eliminada');
+    } catch (error) {
+      setNotification('❌ Error eliminando tienda');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   const handleLogout = async () => {
     if (!isDemoMode) {
       await authService.logout();
@@ -299,6 +349,7 @@ function App({ isDemoMode = false }: AppProps) {
       }
 
       if (isDemoMode) {
+        setStores(INITIAL_STORES);
         const mockPayments: Payment[] = [
           {
             id: 'PAG-1001',
@@ -399,13 +450,14 @@ function App({ isDemoMode = false }: AppProps) {
         ];
         setPayrollEntries(mockPayroll);
       } else {
-        const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData] = await Promise.all([
+        const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
           firestoreService.getPayments(PAGE_SIZE),
           firestoreService.getEmployees(PAGE_SIZE),
           firestoreService.getPayrollEntries(PAGE_SIZE),
           firestoreService.getBudgets(),
           firestoreService.getSettings(),
-          firestoreService.getUsers()
+          firestoreService.getUsers(),
+          firestoreService.getStores()
         ]);
 
         setPayments(paymentsRes.payments);
@@ -423,6 +475,11 @@ function App({ isDemoMode = false }: AppProps) {
         setBudgets(budgetsData);
         setSettings(settingsData);
         setUsers(usersData);
+        if (storesData && storesData.length > 0) {
+          setStores(storesData);
+        } else {
+          setStores(INITIAL_STORES);
+        }
 
         if (settingsData && settingsData.exchangeRate) {
           setExchangeRate(settingsData.exchangeRate);
@@ -595,7 +652,7 @@ function App({ isDemoMode = false }: AppProps) {
     const paymentToSave: Payment = {
       id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
       storeId: paymentData.storeId,
-      storeName: STORES.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
+      storeName: stores.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
       userId: currentUser?.id || 'U-UNK',
       category: paymentData.category,
       specificType: paymentData.specificType,
@@ -908,6 +965,7 @@ function App({ isDemoMode = false }: AppProps) {
               }} 
               isEmbedded={true}
               currentUser={currentUser}
+              stores={stores}
             />
             
             {/* Modal for Rejected Payments */}
@@ -959,6 +1017,7 @@ function App({ isDemoMode = false }: AppProps) {
                           onCancel={() => setEditingPayment(null)}
                           isEmbedded={true}
                           currentUser={currentUser}
+                          stores={stores}
                         />
                       </div>
                     ) : (
@@ -1006,14 +1065,16 @@ function App({ isDemoMode = false }: AppProps) {
             onReject={handleReject} 
             currentUser={currentUser} 
             onApproveAll={handleApproveAll}
+            onLoadMore={loadMorePayments}
+            hasMore={hasMorePayments}
           />
         );
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={stores} />;
       case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} />;
+        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={stores} />;
       case 'network':
-        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} />;
+        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} stores={stores} />;
       case 'calendar':
         return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={budgets} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} currentUser={currentUser} />;
       case 'payroll':
@@ -1033,6 +1094,7 @@ function App({ isDemoMode = false }: AppProps) {
             hasMorePayroll={hasMorePayroll}
             onLoadMoreEmployees={loadMoreEmployees}
             hasMoreEmployees={hasMoreEmployees}
+            stores={stores}
           />
         );
       case 'evaluation':
@@ -1116,12 +1178,26 @@ function App({ isDemoMode = false }: AppProps) {
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
                       <p className="text-slate-600 dark:text-slate-400">
-                        {currentUser?.storeId ? STORES.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
+                        {currentUser?.storeId ? stores.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
                       </p>
                     </div>
                   </div>
                </div>
             </div>
+
+            {/* Gestión de Tiendas (Solo Super Usuario y Presidencia) */}
+            {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT) && (
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <StoreManagement 
+                  stores={stores}
+                  users={users}
+                  onAddStore={handleAddStore}
+                  onUpdateStore={handleUpdateStore}
+                  onDeleteStore={handleDeleteStore}
+                  currentUser={currentUser}
+                />
+              </div>
+            )}
 
             {currentUser?.role === Role.SUPER_ADMIN && (
                <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
@@ -1138,7 +1214,7 @@ function App({ isDemoMode = false }: AppProps) {
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
-                   <UserManagement currentUser={currentUser} />
+                   <UserManagement currentUser={currentUser} stores={stores} />
                 </div>
               </div>
             )}
@@ -1371,6 +1447,7 @@ function App({ isDemoMode = false }: AppProps) {
                         setEditingPayment(null);
                       }} 
                       currentUser={currentUser}
+                      stores={stores}
                     />
                 </div>
              </div>

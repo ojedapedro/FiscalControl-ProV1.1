@@ -177,6 +177,24 @@
         "notes": { "type": "string" }
       },
       "required": ["id", "date", "title", "amount", "category"]
+    },
+    "Store": {
+      "title": "Store",
+      "description": "Store location and management details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "municipality": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["En Regla", "En Riesgo", "Vencido"] },
+        "nextDeadline": { "type": "string" },
+        "matrixId": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["id", "name", "address", "municipality"]
     }
   },
   "firestore": {
@@ -207,6 +225,10 @@
     "/budgets/{budgetId}": {
       "schema": "BudgetEntry",
       "description": "Budget entries"
+    },
+    "/stores/{storeId}": {
+      "schema": "Store",
+      "description": "Store locations"
     }
   }
 }

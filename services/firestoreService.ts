@@ -1,22 +1,22 @@
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
   onSnapshot,
   getDocFromServer,
   limit,
   startAfter
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -435,6 +435,48 @@ export const firestoreService = {
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `exchange_rates/${targetDate}`);
       return { success: false };
+    }
+  },
+
+  // --- STORES ---
+  getStores: async (): Promise<Store[]> => {
+    const path = 'stores';
+    try {
+      const snapshot = await getDocs(collection(db, path));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  createStore: async (store: Store) => {
+    const path = `stores/${store.id}`;
+    try {
+      await setDoc(doc(db, 'stores', store.id), cleanObject(store));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  },
+
+  updateStore: async (store: Store) => {
+    const path = `stores/${store.id}`;
+    try {
+      await updateDoc(doc(db, 'stores', store.id), cleanObject(store));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  },
+
+  deleteStore: async (id: string) => {
+    const path = `stores/${id}`;
+    try {
+      await deleteDoc(doc(db, 'stores', id));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   }
 };

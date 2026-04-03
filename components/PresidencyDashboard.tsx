@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Payment, PaymentStatus, PayrollEntry, Category, User, Role } from '../types';
+import { Payment, PaymentStatus, PayrollEntry, Category, User, Role, Store } from '../types';
 import { 
   DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, 
   AlertOctagon, Clock, XCircle, Building2, Filter, Users, 
@@ -16,23 +16,18 @@ interface PresidencyDashboardProps {
   payrollEntries: PayrollEntry[];
   currentUser?: User;
   onApproveAll?: () => void;
+  stores: Store[];
 }
 
-export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, currentUser, onApproveAll }) => {
+export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, currentUser, onApproveAll, stores }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
 
-  // Extract unique stores from payments
-  const stores = useMemo(() => {
-    const storeMap = new Map<string, string>();
-    payments.forEach(p => {
-      if (p.storeId && p.storeName) {
-        storeMap.set(p.storeId, p.storeName);
-      }
-    });
-    return Array.from(storeMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [payments]);
+  // Use stores from props
+  const storeOptions = useMemo(() => {
+    return stores.map(s => ({ id: s.id, name: s.name }));
+  }, [stores]);
 
   // Filter data based on selections
   const filteredPayments = useMemo(() => {
@@ -152,7 +147,7 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
               className="bg-transparent text-white text-sm font-semibold focus:outline-none pr-4 cursor-pointer"
             >
               <option value="all">Todas las Tiendas</option>
-              {stores.map(s => (
+              {storeOptions.map(s => (
                 <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>
               ))}
             </select>

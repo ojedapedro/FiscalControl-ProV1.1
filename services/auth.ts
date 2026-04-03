@@ -45,6 +45,10 @@ export const authService = {
       if (error.code === 'auth/operation-not-allowed') {
         throw new Error('El inicio de sesión con correo/contraseña no está habilitado en Firebase Console.');
       }
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error('Unauthorized domain. Current origin:', window.location.origin);
+        throw new Error('Este dominio no está autorizado en Firebase. Por favor, añada ' + window.location.hostname + ' a los dominios autorizados en la consola de Firebase.');
+      }
       throw new Error(error.message || 'Error al iniciar sesión.');
     }
   },
@@ -73,6 +77,10 @@ export const authService = {
       console.error('Google Login error:', error);
       if (error.code === 'auth/operation-not-allowed') {
         throw new Error('El inicio de sesión con Google no está habilitado en Firebase Console.');
+      }
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error('Unauthorized domain. Current origin:', window.location.origin);
+        throw new Error('Este dominio no está autorizado en Firebase. Por favor, añada ' + window.location.hostname + ' a los dominios autorizados en la consola de Firebase.');
       }
       throw new Error(error.message || 'Error al iniciar sesión con Google.');
     }

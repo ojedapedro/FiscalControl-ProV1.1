@@ -1,8 +1,30 @@
 
 import { api } from './api';
-import { Payment, User, Role, PaymentStatus, SystemSettings } from '../types';
+import { Payment, User, Role, PaymentStatus, SystemSettings, PayrollEntry, Employee } from '../types';
 
 export const notificationService = {
+  /**
+   * Notifica el recibo de pago de nómina al empleado
+   */
+  notifyPayrollReceipt: async (entry: PayrollEntry, employee: Employee, settings: SystemSettings | null) => {
+    if (!settings?.emailEnabled && !settings?.whatsappEnabled) return;
+
+    if (settings.emailEnabled && employee.email) {
+      // Usar la API de Resend a través de nuestro backend
+      await api.sendPayrollEmail(entry, employee.email);
+    }
+
+    if (settings.whatsappEnabled && employee.directPhone) {
+      const message = `📄 *Recibo de Pago de Nómina*\n\n` +
+        `Hola ${employee.name},\n` +
+        `Tu pago del mes de ${entry.month} ha sido procesado.\n\n` +
+        `Monto Neto: $${entry.totalWorkerNet.toLocaleString()}\n` +
+        `Equivalente: Bs. ${(entry.totalWorkerNet * (settings.exchangeRate || 1)).toLocaleString()}\n\n` +
+        `El recibo detallado ha sido enviado a tu correo electrónico.`;
+      await api.sendWhatsApp(employee.directPhone, message);
+    }
+  },
+
   /**
    * Notifica cuando se crea un nuevo pago
    */

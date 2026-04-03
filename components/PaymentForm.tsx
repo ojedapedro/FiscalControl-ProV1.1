@@ -24,9 +24,8 @@ import {
   FileWarning,
   Users
 } from 'lucide-react';
-import { Category, Payment, PaymentStatus, User } from '../types';
+import { Category, Payment, PaymentStatus, User, Store } from '../types';
 import { formatDate } from '../src/utils';
-import { STORES } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { firestoreService } from '../services/firestoreService';
@@ -365,9 +364,10 @@ interface PaymentFormProps {
   payments: Payment[];
   isEmbedded?: boolean;
   currentUser?: User | null;
+  stores: Store[];
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser, stores }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || currentUser?.storeId || '');
   const [storeAddress, setStoreAddress] = React.useState('');
@@ -484,7 +484,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setStoreAddress('Cobertura Nacional');
         setStoreMunicipality('Cobertura Nacional');
     } else if (store) {
-      const selectedStore = STORES.find(s => s.id === store);
+      const selectedStore = stores.find(s => s.id === store);
       if (selectedStore) {
         setStoreAddress(selectedStore.address || '');
         setStoreMunicipality(selectedStore.municipality || '');
@@ -688,7 +688,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Calcular el estado dinámico de las tiendas para el mapa
   const dynamicStores = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
     return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -707,7 +707,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             status: calculatedStatus
         };
     });
-  }, [payments, currentUser]);
+  }, [payments, currentUser, stores]);
 
   // Clean up preview URL
   React.useEffect(() => {
@@ -1048,7 +1048,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {category === Category.PAYROLL && !currentUser?.storeId && (
                                     <option value="NATIONAL" className="bg-slate-50 dark:bg-slate-900">Nacional (Cobertura Nacional)</option>
                                 )}
-                                {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => (
+                                {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (
                                     <option key={s.id} value={s.id} className="bg-slate-50 dark:bg-slate-900">{s.name}</option>
                                 ))}
                             </select>

@@ -20,10 +20,10 @@ import {
   Line,
   Legend
 } from 'recharts';
-import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry, PayrollEntry, Employee } from '../types';
+import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry, PayrollEntry, Employee, Store } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
 import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator, ShieldCheck } from 'lucide-react';
-import { STORES, APP_LOGO_URL } from '../constants';
+import { APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
@@ -33,6 +33,7 @@ interface ReportsProps {
   payrollEntries: PayrollEntry[];
   employees: Employee[];
   currentUser: User | null;
+  stores: Store[];
 }
 
 // Configuración simulada de presupuesto mensual (Eliminado: Usando props)
@@ -154,7 +155,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
   return null;
 };
 
-export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntries, employees, currentUser }) => {
+export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntries, employees, currentUser, stores }) => {
   const [activeReport, setActiveReport] = React.useState<'financial' | 'labor' | 'auditor'>('financial');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
@@ -277,10 +278,10 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   }, [laborLiabilitiesData, liabilityTypes]);
 
   const municipalities = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
     const allMunicipalities = storesToProcess.map(s => s.municipality || 'N/A');
     return ['all', ...Array.from(new Set(allMunicipalities))];
-  }, [currentUser]);
+  }, [currentUser, stores]);
 
   // --- PROCESAMIENTO DE DATOS ---
 
@@ -289,16 +290,16 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
       const recordDate = p.submittedDate ? p.submittedDate.split('T')[0] : (p.dueDate ? p.dueDate.split('T')[0] : '');
       const isDateInRange = recordDate >= startDate && recordDate <= endDate;
       const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
-      const storeDetails = STORES.find(s => s.id === p.storeId);
+      const storeDetails = stores.find(s => s.id === p.storeId);
       const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
 
       return isDateInRange && storeMatch && municipalityMatch;
     });
-  }, [payments, startDate, endDate, selectedStore, selectedMunicipality]);
+  }, [payments, startDate, endDate, selectedStore, selectedMunicipality, stores]);
 
   // Calcular el estado dinámico de las tiendas para el mapa en el reporte
   const dynamicStores = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES;
+    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
     return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -317,7 +318,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             status: calculatedStatus
         };
     });
-  }, [payments, currentUser]);
+  }, [payments, currentUser, stores]);
 
   const monthlyCategoryData = React.useMemo(() => {
     const currentYear = new Date(startDate + 'T12:00:00').getFullYear();
@@ -332,7 +333,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         const d = new Date(datePart + 'T12:00:00');
         const isSameMonthYear = d.getMonth() === index && d.getFullYear() === currentYear;
         const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
-        const storeDetails = STORES.find(s => s.id === p.storeId);
+        const storeDetails = stores.find(s => s.id === p.storeId);
         const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
         
         return isSameMonthYear && storeMatch && municipalityMatch;
@@ -352,7 +353,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         totalPending: categoryBreakdown.reduce((sum, item) => sum + item.pending, 0),
       };
     }).filter(monthData => monthData.categories.length > 0);
-  }, [payments, startDate, selectedStore, selectedMunicipality]);
+  }, [payments, startDate, selectedStore, selectedMunicipality, stores]);
 
   const annualData = React.useMemo(() => {
     const currentYear = new Date(startDate + 'T12:00:00').getFullYear();
@@ -367,7 +368,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             const d = new Date(datePart + 'T12:00:00'); 
             const isSameMonthYear = d.getMonth() === index && d.getFullYear() === currentYear;
             const storeMatch = selectedStore === 'all' || p.storeId === selectedStore;
-            const storeDetails = STORES.find(s => s.id === p.storeId);
+            const storeDetails = stores.find(s => s.id === p.storeId);
             const municipalityMatch = selectedMunicipality === 'all' || (storeDetails && storeDetails.municipality === selectedMunicipality);
             
             return isSameMonthYear && storeMatch && municipalityMatch;
@@ -395,7 +396,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             total: approvedAmount + pendingAmount
         };
     });
-  }, [payments, budgets, startDate, selectedStore, selectedMunicipality]);
+  }, [payments, budgets, startDate, selectedStore, selectedMunicipality, stores]);
 
   const totalAnnualBudget = annualData.reduce((acc, curr) => acc + curr.budget, 0) || 1;
   const totalYTDExecuted = annualData.reduce((acc, curr) => acc + curr.approved, 0);
@@ -912,7 +913,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todas las Tiendas</option>
-                    {(currentUser?.storeId ? STORES.filter(s => s.id === currentUser.storeId) : STORES).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 <select 
                     value={selectedMunicipality} 
