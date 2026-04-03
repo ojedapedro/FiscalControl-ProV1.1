@@ -79,6 +79,13 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Super Usuario", "Administrador"]));
     }
 
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "analistadedatosnova@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Super Usuario"));
+    }
+
     function isAuditor() {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -130,17 +137,16 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isAuthenticated() && (isOwner(userId) || isAdmin() || isAuditor() || isPresidencia());
       allow list: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia());
-      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && 
-                    (isAdmin() || request.resource.data.role == resource.data.role); // Prevent self-promotion
-      allow delete: if isAdmin();
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isSuperAdmin();
     }
 
     // Payments collection
     match /payments/{paymentId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidPayment(request.resource.data);
-      allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || (resource.data.userId == request.auth.uid && resource.data.status == "Pendiente"));
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
       allow delete: if isAdmin();
     }
 

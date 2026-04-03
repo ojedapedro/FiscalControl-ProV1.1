@@ -450,6 +450,7 @@ function App({ isDemoMode = false }: AppProps) {
         ];
         setPayrollEntries(mockPayroll);
       } else {
+        console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
         const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
                               currentUser.role === Role.ADMIN || 
                               currentUser.role === Role.AUDITOR ||
@@ -464,6 +465,11 @@ function App({ isDemoMode = false }: AppProps) {
           canManageUsers ? firestoreService.getUsers() : Promise.resolve([]),
           firestoreService.getStores()
         ]);
+
+        console.log("Payments fetched:", paymentsRes.payments.length);
+        console.log("Stores fetched:", storesData.length);
+        console.log("Users fetched:", usersData.length);
+        console.log("Settings fetched:", !!settingsData);
 
         setPayments(paymentsRes.payments);
         setLastVisiblePayment(paymentsRes.lastVisible);
@@ -1149,8 +1155,8 @@ function App({ isDemoMode = false }: AppProps) {
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
             
-            {/* Sección Mantenimiento (Solo Super Admin) */}
-            {currentUser?.role === Role.SUPER_ADMIN && (
+            {/* Sección Mantenimiento (Solo Super Admin o Email de Bootstrap) */}
+            {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.email === 'analistadedatosnova@gmail.com') && (
               <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                 <h3 className="font-bold mb-6 flex items-center gap-2 text-amber-500">
                     <RefreshCw size={20} /> Mantenimiento de Datos
