@@ -150,9 +150,7 @@ function App({}: AppProps = {}) {
     };
     
     try {
-      if (!isDemoMode) {
-        await firestoreService.createPayrollEntry(newEntry);
-      }
+      await firestoreService.createPayrollEntry(newEntry);
       setPayrollEntries([newEntry, ...payrollEntries]);
       setNotification('✅ Nómina cargada exitosamente');
     } catch (error) {
@@ -166,9 +164,7 @@ function App({}: AppProps = {}) {
   const handleUpdatePayrollEntry = async (entry: PayrollEntry) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.updatePayrollEntry(entry);
-      }
+      await firestoreService.updatePayrollEntry(entry);
       setPayrollEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
       setNotification('✅ Nómina actualizada');
     } catch (error) {
@@ -182,9 +178,7 @@ function App({}: AppProps = {}) {
   const handleDeletePayrollEntry = async (id: string) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.deletePayrollEntry(id);
-      }
+      await firestoreService.deletePayrollEntry(id);
       setPayrollEntries(payrollEntries.filter(e => e.id !== id));
       setNotification('🗑️ Registro de nómina eliminado');
     } catch (error) {
@@ -198,9 +192,7 @@ function App({}: AppProps = {}) {
   const handleAddEmployee = async (employee: Employee) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.createEmployee(employee);
-      }
+      await firestoreService.createEmployee(employee);
       setEmployees(prev => [...prev, employee]);
       setNotification('✅ Expediente de empleado creado');
     } catch (error) {
@@ -214,9 +206,7 @@ function App({}: AppProps = {}) {
   const handleUpdateEmployee = async (employee: Employee) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.updateEmployee(employee);
-      }
+      await firestoreService.updateEmployee(employee);
       setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
       setNotification('✅ Expediente actualizado');
     } catch (error) {
@@ -230,9 +220,7 @@ function App({}: AppProps = {}) {
   const handleDeleteEmployee = async (id: string) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.deleteEmployee(id);
-      }
+      await firestoreService.deleteEmployee(id);
       setEmployees(prev => prev.filter(e => e.id !== id));
       setNotification('🗑️ Expediente eliminado');
     } catch (error) {
@@ -246,9 +234,7 @@ function App({}: AppProps = {}) {
   const handleAddBudget = async (budget: BudgetEntry) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.createBudget(budget);
-      }
+      await firestoreService.createBudget(budget);
       setBudgets(prev => [...prev, budget]);
       setNotification('✅ Presupuesto cargado');
     } catch (error) {
@@ -262,9 +248,7 @@ function App({}: AppProps = {}) {
   const handleDeleteBudget = async (id: string) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.deleteBudget(id);
-      }
+      await firestoreService.deleteBudget(id);
       setBudgets(prev => prev.filter(b => b.id !== id));
       setNotification('🗑️ Presupuesto eliminado');
     } catch (error) {
@@ -278,9 +262,7 @@ function App({}: AppProps = {}) {
   const handleAddStore = async (store: Store) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.createStore(store);
-      }
+      await firestoreService.createStore(store);
       setStores(prev => [...prev, store]);
       setNotification('✅ Tienda creada exitosamente');
     } catch (error) {
@@ -294,9 +276,7 @@ function App({}: AppProps = {}) {
   const handleUpdateStore = async (store: Store) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.updateStore(store);
-      }
+      await firestoreService.updateStore(store);
       setStores(prev => prev.map(s => s.id === store.id ? store : s));
       setNotification('✅ Tienda actualizada');
     } catch (error) {
@@ -310,9 +290,7 @@ function App({}: AppProps = {}) {
   const handleDeleteStore = async (id: string) => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.deleteStore(id);
-      }
+      await firestoreService.deleteStore(id);
       setStores(prev => prev.filter(s => s.id !== id));
       setNotification('🗑️ Tienda eliminada');
     } catch (error) {
@@ -324,9 +302,7 @@ function App({}: AppProps = {}) {
   };
 
   const handleLogout = async () => {
-    if (!isDemoMode) {
-      await authService.logout();
-    }
+    await authService.logout();
     setCurrentUser(null);
     setIsAuthenticated(false);
     setPayments([]);
@@ -437,7 +413,7 @@ function App({}: AppProps = {}) {
   };
 
   const loadMorePayments = async () => {
-    if (!hasMorePayments || isLoading || isDemoMode) return;
+    if (!hasMorePayments || isLoading) return;
     setIsLoading(true);
     try {
       const res = await firestoreService.getPayments(PAGE_SIZE, lastVisiblePayment);
@@ -452,7 +428,7 @@ function App({}: AppProps = {}) {
   };
 
   const loadMoreEmployees = async () => {
-    if (!hasMoreEmployees || isLoading || isDemoMode) return;
+    if (!hasMoreEmployees || isLoading) return;
     setIsLoading(true);
     try {
       const res = await firestoreService.getEmployees(PAGE_SIZE, lastVisibleEmployee);
@@ -467,7 +443,7 @@ function App({}: AppProps = {}) {
   };
 
   const loadMorePayroll = async () => {
-    if (!hasMorePayroll || isLoading || isDemoMode) return;
+    if (!hasMorePayroll || isLoading) return;
     setIsLoading(true);
     try {
       const res = await firestoreService.getPayrollEntries(PAGE_SIZE, lastVisiblePayroll);
@@ -615,11 +591,11 @@ function App({}: AppProps = {}) {
 
     try {
         if (isUpdate) {
-            if (!isDemoMode) await firestoreService.updatePayment(paymentToSave);
+            await firestoreService.updatePayment(paymentToSave);
             setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
             setNotification('✅ Pago corregido y enviado a revisión.');
         } else {
-            if (!isDemoMode) await firestoreService.createPayment(paymentToSave);
+            await firestoreService.createPayment(paymentToSave);
             setPayments(prev => [paymentToSave, ...prev]);
             setNotification('✅ Pago guardado en Firestore.');
             
@@ -692,7 +668,7 @@ function App({}: AppProps = {}) {
         }
 
         try {
-            if (!isDemoMode) await firestoreService.updatePayment(updatedPayment);
+            await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
 
@@ -738,10 +714,8 @@ function App({}: AppProps = {}) {
       }));
 
       try {
-          if (!isDemoMode) {
-              for (const p of updatedPayments) {
-                  await firestoreService.updatePayment(p);
-              }
+          for (const p of updatedPayments) {
+              await firestoreService.updatePayment(p);
           }
           setPayments(prev => prev.map(p => {
               const updated = updatedPayments.find(up => up.id === p.id);
@@ -776,7 +750,7 @@ function App({}: AppProps = {}) {
           };
 
           try {
-            if (!isDemoMode) await firestoreService.updatePayment(updatedPayment);
+            await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Rechazado y Sincronizado`);
 
@@ -1209,9 +1183,7 @@ function App({}: AppProps = {}) {
                                            exchangeRate: 1
                                        };
                                        await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
-                                       if (true) {
-                                           await firestoreService.saveExchangeRate(exchangeRateInput);
-                                       }
+                                       await firestoreService.saveExchangeRate(exchangeRateInput);
                                        setExchangeRate(exchangeRateInput);
                                        localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
                                        setNotification('✅ Tasa de cambio guardada y actualizada');
@@ -1272,7 +1244,7 @@ function App({}: AppProps = {}) {
   }
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLogin} isDemoMode={isDemoMode} />;
+    return <Login onLoginSuccess={handleLogin} />;
   }
 
   return (

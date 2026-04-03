@@ -22,10 +22,9 @@ import { useTheme } from './ThemeContext';
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
-  isDemoMode?: boolean;
 }
 
-export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) => {
+export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
   const { theme, toggleTheme } = useTheme();
   const [isRecovering, setIsRecovering] = useState(false);
   const [email, setEmail] = useState('');
@@ -35,13 +34,6 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  // Datos para autocompletar demo
-  const fillCredentials = (roleEmail: string, rolePass: string) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    setError(null);
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -345,18 +337,6 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess, isDemoMode = false }) =>
                         >
                             ← Volver al inicio de sesión
                         </button>
-                    )}
-                    
-                    {/* Demo Roles Shortcut (Solo para demostración) */}
-                    {!isRecovering && isDemoMode && (
-                        <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
-                            <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-3 uppercase tracking-wider">Accesos Rápidos (Demo)</p>
-                            <div className="flex gap-2 justify-center">
-                                <button onClick={() => fillCredentials('admin@fiscal.com', 'admin')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Admin</button>
-                                <button onClick={() => fillCredentials('auditor@fiscal.com', 'audit')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Auditor</button>
-                                <button onClick={() => fillCredentials('ceo@fiscal.com', 'ceo')} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">Presidente</button>
-                            </div>
-                        </div>
                     )}
                   </>
                 )}
