@@ -331,12 +331,29 @@ export const firestoreService = {
 
   // Budgets
   getBudgets: async (): Promise<BudgetEntry[]> => {
-    const path = 'budgets';
     try {
-      const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetEntry));
+      const budgetsRef = collection(db, 'budgets');
+      const annualBudgetsRef = collection(db, 'annual_budgets');
+      
+      const [budgetsSnap, annualBudgetsSnap] = await Promise.all([
+        getDocs(budgetsRef),
+        getDocs(annualBudgetsRef)
+      ]);
+      
+      const budgets = budgetsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetEntry));
+      const annualBudgets = annualBudgetsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BudgetEntry));
+      
+      // Merge and deduplicate by ID
+      const allBudgets = [...budgets];
+      annualBudgets.forEach(ab => {
+        if (!allBudgets.find(b => b.id === ab.id)) {
+          allBudgets.push(ab);
+        }
+      });
+      
+      return allBudgets;
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, path);
+      handleFirestoreError(error, OperationType.LIST, 'budgets');
       return [];
     }
   },

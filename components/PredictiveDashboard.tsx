@@ -17,6 +17,7 @@ interface PredictiveDashboardProps {
 }
 
 export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ payments }) => {
+  console.log("PredictiveDashboard received:", { paymentsCount: payments.length });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [growthFactor, setGrowthFactor] = useState(10); // 10% default growth/inflation
 
@@ -29,19 +30,26 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
     const data = monthNames.map((name, index) => {
       const monthNum = (index + 1).toString().padStart(2, '0');
       
-      // Actual payments (Approved)
+      // Actual payments (Approved or Paid)
       const actual = payments
         .filter(p => {
           const date = new Date(p.paymentDate || p.submittedDate);
-          return date.getFullYear() === selectedYear && (date.getMonth() + 1) === (index + 1) && p.status === PaymentStatus.APPROVED;
+          const isSameMonth = date.getFullYear() === selectedYear && (date.getMonth() + 1) === (index + 1);
+          const isActual = p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID;
+          
+          return isSameMonth && isActual;
         })
         .reduce((sum, p) => sum + p.amount, 0);
 
-      // Proposed payments (Pending Approval)
+      // Proposed payments (Pending Approval or regular Pending)
       const proposed = payments
         .filter(p => {
           const date = new Date(p.proposedPaymentDate || p.dueDate);
-          return date.getFullYear() === selectedYear && (date.getMonth() + 1) === (index + 1) && p.proposedStatus === 'PENDING_APPROVAL';
+          const isSameMonth = date.getFullYear() === selectedYear && (date.getMonth() + 1) === (index + 1);
+          const isProposed = p.proposedStatus === 'PENDING_APPROVAL';
+          const isRegularPending = p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE;
+          
+          return isSameMonth && (isProposed || isRegularPending);
         })
         .reduce((sum, p) => sum + (p.proposedAmount || p.amount), 0);
 

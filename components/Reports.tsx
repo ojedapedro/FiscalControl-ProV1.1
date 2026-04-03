@@ -156,6 +156,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
 };
 
 export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntries, employees, currentUser, stores }) => {
+  console.log("Reports received:", { paymentsCount: payments.length, budgetsCount: budgets.length });
   const [activeReport, setActiveReport] = React.useState<'financial' | 'labor' | 'auditor'>('financial');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
