@@ -25,25 +25,18 @@ import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
-interface AppProps {
-  isDemoMode?: boolean;
-}
+const isDemoMode = false;
 
-function App({ isDemoMode = false }: AppProps) {
+interface AppProps {}
+
+function App({}: AppProps = {}) {
   console.log("App Version: 2.2 - Categoría Fiscal Update");
   // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(
-    isDemoMode ? { id: 'demo-admin', name: 'Admin Demo', role: Role.ADMIN, email: 'demo@example.com' } : null
-  );
-  const [isAuthenticated, setIsAuthenticated] = useState(isDemoMode);
-  const [isAuthReady, setIsAuthReady] = useState(isDemoMode);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    if (isDemoMode) {
-      setIsAuthReady(true);
-      return;
-    }
-    
     const unsubscribe = authService.onAuthStateChanged((user) => {
       setCurrentUser(user);
       setIsAuthenticated(!!user);
@@ -51,7 +44,7 @@ function App({ isDemoMode = false }: AppProps) {
     });
     
     return () => unsubscribe();
-  }, [isDemoMode]);
+  }, []);
 
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('payments');
@@ -344,164 +337,59 @@ function App({ isDemoMode = false }: AppProps) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      if (!isDemoMode) {
-        await firestoreService.bootstrap();
+      await firestoreService.bootstrap();
+
+      console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
+      const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
+                            currentUser.role === Role.ADMIN || 
+                            currentUser.role === Role.AUDITOR ||
+                            currentUser.role === Role.PRESIDENT;
+      
+      const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
+                           currentUser.role === Role.PRESIDENT ||
+                           currentUser.role === Role.AUDITOR;
+
+      const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
+        firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
+        firestoreService.getEmployees(PAGE_SIZE),
+        firestoreService.getPayrollEntries(PAGE_SIZE),
+        firestoreService.getBudgets(),
+        firestoreService.getSettings(),
+        canManageUsers ? firestoreService.getUsers() : Promise.resolve([]),
+        firestoreService.getStores()
+      ]);
+
+      console.log("Payments fetched:", paymentsRes.payments.length);
+      console.log("Budgets fetched:", budgetsData.length);
+      console.log("Stores fetched:", storesData.length);
+      console.log("Users fetched:", usersData.length);
+      console.log("Settings fetched:", !!settingsData);
+
+      setPayments(paymentsRes.payments);
+      setLastVisiblePayment(paymentsRes.lastVisible);
+      setHasMorePayments(paymentsRes.payments.length === PAGE_SIZE);
+
+      setEmployees(employeesRes.employees);
+      setLastVisibleEmployee(employeesRes.lastVisible);
+      setHasMoreEmployees(employeesRes.employees.length === PAGE_SIZE);
+
+      setPayrollEntries(payrollRes.entries);
+      setLastVisiblePayroll(payrollRes.lastVisible);
+      setHasMorePayroll(payrollRes.entries.length === PAGE_SIZE);
+
+      setBudgets(budgetsData);
+      setSettings(settingsData);
+      setUsers(usersData);
+      if (storesData && storesData.length > 0) {
+        setStores(storesData);
+      } else {
+        setStores(INITIAL_STORES);
       }
 
-      if (isDemoMode) {
-        setStores(INITIAL_STORES);
-        const mockPayments: Payment[] = [
-          {
-            id: 'PAG-1001',
-            storeId: 'S-001',
-            storeName: 'Tienda Central',
-            userId: 'demo-admin',
-            category: Category.OTHER,
-            specificType: 'Reparación AC',
-            amount: 1500,
-            dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-            paymentDate: undefined,
-            status: PaymentStatus.PENDING,
-            submittedDate: new Date().toISOString(),
-            notes: 'Reparación urgente del aire acondicionado.',
-            history: [{ date: new Date().toISOString(), action: 'CREACION', actorName: 'Admin Demo', role: Role.ADMIN }]
-          },
-          {
-            id: 'PAG-1002',
-            storeId: 'S-002',
-            storeName: 'Sucursal Norte',
-            userId: 'demo-admin',
-            category: Category.UTILITY,
-            specificType: 'Internet',
-            amount: 800,
-            dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-            paymentDate: undefined,
-            status: PaymentStatus.APPROVED,
-            submittedDate: new Date(Date.now() - 86400000).toISOString(),
-            notes: 'Pago mensual de internet.',
-            history: [
-              { date: new Date(Date.now() - 86400000).toISOString(), action: 'CREACION', actorName: 'Admin Demo', role: Role.ADMIN },
-              { date: new Date().toISOString(), action: 'APROBACION', actorName: 'Auditor Demo', role: Role.AUDITOR }
-            ]
-          }
-        ];
-        setPayments(mockPayments);
-
-        // Mock Employees
-        const mockEmployees: Employee[] = [
-          {
-            id: 'V-12345678',
-            code: 'EMP001',
-            nationality: 'V',
-            name: 'Juan',
-            lastName: 'Pérez',
-            age: 35,
-            educationLevel: 'Universitario',
-            position: 'Analista de Datos',
-            department: 'IT',
-            positionDescription: 'Análisis de métricas fiscales',
-            hireDate: '2022-01-15',
-            email: 'juan.perez@example.com',
-            directPhone: '0414-1234567',
-            emergencyPhone: '0412-7654321',
-            homeAddress: 'Caracas, Venezuela',
-            gender: 'M',
-            wearsGlasses: 'No',
-            hasCondition: 'No',
-            height: '1.75',
-            storeId: 'S101',
-            baseSalary: 1000,
-            isActive: true,
-            defaultBonuses: [{ name: 'Bono Alimentación', amount: 200 }],
-            defaultDeductions: [],
-            defaultEmployerLiabilities: []
-          }
-        ];
-        setEmployees(mockEmployees);
-
-        // Mock Payroll Entries
-        const mockPayroll: PayrollEntry[] = [
-          {
-            id: 'PAY-202310-001',
-            employeeName: 'Juan Pérez',
-            employeeId: 'V-12345678',
-            storeId: 'S101',
-            month: '2023-10',
-            baseSalary: 1000,
-            bonuses: [{ name: 'Bono Alimentación', amount: 200 }],
-            deductions: [
-              { name: 'SSO (4%)', amount: 35.00 }, // Error: should be 40.00
-              { name: 'RPE (0.5%)', amount: 5.00 },
-              { name: 'FAOV / LPH (1%)', amount: 12.00 },
-              { name: 'INCES (0.5%)', amount: 5.00 }
-            ],
-            employerLiabilities: [
-              { name: 'SSO Patronal (9%)', amount: 90.00 },
-              { name: 'RPE Patronal (2%)', amount: 20.00 },
-              { name: 'FAOV Patronal (2%)', amount: 24.00 },
-              { name: 'INCES Patronal (2%)', amount: 20.00 },
-              { name: 'Fondo de Pensiones (9%)', amount: 108.00 }
-            ],
-            totalWorkerNet: 1143.00,
-            totalEmployerCost: 1405.00,
-            status: 'PROCESADO',
-            submittedDate: '2023-10-31T10:00:00Z'
-          }
-        ];
-        setPayrollEntries(mockPayroll);
-      } else {
-        console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
-        const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
-                              currentUser.role === Role.ADMIN || 
-                              currentUser.role === Role.AUDITOR ||
-                              currentUser.role === Role.PRESIDENT;
-        
-        const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
-                             currentUser.role === Role.PRESIDENT ||
-                             currentUser.role === Role.AUDITOR;
-
-        const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
-          firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
-          firestoreService.getEmployees(PAGE_SIZE),
-          firestoreService.getPayrollEntries(PAGE_SIZE),
-          firestoreService.getBudgets(),
-          firestoreService.getSettings(),
-          canManageUsers ? firestoreService.getUsers() : Promise.resolve([]),
-          firestoreService.getStores()
-        ]);
-
-        console.log("Payments fetched:", paymentsRes.payments.length);
-        console.log("Budgets fetched:", budgetsData.length);
-        console.log("Stores fetched:", storesData.length);
-        console.log("Users fetched:", usersData.length);
-        console.log("Settings fetched:", !!settingsData);
-
-        setPayments(paymentsRes.payments);
-        setLastVisiblePayment(paymentsRes.lastVisible);
-        setHasMorePayments(paymentsRes.payments.length === PAGE_SIZE);
-
-        setEmployees(employeesRes.employees);
-        setLastVisibleEmployee(employeesRes.lastVisible);
-        setHasMoreEmployees(employeesRes.employees.length === PAGE_SIZE);
-
-        setPayrollEntries(payrollRes.entries);
-        setLastVisiblePayroll(payrollRes.lastVisible);
-        setHasMorePayroll(payrollRes.entries.length === PAGE_SIZE);
-
-        setBudgets(budgetsData);
-        setSettings(settingsData);
-        setUsers(usersData);
-        if (storesData && storesData.length > 0) {
-          setStores(storesData);
-        } else {
-          setStores(INITIAL_STORES);
-        }
-
-        if (settingsData && settingsData.exchangeRate) {
-          setExchangeRate(settingsData.exchangeRate);
-          setExchangeRateInput(settingsData.exchangeRate);
-          localStorage.setItem('fiscal_exchange_rate', settingsData.exchangeRate.toString());
-        }
+      if (settingsData && settingsData.exchangeRate) {
+        setExchangeRate(settingsData.exchangeRate);
+        setExchangeRateInput(settingsData.exchangeRate);
+        localStorage.setItem('fiscal_exchange_rate', settingsData.exchangeRate.toString());
       }
     } catch (error: any) {
       console.error('Error loading data:', error);

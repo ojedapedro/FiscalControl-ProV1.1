@@ -10,14 +10,12 @@ const container = document.getElementById('root');
 
 if (container) {
   const root = createRoot(container);
-  const urlParams = new URLSearchParams(window.location.search);
-  const isDemoMode = urlParams.get('demo') === 'true';
 
   root.render(
     <StrictMode>
       <ErrorBoundary>
         <ThemeProvider>
-          <App isDemoMode={isDemoMode} />
+          <App />
         </ThemeProvider>
       </ErrorBoundary>
     </StrictMode>
