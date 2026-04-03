@@ -455,9 +455,13 @@ function App({ isDemoMode = false }: AppProps) {
                               currentUser.role === Role.ADMIN || 
                               currentUser.role === Role.AUDITOR ||
                               currentUser.role === Role.PRESIDENT;
+        
+        const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
+                             currentUser.role === Role.PRESIDENT ||
+                             currentUser.role === Role.AUDITOR;
 
         const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
-          firestoreService.getPayments(PAGE_SIZE),
+          firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
           firestoreService.getEmployees(PAGE_SIZE),
           firestoreService.getPayrollEntries(PAGE_SIZE),
           firestoreService.getBudgets(),
@@ -467,6 +471,7 @@ function App({ isDemoMode = false }: AppProps) {
         ]);
 
         console.log("Payments fetched:", paymentsRes.payments.length);
+        console.log("Budgets fetched:", budgetsData.length);
         console.log("Stores fetched:", storesData.length);
         console.log("Users fetched:", usersData.length);
         console.log("Settings fetched:", !!settingsData);

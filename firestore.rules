@@ -147,19 +147,19 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || isPresidencia();
     }
 
     // Employees collection
     match /employees/{employeeId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isAuditor();
+      allow write: if isAdmin() || isAuditor() || isPresidencia();
     }
 
     // Payroll collection
     match /payroll/{payrollId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isAuditor();
+      allow write: if isAdmin() || isAuditor() || isPresidencia();
     }
 
     // Exchange Rates
@@ -177,7 +177,19 @@ service cloud.firestore {
     // Budgets
     match /budgets/{budgetId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isPresidencia();
+      allow write: if isAdmin() || isPresidencia() || isAuditor();
+    }
+
+    // Annual Budgets (Alternative collection name used by some modules)
+    match /annual_budgets/{budgetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPresidencia() || isAuditor();
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // Stores collection

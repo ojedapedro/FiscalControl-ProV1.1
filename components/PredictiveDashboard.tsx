@@ -18,7 +18,51 @@ interface PredictiveDashboardProps {
 
 export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ payments }) => {
   console.log("PredictiveDashboard received:", { paymentsCount: payments.length });
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    payments.forEach(p => {
+      const date = new Date(p.paymentDate || p.submittedDate || p.dueDate);
+      if (!isNaN(date.getFullYear())) {
+        years.add(date.getFullYear());
+      }
+    });
+    
+    const currentYear = new Date().getFullYear();
+    years.add(currentYear);
+    years.add(currentYear + 1);
+    years.add(currentYear - 1);
+    
+    return Array.from(years).sort((a, b) => a - b);
+  }, [payments]);
+
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const currentYear = new Date().getFullYear();
+    return currentYear;
+  });
+
+  // Update selected year if we have data but not for the current year
+  React.useEffect(() => {
+    if (payments.length > 0) {
+      const currentYear = new Date().getFullYear();
+      const hasDataForCurrentYear = payments.some(p => {
+        const date = new Date(p.paymentDate || p.submittedDate || p.dueDate);
+        return date.getFullYear() === currentYear;
+      });
+      
+      if (!hasDataForCurrentYear) {
+        // Find the most recent year with data
+        const yearsWithData = Array.from(new Set(payments.map(p => {
+          const date = new Date(p.paymentDate || p.submittedDate || p.dueDate);
+          return date.getFullYear();
+        }))).filter(y => !isNaN(y)).sort((a, b) => b - a);
+        
+        if (yearsWithData.length > 0) {
+          setSelectedYear(yearsWithData[0]);
+        }
+      }
+    }
+  }, [payments]);
+
   const [growthFactor, setGrowthFactor] = useState(10); // 10% default growth/inflation
 
   const monthNames = [
@@ -99,7 +143,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="bg-transparent font-bold text-slate-900 dark:text-white focus:outline-none text-sm"
             >
-              {[2025, 2026, 2027].map(y => (
+              {availableYears.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
