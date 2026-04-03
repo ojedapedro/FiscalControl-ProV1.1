@@ -25,8 +25,6 @@ import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
-const isDemoMode = false;
-
 interface AppProps {}
 
 function App({}: AppProps = {}) {
