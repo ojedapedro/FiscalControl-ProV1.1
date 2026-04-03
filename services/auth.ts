@@ -24,14 +24,21 @@ export const authService = {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       
       if (userDoc.exists()) {
-        return { id: firebaseUser.uid, ...userDoc.data() } as User;
+        const userData = userDoc.data() as User;
+        // Force Super Admin role for the bootstrap email
+        if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
+          const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
+          await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+          return { id: firebaseUser.uid, ...updatedUser } as User;
+        }
+        return { id: firebaseUser.uid, ...userData } as User;
       } else {
         // If user exists in Auth but not in Firestore, create a default profile
         const defaultUser: User = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || email.split('@')[0],
           email: firebaseUser.email || email,
-          role: Role.ADMIN, // Default role
+          role: email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
           avatar: firebaseUser.photoURL || null
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
@@ -61,13 +68,20 @@ export const authService = {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
       if (userDoc.exists()) {
-        return { id: firebaseUser.uid, ...userDoc.data() } as User;
+        const userData = userDoc.data() as User;
+        // Force Super Admin role for the bootstrap email
+        if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
+          const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
+          await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+          return { id: firebaseUser.uid, ...updatedUser } as User;
+        }
+        return { id: firebaseUser.uid, ...userData } as User;
       } else {
         const defaultUser: User = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
           email: firebaseUser.email || '',
-          role: Role.ADMIN,
+          role: firebaseUser.email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
           avatar: firebaseUser.photoURL || null
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
@@ -105,14 +119,22 @@ export const authService = {
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
-          callback({ id: firebaseUser.uid, ...userDoc.data() } as User);
+          const userData = userDoc.data() as User;
+          // Force Super Admin role for the bootstrap email
+          if (firebaseUser.email === 'analistadedatosnova@gmail.com' && userData.role !== Role.SUPER_ADMIN) {
+            const updatedUser = { ...userData, role: Role.SUPER_ADMIN };
+            await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
+            callback({ id: firebaseUser.uid, ...updatedUser } as User);
+          } else {
+            callback({ id: firebaseUser.uid, ...userData } as User);
+          }
         } else {
           // If user exists in Auth but not in Firestore, create a default profile
           const defaultUser: User = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
             email: firebaseUser.email || '',
-            role: Role.ADMIN,
+            role: firebaseUser.email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
             avatar: firebaseUser.photoURL || null
           };
           await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
