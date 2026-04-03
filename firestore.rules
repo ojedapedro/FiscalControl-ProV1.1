@@ -74,16 +74,21 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Super Usuario", "Administrador"] ||
-         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+        (request.auth.token.email == "analistadedatosnova@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Super Usuario", "Administrador"]));
     }
 
     function isAuditor() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Auditor";
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Auditor";
     }
 
     function isPresidencia() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Presidencia";
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Presidencia";
     }
 
     function hasRequiredFields(fields) {
@@ -168,9 +173,7 @@ service cloud.firestore {
       // Allow read for all authenticated users so they can use store names in forms
       // but management (write) is restricted to Super Admin and President
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Super Usuario", "Presidencia"] ||
-         (request.auth.token.email == "analistadedatosnova@gmail.com" && request.auth.token.email_verified == true));
+      allow create, update, delete: if isAdmin() || isPresidencia();
     }
 
     // Default deny
