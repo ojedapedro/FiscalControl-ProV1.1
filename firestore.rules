@@ -121,9 +121,15 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    // Test connection
+    match /test/connection {
+      allow read: if isAuthenticated();
+    }
+
     // Users collection - PII Protection: Read limited to owner or admin
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isAuditor() || isPresidencia());
+      allow get: if isAuthenticated() && (isOwner(userId) || isAdmin() || isAuditor() || isPresidencia());
+      allow list: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia());
       allow create: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && 
                     (isAdmin() || request.resource.data.role == resource.data.role); // Prevent self-promotion

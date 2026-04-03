@@ -500,7 +500,9 @@ function App({ isDemoMode = false }: AppProps) {
         const message = error.message || "";
         if (message.startsWith('{"error":')) {
           const firestoreInfo = JSON.parse(message);
-          errorMsg = `❌ Error Firestore (${firestoreInfo.operationType}): ${firestoreInfo.error}`;
+          errorMsg = `❌ Error Firestore (${firestoreInfo.operationType}) en ${firestoreInfo.path || 'desconocido'}: ${firestoreInfo.error}`;
+        } else if (message.includes('permission-denied')) {
+          errorMsg = '❌ Error de permisos en Firestore. Verifique las reglas de seguridad.';
         }
       } catch (e) {
         // Not a JSON error
@@ -509,6 +511,31 @@ function App({ isDemoMode = false }: AppProps) {
       setNotification(errorMsg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSeedData = async () => {
+    if (!currentUser || currentUser.role !== Role.SUPER_ADMIN) {
+      setNotification('❌ Solo el Super Usuario puede sembrar datos.');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { INITIAL_PAYMENTS, STORES } = await import('./constants');
+      const result = await firestoreService.seedData(INITIAL_PAYMENTS, STORES);
+      if (result.success) {
+        setNotification('✅ Datos sembrados exitosamente.');
+        await loadData();
+      } else {
+        setNotification('❌ Error sembrando datos.');
+      }
+    } catch (error) {
+      console.error('Error seeding data:', error);
+      setNotification('❌ Error inesperado sembrando datos.');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -1121,6 +1148,28 @@ function App({ isDemoMode = false }: AppProps) {
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
+            
+            {/* Sección Mantenimiento (Solo Super Admin) */}
+            {currentUser?.role === Role.SUPER_ADMIN && (
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <h3 className="font-bold mb-6 flex items-center gap-2 text-amber-500">
+                    <RefreshCw size={20} /> Mantenimiento de Datos
+                </h3>
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Si la base de datos está vacía, puedes sembrar los datos iniciales de ejemplo para probar el sistema.
+                  </p>
+                  <button 
+                    onClick={handleSeedData}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition-all disabled:opacity-50"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
+                    Sembrar Datos Iniciales
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Sección Mi Perfil */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">

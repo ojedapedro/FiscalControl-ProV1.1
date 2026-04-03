@@ -99,7 +99,11 @@ export function cleanObject(obj: any): any {
 }
 
 // Test connection
-async function testConnection() {
+export async function testConnection() {
+  if (!auth.currentUser) {
+    console.log("Firestore connection test skipped: User not authenticated.");
+    return;
+  }
   try {
     const docRef = doc(db, 'test', 'connection');
     const docSnap = await getDocFromServer(docRef);
@@ -118,7 +122,6 @@ async function testConnection() {
     }
   }
 }
-testConnection();
 
 export const firestoreService = {
   // Users
@@ -386,6 +389,7 @@ export const firestoreService = {
 
   bootstrap: async () => {
     try {
+      await testConnection();
       const settings = await firestoreService.getSettings();
       if (!settings) {
         const defaultSettings: SystemSettings = {
@@ -406,6 +410,28 @@ export const firestoreService = {
       }
     } catch (error) {
       console.error("Error during bootstrap:", error);
+    }
+  },
+
+  seedData: async (payments: Payment[], stores: Store[]) => {
+    try {
+      console.log("Seeding initial data to Firestore...");
+      
+      // Seed Stores
+      for (const store of stores) {
+        await firestoreService.createStore(store);
+      }
+      
+      // Seed Payments
+      for (const payment of payments) {
+        await firestoreService.createPayment(payment);
+      }
+      
+      console.log("Initial data seeded successfully.");
+      return { success: true };
+    } catch (error) {
+      console.error("Error seeding data:", error);
+      return { success: false, error };
     }
   },
 
