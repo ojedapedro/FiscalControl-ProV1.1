@@ -430,43 +430,6 @@ export const firestoreService = {
     }
   },
 
-  seedData: async (payments: Payment[], stores: Store[], employees: Employee[], payroll: PayrollEntry[], budgets: BudgetEntry[]) => {
-    try {
-      console.log("Seeding initial data to Firestore...");
-      
-      // Seed Stores
-      for (const store of stores) {
-        await firestoreService.createStore(store);
-      }
-      
-      // Seed Payments
-      for (const payment of payments) {
-        await firestoreService.createPayment(payment);
-      }
-
-      // Seed Employees
-      for (const employee of employees) {
-        await firestoreService.createEmployee(employee);
-      }
-
-      // Seed Payroll
-      for (const entry of payroll) {
-        await firestoreService.createPayrollEntry(entry);
-      }
-
-      // Seed Budgets
-      for (const budget of budgets) {
-        await firestoreService.createBudget(budget);
-      }
-      
-      console.log("Initial data seeded successfully.");
-      return { success: true };
-    } catch (error) {
-      console.error("Error seeding data:", error);
-      return { success: false, error };
-    }
-  },
-
   // --- EXCHANGE RATES ---
   getExchangeRateByDate: async (date: string) => {
     try {

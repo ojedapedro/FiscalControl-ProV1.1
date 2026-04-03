@@ -15,7 +15,6 @@ import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
-import { STORES as INITIAL_STORES } from './constants';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { api } from './services/api';
@@ -53,7 +52,7 @@ function App({}: AppProps = {}) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [stores, setStores] = useState<Store[]>(INITIAL_STORES);
+  const [stores, setStores] = useState<Store[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('fiscal_exchange_rate');
@@ -354,10 +353,8 @@ function App({}: AppProps = {}) {
       setBudgets(budgetsData);
       setSettings(settingsData);
       setUsers(usersData);
-      if (storesData && storesData.length > 0) {
+      if (storesData) {
         setStores(storesData);
-      } else {
-        setStores(INITIAL_STORES);
       }
 
       if (settingsData && settingsData.exchangeRate) {
@@ -384,31 +381,6 @@ function App({}: AppProps = {}) {
       setNotification(errorMsg);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSeedData = async () => {
-    if (!currentUser || currentUser.role !== Role.SUPER_ADMIN) {
-      setNotification('❌ Solo el Super Usuario puede sembrar datos.');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { INITIAL_PAYMENTS, STORES, INITIAL_EMPLOYEES, INITIAL_PAYROLL, INITIAL_BUDGETS } = await import('./constants');
-      const result = await firestoreService.seedData(INITIAL_PAYMENTS, STORES, INITIAL_EMPLOYEES, INITIAL_PAYROLL, INITIAL_BUDGETS);
-      if (result.success) {
-        setNotification('✅ Datos sembrados exitosamente.');
-        await loadData();
-      } else {
-        setNotification('❌ Error sembrando datos.');
-      }
-    } catch (error) {
-      console.error('Error seeding data:', error);
-      setNotification('❌ Error inesperado sembrando datos.');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -1021,28 +993,6 @@ function App({}: AppProps = {}) {
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
-            
-            {/* Sección Mantenimiento (Solo Super Admin o Email de Bootstrap) */}
-            {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.email === 'analistadedatosnova@gmail.com') && (
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                <h3 className="font-bold mb-6 flex items-center gap-2 text-amber-500">
-                    <RefreshCw size={20} /> Mantenimiento de Datos
-                </h3>
-                <div className="space-y-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Si la base de datos está vacía, puedes sembrar los datos iniciales de ejemplo para probar el sistema.
-                  </p>
-                  <button 
-                    onClick={handleSeedData}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition-all disabled:opacity-50"
-                  >
-                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                    Sembrar Datos Iniciales
-                  </button>
-                </div>
-              </div>
-            )}
             
             {/* Sección Mi Perfil */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
