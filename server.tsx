@@ -12,6 +12,7 @@ import { Resend } from 'resend';
 import React from 'react';
 import { render } from '@react-email/render';
 import { PayrollEmailTemplate } from './components/PayrollEmailTemplate';
+import { checkAndSendNotifications } from './server/notifications';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -169,6 +170,18 @@ async function startServer() {
     }
   });
 
+  // Twilio WhatsApp Notification Route
+  app.post('/api/notifications/whatsapp/check', async (req, res) => {
+    console.log('📱 [Server] Petición recibida en /api/notifications/whatsapp/check');
+    try {
+      const result = await checkAndSendNotifications();
+      res.json(result);
+    } catch (err: any) {
+      console.error('[Server] 💥 Error en la ruta de notificaciones:', err);
+      res.status(500).json({ error: 'Error interno al procesar notificaciones', details: err.message });
+    }
+  });
+
   // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
@@ -195,6 +208,27 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Configurar chequeo diario de notificaciones (cada 24 horas)
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    setInterval(async () => {
+      console.log('🕒 [Server] Ejecutando chequeo diario de notificaciones...');
+      try {
+        await checkAndSendNotifications();
+      } catch (err) {
+        console.error('❌ [Server] Error en el chequeo diario:', err);
+      }
+    }, TWENTY_FOUR_HOURS);
+    
+    // Ejecutar un chequeo inicial después de 30 segundos del arranque
+    setTimeout(async () => {
+      console.log('🕒 [Server] Ejecutando chequeo inicial de notificaciones...');
+      try {
+        await checkAndSendNotifications();
+      } catch (err) {
+        console.error('❌ [Server] Error en el chequeo inicial:', err);
+      }
+    }, 30000);
   });
 }
 

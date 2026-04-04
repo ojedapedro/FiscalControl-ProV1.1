@@ -8,7 +8,7 @@ import { Payment, PaymentStatus, PayrollEntry, Category, User, Role, Store } fro
 import { 
   DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, 
   AlertOctagon, Clock, XCircle, Building2, Filter, Users, 
-  AlertCircle, PieChart as PieChartIcon 
+  AlertCircle, PieChart as PieChartIcon, MessageSquare, Loader2
 } from 'lucide-react';
 
 interface PresidencyDashboardProps {
@@ -23,6 +23,28 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
+  const [isNotifying, setIsNotifying] = useState(false);
+
+  const handleTestNotifications = async () => {
+    setIsNotifying(true);
+    try {
+      const response = await fetch('/api/notifications/whatsapp/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Notificaciones enviadas con éxito.');
+      } else {
+        alert('❌ Error: ' + (data.error || 'No se pudieron enviar las notificaciones. Verifica la consola del servidor.'));
+      }
+    } catch (error) {
+      console.error('Error triggering notifications:', error);
+      alert('❌ Error de red al intentar enviar notificaciones.');
+    } finally {
+      setIsNotifying(false);
+    }
+  };
 
   // Use stores from props
   const storeOptions = useMemo(() => {
@@ -168,6 +190,17 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
               className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer px-2"
             />
           </div>
+
+          {(currentUser?.role === Role.PRESIDENT || currentUser?.role === Role.SUPER_ADMIN) && (
+            <button 
+              onClick={handleTestNotifications}
+              disabled={isNotifying}
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+            >
+              {isNotifying ? <Loader2 size={18} className="animate-spin" /> : <MessageSquare size={18} />}
+              <span>Notificar WhatsApp</span>
+            </button>
+          )}
 
           {(currentUser?.role === Role.PRESIDENT || currentUser?.role === Role.SUPER_ADMIN) && pendingPaymentsCount > 0 && onApproveAll && (
             <button 
