@@ -17,6 +17,7 @@ import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { api } from './services/api';
 import { authService } from './services/auth';
 import { firestoreService } from './services/firestoreService';
@@ -71,7 +72,10 @@ function App({}: AppProps = {}) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [showInstallBanner, setShowInstallBanner] = useState(() => {
+    const dismissed = localStorage.getItem('pwa_banner_dismissed');
+    return dismissed !== 'true';
+  });
 
   // --- PAGINATION STATE ---
   const PAGE_SIZE = 20;
@@ -94,12 +98,24 @@ function App({}: AppProps = {}) {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+      localStorage.setItem('pwa_banner_dismissed', 'true');
+      console.log("PWA: Aplicación instalada");
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
     // Check inicial de permisos de notificación
     if ('Notification' in window) {
       setPushPermission(Notification.permission);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleInstallClick = () => {
@@ -108,12 +124,19 @@ function App({}: AppProps = {}) {
       installPrompt.userChoice.then((choiceResult: any) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('Usuario aceptó la instalación');
+          setShowInstallBanner(false);
+          localStorage.setItem('pwa_banner_dismissed', 'true');
         } else {
           console.log('Usuario rechazó la instalación');
         }
         setInstallPrompt(null);
       });
     }
+  };
+
+  const handleDismissBanner = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
   const getInitialView = (role: Role) => {
@@ -1223,33 +1246,42 @@ function App({}: AppProps = {}) {
         <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
           
           {/* PWA Install Banner */}
-          {installPrompt && showInstallBanner && (
-            <div className="bg-blue-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Download size={20} />
+          <AnimatePresence>
+            {installPrompt && showInstallBanner && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-blue-600 text-white overflow-hidden z-40 shrink-0"
+              >
+                <div className="p-3 flex items-center justify-between max-w-7xl mx-auto w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-lg">
+                      <Download size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
+                      <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={handleInstallClick}
+                      className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                    >
+                      Instalar
+                    </button>
+                    <button 
+                      onClick={handleDismissBanner}
+                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
-                  <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleInstallClick}
-                  className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                >
-                  Instalar
-                </button>
-                <button 
-                  onClick={() => setShowInstallBanner(false)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Push Notification Permission Banner */}
           {pushPermission === 'default' && (
