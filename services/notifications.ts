@@ -9,7 +9,7 @@ const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+16415353606';
 const adminNumbers = (process.env.ADMIN_WHATSAPP_NUMBERS || '').split(',').filter(n => n.trim());
 const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER;
 
@@ -22,7 +22,7 @@ export async function checkAndSendNotifications() {
   }
 
   console.log('🔍 [Notifications] Iniciando escaneo de pagos para notificaciones...');
-  
+
   try {
     const paymentsRef = collection(db, 'payments');
     const snapshot = await getDocs(paymentsRef);
@@ -38,11 +38,11 @@ export async function checkAndSendNotifications() {
       if (data.status === 'PAID' || data.status === 'REJECTED') return;
 
       const dueDate = new Date(data.dueDate);
-      
+
       // Overdue
       if (dueDate < now) {
         overduePayments.push({ id: doc.id, ...data });
-      } 
+      }
       // Upcoming (exactly 3 days before or within 3 days)
       else if (dueDate <= threeDaysFromNow) {
         upcomingPayments.push({ id: doc.id, ...data });

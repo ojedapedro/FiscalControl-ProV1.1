@@ -12,7 +12,7 @@ import { Resend } from 'resend';
 import React from 'react';
 import { render } from '@react-email/render';
 import { PayrollEmailTemplate } from './components/PayrollEmailTemplate';
-import { checkAndSendNotifications } from './server/notifications';
+import { checkAndSendNotifications } from './services/notifications';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,13 +25,13 @@ async function startServer() {
   // Health check route - moved to the VERY TOP
   app.get('/api/ping', (req, res) => {
     console.log('🔍 [Server] PING recibido');
-    res.json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(), 
-      env: { 
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      env: {
         hasResendKey: !!process.env.RESEND_API_KEY,
         nodeEnv: process.env.NODE_ENV
-      } 
+      }
     });
   });
 
@@ -41,10 +41,10 @@ async function startServer() {
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
     resave: false,
     saveUninitialized: true,
-    cookie: { 
-      secure: true, 
+    cookie: {
+      secure: true,
       sameSite: 'none',
-      httpOnly: true 
+      httpOnly: true
     }
   }));
 
@@ -80,7 +80,7 @@ async function startServer() {
   // Stripe Payment Intent Route
   app.post('/api/create-payment-intent', async (req, res) => {
     const { amount, currency = 'usd', paymentId } = req.body;
-    
+
     const stripeClient = getStripe();
     if (!stripeClient) {
       return res.status(500).json({ error: 'Stripe no está configurado en el servidor.' });
@@ -106,7 +106,7 @@ async function startServer() {
     console.log('📧 [Server] Petición recibida en /api/payroll/send-emails');
     try {
       const { entries } = req.body;
-      
+
       if (!entries || !Array.isArray(entries)) {
         console.warn('⚠️ [Server] Petición inválida: entries no es un array.');
         return res.status(400).json({ error: 'Se requiere una lista de entradas de nómina.' });
@@ -185,8 +185,8 @@ async function startServer() {
   // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
-    res.status(500).json({ 
-      error: 'Error interno del servidor', 
+    res.status(500).json({
+      error: 'Error interno del servidor',
       details: err.message
     });
   });
@@ -208,7 +208,7 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    
+
     // Configurar chequeo diario de notificaciones (cada 24 horas)
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
     setInterval(async () => {
@@ -219,7 +219,7 @@ async function startServer() {
         console.error('❌ [Server] Error en el chequeo diario:', err);
       }
     }, TWENTY_FOUR_HOURS);
-    
+
     // Ejecutar un chequeo inicial después de 30 segundos del arranque
     setTimeout(async () => {
       console.log('🕒 [Server] Ejecutando chequeo inicial de notificaciones...');

@@ -8,7 +8,7 @@ import { Reports } from './components/Reports';
 import { StoreStatus } from './components/StoreStatus';
 import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
-import { Login } from './components/Login'; 
+import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { PayrollModule } from './components/PayrollModule';
 import { EvaluationModule } from './components/EvaluationModule';
@@ -25,9 +25,9 @@ import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 
-interface AppProps {}
+interface AppProps { }
 
-function App({}: AppProps = {}) {
+function App({ }: AppProps = {}) {
   console.log("App Version: 2.2 - Categoría Fiscal Update");
   // --- AUTH STATE ---
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -40,7 +40,7 @@ function App({}: AppProps = {}) {
       setIsAuthenticated(!!user);
       setIsAuthReady(true);
     });
-    
+
     return () => unsubscribe();
   }, []);
 
@@ -71,6 +71,10 @@ function App({}: AppProps = {}) {
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar_collapsed');
+    return saved === 'true';
+  });
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(() => {
     const dismissed = localStorage.getItem('pwa_banner_dismissed');
@@ -97,7 +101,7 @@ function App({}: AppProps = {}) {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
+
     const handleAppInstalled = () => {
       setInstallPrompt(null);
       setShowInstallBanner(false);
@@ -106,7 +110,7 @@ function App({}: AppProps = {}) {
     };
 
     window.addEventListener('appinstalled', handleAppInstalled);
-    
+
     // Check inicial de permisos de notificación
     if ('Notification' in window) {
       setPushPermission(Notification.permission);
@@ -137,6 +141,14 @@ function App({}: AppProps = {}) {
   const handleDismissBanner = () => {
     setShowInstallBanner(false);
     localStorage.setItem('pwa_banner_dismissed', 'true');
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const newState = !prev;
+      localStorage.setItem('sidebar_collapsed', newState.toString());
+      return newState;
+    });
   };
 
   const getInitialView = (role: Role) => {
@@ -170,7 +182,7 @@ function App({}: AppProps = {}) {
       id: `PAY-${Date.now()}`,
       submittedDate: new Date().toISOString()
     };
-    
+
     try {
       await firestoreService.createPayrollEntry(newEntry);
       setPayrollEntries([newEntry, ...payrollEntries]);
@@ -336,14 +348,14 @@ function App({}: AppProps = {}) {
       await firestoreService.bootstrap();
 
       console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
-      const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
-                            currentUser.role === Role.ADMIN || 
-                            currentUser.role === Role.AUDITOR ||
-                            currentUser.role === Role.PRESIDENT;
-      
-      const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
-                           currentUser.role === Role.PRESIDENT ||
-                           currentUser.role === Role.AUDITOR;
+      const canManageUsers = currentUser.role === Role.SUPER_ADMIN ||
+        currentUser.role === Role.ADMIN ||
+        currentUser.role === Role.AUDITOR ||
+        currentUser.role === Role.PRESIDENT;
+
+      const isGlobalUser = currentUser.role === Role.SUPER_ADMIN ||
+        currentUser.role === Role.PRESIDENT ||
+        currentUser.role === Role.AUDITOR;
 
       const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
         firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
@@ -388,7 +400,7 @@ function App({}: AppProps = {}) {
     } catch (error: any) {
       console.error('Error loading data:', error);
       let errorMsg = '❌ Error conectando con Firestore';
-      
+
       try {
         const message = error.message || "";
         if (message.startsWith('{"error":')) {
@@ -400,7 +412,7 @@ function App({}: AppProps = {}) {
       } catch (e) {
         // Not a JSON error
       }
-      
+
       setNotification(errorMsg);
     } finally {
       setIsLoading(false);
@@ -514,7 +526,7 @@ function App({}: AppProps = {}) {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          
+
           // Compress to JPEG with 0.7 quality to keep size small
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
@@ -528,25 +540,25 @@ function App({}: AppProps = {}) {
   const handleNewPayment = async (paymentData: any) => {
     setIsLoading(true);
     const isUpdate = !!paymentData.id;
-    
+
     const log: AuditLog = {
       date: new Date().toISOString(),
       action: isUpdate ? 'CORRECCION' : 'CREACION',
-      actorName: currentUser?.name || 'Usuario', 
+      actorName: currentUser?.name || 'Usuario',
       role: currentUser?.role || Role.ADMIN,
       note: isUpdate ? 'Pago corregido tras devolución' : undefined
     };
 
     let receiptUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl : undefined;
     if (paymentData.file) {
-        try {
-            receiptUrl = await fileToBase64(paymentData.file);
-        } catch (e) {
-            console.error("Error converting file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
-            setIsLoading(false);
-            return;
-        }
+      try {
+        receiptUrl = await fileToBase64(paymentData.file);
+      } catch (e) {
+        console.error("Error converting file", e);
+        setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
+        setIsLoading(false);
+        return;
+      }
     }
 
     const paymentToSave: Payment = {
@@ -564,7 +576,7 @@ function App({}: AppProps = {}) {
       rejectionReason: '', // Clear rejection reason on correction
       submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       notes: paymentData.notes,
-      history: isUpdate 
+      history: isUpdate
         ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
         : [log],
       receiptUrl: receiptUrl,
@@ -580,203 +592,203 @@ function App({}: AppProps = {}) {
       proposedJustification: paymentData.proposedJustification,
       proposedStatus: paymentData.proposedStatus
     };
-    
-    if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
-    if(paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
+
+    if (paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
+    if (paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
 
     try {
-        if (isUpdate) {
-            await firestoreService.updatePayment(paymentToSave);
-            setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
-            setNotification('✅ Pago corregido y enviado a revisión.');
-        } else {
-            await firestoreService.createPayment(paymentToSave);
-            setPayments(prev => [paymentToSave, ...prev]);
-            setNotification('✅ Pago guardado en Firestore.');
-            
-            // Notificar a involucrados (Auditores/Admins)
-            notificationService.notifyNewPayment(paymentToSave, users, settings);
-        }
-        setIsFormOpen(false);
-        setEditingPayment(null);
+      if (isUpdate) {
+        await firestoreService.updatePayment(paymentToSave);
+        setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
+        setNotification('✅ Pago corregido y enviado a revisión.');
+      } else {
+        await firestoreService.createPayment(paymentToSave);
+        setPayments(prev => [paymentToSave, ...prev]);
+        setNotification('✅ Pago guardado en Firestore.');
+
+        // Notificar a involucrados (Auditores/Admins)
+        notificationService.notifyNewPayment(paymentToSave, users, settings);
+      }
+      setIsFormOpen(false);
+      setEditingPayment(null);
     } catch (error) {
-        console.error('Error en handleSavePayment:', error);
-        setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
+      console.error('Error en handleSavePayment:', error);
+      setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
     } finally {
-        setIsLoading(false);
-        setTimeout(() => setNotification(null), 3000);
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
   const handleApprove = async (id: string, newDueDate?: string, newBudgetAmount?: number) => {
-      setIsLoading(true);
-      const paymentToUpdate = payments.find(p => p.id === id);
-      if (paymentToUpdate) {
-        let actionNote = undefined;
-        let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
-        const notes = [];
+    setIsLoading(true);
+    const paymentToUpdate = payments.find(p => p.id === id);
+    if (paymentToUpdate) {
+      let actionNote = undefined;
+      let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
+      const notes = [];
 
-        let newDaysToExpire = paymentToUpdate.daysToExpire;
+      let newDaysToExpire = paymentToUpdate.daysToExpire;
 
-        if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
-            
-            // Recalcular daysToExpire si cambia la fecha de vencimiento
-            if (paymentToUpdate.paymentDate) {
-                const d1 = new Date(paymentToUpdate.paymentDate);
-                const d2 = new Date(newDueDate);
-                const diffTime = d2.getTime() - d1.getTime();
-                newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
-                    notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
-                }
-            }
-        }
+      if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
+        notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
 
-        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
-            notes.push(`Presupuesto: ${paymentToUpdate.originalBudget || 'N/A'} ➔ ${newBudgetAmount}`);
-        }
-
-        if (notes.length > 0) {
-            actionNote = notes.join(' | ');
-        }
-
-        const log: AuditLog = {
-            date: new Date().toISOString(),
-            action: actionType,
-            actorName: currentUser?.name || 'Auditor',
-            role: currentUser?.role || Role.AUDITOR,
-            note: actionNote
-        };
-
-        const updatedPayment: Payment = {
-            ...paymentToUpdate,
-            status: PaymentStatus.APPROVED,
-            dueDate: newDueDate || paymentToUpdate.dueDate,
-            daysToExpire: newDaysToExpire,
-            originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
-        };
-
-        if (newBudgetAmount !== undefined) {
-            updatedPayment.isOverBudget = paymentToUpdate.amount > newBudgetAmount;
-        }
-
-        try {
-            await firestoreService.updatePayment(updatedPayment);
-            setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
-            setNotification(`Pago ${id} Aprobado y Sincronizado`);
-
-            // Notificar al creador del pago
-            notificationService.notifyPaymentApproved(updatedPayment, users, settings);
-        } catch (error) {
-            console.error('Error en handleApprove:', error);
-            setNotification('❌ Error sincronizando aprobación.');
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => setNotification(null), 3000);
+        // Recalcular daysToExpire si cambia la fecha de vencimiento
+        if (paymentToUpdate.paymentDate) {
+          const d1 = new Date(paymentToUpdate.paymentDate);
+          const d2 = new Date(newDueDate);
+          const diffTime = d2.getTime() - d1.getTime();
+          newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
+            notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
+          }
         }
       }
+
+      if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
+        notes.push(`Presupuesto: ${paymentToUpdate.originalBudget || 'N/A'} ➔ ${newBudgetAmount}`);
+      }
+
+      if (notes.length > 0) {
+        actionNote = notes.join(' | ');
+      }
+
+      const log: AuditLog = {
+        date: new Date().toISOString(),
+        action: actionType,
+        actorName: currentUser?.name || 'Auditor',
+        role: currentUser?.role || Role.AUDITOR,
+        note: actionNote
+      };
+
+      const updatedPayment: Payment = {
+        ...paymentToUpdate,
+        status: PaymentStatus.APPROVED,
+        dueDate: newDueDate || paymentToUpdate.dueDate,
+        daysToExpire: newDaysToExpire,
+        originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
+        history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
+      };
+
+      if (newBudgetAmount !== undefined) {
+        updatedPayment.isOverBudget = paymentToUpdate.amount > newBudgetAmount;
+      }
+
+      try {
+        await firestoreService.updatePayment(updatedPayment);
+        setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
+        setNotification(`Pago ${id} Aprobado y Sincronizado`);
+
+        // Notificar al creador del pago
+        notificationService.notifyPaymentApproved(updatedPayment, users, settings);
+      } catch (error) {
+        console.error('Error en handleApprove:', error);
+        setNotification('❌ Error sincronizando aprobación.');
+      } finally {
+        setIsLoading(false);
+        setTimeout(() => setNotification(null), 3000);
+      }
+    }
   };
 
   const handleApproveAll = async () => {
-      setIsLoading(true);
-      const pendingPayments = filteredPayments.filter(p => 
-          p.status === PaymentStatus.PENDING || 
-          p.status === PaymentStatus.UPLOADED || 
-          p.status === PaymentStatus.OVERDUE
-      );
-      
-      if (pendingPayments.length === 0) {
-          setIsLoading(false);
-          setNotification('No hay pagos pendientes para aprobar.');
-          setTimeout(() => setNotification(null), 3000);
-          return;
+    setIsLoading(true);
+    const pendingPayments = filteredPayments.filter(p =>
+      p.status === PaymentStatus.PENDING ||
+      p.status === PaymentStatus.UPLOADED ||
+      p.status === PaymentStatus.OVERDUE
+    );
+
+    if (pendingPayments.length === 0) {
+      setIsLoading(false);
+      setNotification('No hay pagos pendientes para aprobar.');
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    const log: AuditLog = {
+      date: new Date().toISOString(),
+      action: 'APROBACION_MASIVA',
+      actorName: currentUser?.name || 'Auditor',
+      role: currentUser?.role || Role.AUDITOR,
+      note: `Aprobación masiva de ${pendingPayments.length} pagos`
+    };
+
+    const updatedPayments = pendingPayments.map(p => ({
+      ...p,
+      status: PaymentStatus.APPROVED,
+      history: p.history ? [...p.history, log] : [log]
+    }));
+
+    try {
+      for (const p of updatedPayments) {
+        await firestoreService.updatePayment(p);
       }
-
-      const log: AuditLog = {
-          date: new Date().toISOString(),
-          action: 'APROBACION_MASIVA',
-          actorName: currentUser?.name || 'Auditor',
-          role: currentUser?.role || Role.AUDITOR,
-          note: `Aprobación masiva de ${pendingPayments.length} pagos`
-      };
-
-      const updatedPayments = pendingPayments.map(p => ({
-          ...p,
-          status: PaymentStatus.APPROVED,
-          history: p.history ? [...p.history, log] : [log]
+      setPayments(prev => prev.map(p => {
+        const updated = updatedPayments.find(up => up.id === p.id);
+        return updated ? updated : p;
       }));
-
-      try {
-          for (const p of updatedPayments) {
-              await firestoreService.updatePayment(p);
-          }
-          setPayments(prev => prev.map(p => {
-              const updated = updatedPayments.find(up => up.id === p.id);
-              return updated ? updated : p;
-          }));
-          setNotification(`✅ ${pendingPayments.length} pagos aprobados.`);
-      } catch (error) {
-          setNotification('❌ Error en aprobación masiva.');
-      } finally {
-          setIsLoading(false);
-          setTimeout(() => setNotification(null), 3000);
-      }
+      setNotification(`✅ ${pendingPayments.length} pagos aprobados.`);
+    } catch (error) {
+      setNotification('❌ Error en aprobación masiva.');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   const handleReject = async (id: string, reason: string) => {
-      setIsLoading(true);
-      const log: AuditLog = {
-        date: new Date().toISOString(),
-        action: 'RECHAZO',
-        actorName: currentUser?.name || 'Auditor',
-        role: currentUser?.role || Role.AUDITOR,
-        note: reason
+    setIsLoading(true);
+    const log: AuditLog = {
+      date: new Date().toISOString(),
+      action: 'RECHAZO',
+      actorName: currentUser?.name || 'Auditor',
+      role: currentUser?.role || Role.AUDITOR,
+      note: reason
+    };
+
+    const paymentToUpdate = payments.find(p => p.id === id);
+    if (paymentToUpdate) {
+      const updatedPayment = {
+        ...paymentToUpdate,
+        status: PaymentStatus.REJECTED,
+        rejectionReason: reason,
+        history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
       };
 
-      const paymentToUpdate = payments.find(p => p.id === id);
-      if (paymentToUpdate) {
-          const updatedPayment = {
-            ...paymentToUpdate,
-            status: PaymentStatus.REJECTED,
-            rejectionReason: reason,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
+      try {
+        await firestoreService.updatePayment(updatedPayment);
+        setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
+        setNotification(`Pago ${id} Rechazado y Sincronizado`);
+
+        // Notificar al creador del pago
+        notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
+
+        // Enviar Notificación Push
+        if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
+          const title = `⚠️ Pago Devuelto para Corrección`;
+          const options = {
+            body: `El pago ${id} (${paymentToUpdate.storeName}) fue devuelto por el auditor. Razón: ${reason}`,
+            icon: '/icons/icon-192x192.png', // Asegúrate que este ícono exista en /public
+            badge: '/icons/badge.png',
+            vibrate: [200, 100, 200],
+            tag: `payment-rejected-${id}`,
           };
-
-          try {
-            await firestoreService.updatePayment(updatedPayment);
-            setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
-            setNotification(`Pago ${id} Rechazado y Sincronizado`);
-
-            // Notificar al creador del pago
-            notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
-
-            // Enviar Notificación Push
-            if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
-              const title = `⚠️ Pago Devuelto para Corrección`;
-              const options = {
-                body: `El pago ${id} (${paymentToUpdate.storeName}) fue devuelto por el auditor. Razón: ${reason}`,
-                icon: '/icons/icon-192x192.png', // Asegúrate que este ícono exista en /public
-                badge: '/icons/badge.png',
-                vibrate: [200, 100, 200],
-                tag: `payment-rejected-${id}`,
-              };
-              navigator.serviceWorker.ready.then(registration => {
-                if (registration && registration.showNotification) {
-                  registration.showNotification(title, options);
-                }
-              }).catch(err => console.error('Error showing push notification:', err));
+          navigator.serviceWorker.ready.then(registration => {
+            if (registration && registration.showNotification) {
+              registration.showNotification(title, options);
             }
+          }).catch(err => console.error('Error showing push notification:', err));
+        }
 
-          } catch (error) {
-             console.error('Error en handleReject:', error);
-             setNotification('❌ Error sincronizando rechazo.');
-          } finally {
-             setIsLoading(false);
-             setTimeout(() => setNotification(null), 3000);
-          }
+      } catch (error) {
+        console.error('Error en handleReject:', error);
+        setNotification('❌ Error sincronizando rechazo.');
+      } finally {
+        setIsLoading(false);
+        setTimeout(() => setNotification(null), 3000);
       }
+    }
   };
 
   const handleManageNotification = (paymentId: string) => {
@@ -811,7 +823,7 @@ function App({}: AppProps = {}) {
   // Filter data based on user's assigned store
   const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
   const userStoreId = isGlobalUser ? null : currentUser?.storeId;
-  
+
   const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
   const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
   const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
@@ -820,12 +832,12 @@ function App({}: AppProps = {}) {
     if (!isAuthenticated) return null;
 
     if (isLoading && payments.length === 0) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
-                <p>Conectando con Servidor Fiscal...</p>
-            </div>
-        );
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-slate-500">
+          <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
+          <p>Conectando con Servidor Fiscal...</p>
+        </div>
+      );
     }
 
     switch (currentView) {
@@ -845,7 +857,7 @@ function App({}: AppProps = {}) {
                       <p className="text-xs text-pink-700 dark:text-pink-300">Tienes pagos que requieren corrección según el auditor.</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowRejectedModal(true)}
                     className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
                   >
@@ -854,20 +866,20 @@ function App({}: AppProps = {}) {
                 </div>
               </div>
             )}
-            
-            <PaymentForm 
+
+            <PaymentForm
               initialData={editingPayment}
               payments={filteredPayments}
-              onSubmit={handleNewPayment} 
+              onSubmit={handleNewPayment}
               onCancel={() => {
                 setEditingPayment(null);
                 setIsFormOpen(false);
-              }} 
+              }}
               isEmbedded={true}
               currentUser={currentUser}
               stores={stores}
             />
-            
+
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -882,7 +894,7 @@ function App({}: AppProps = {}) {
                         <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona un pago para editar y reenviar al auditor.</p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         setShowRejectedModal(false);
                         setEditingPayment(null);
@@ -892,18 +904,18 @@ function App({}: AppProps = {}) {
                       <X size={20} />
                     </button>
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     {editingPayment && editingPayment.status === PaymentStatus.REJECTED ? (
                       <div className="space-y-4">
-                        <button 
+                        <button
                           onClick={() => setEditingPayment(null)}
                           className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline mb-4"
                         >
                           <ChevronLeft size={16} />
                           Volver a la lista
                         </button>
-                        <PaymentForm 
+                        <PaymentForm
                           initialData={editingPayment}
                           payments={filteredPayments}
                           onSubmit={async (data) => {
@@ -923,7 +935,7 @@ function App({}: AppProps = {}) {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {rejectedPayments.map(payment => (
-                          <div 
+                          <div
                             key={payment.id}
                             onClick={() => setEditingPayment(payment)}
                             className="p-4 bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-900/30 rounded-2xl hover:border-pink-500 dark:hover:border-pink-500 cursor-pointer transition-all group"
@@ -934,13 +946,13 @@ function App({}: AppProps = {}) {
                             </div>
                             <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-pink-600 transition-colors">{payment.specificType}</h4>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{payment.storeName} • {payment.dueDate}</p>
-                            
+
                             <div className="p-2 bg-pink-50 dark:bg-pink-900/10 rounded-lg border border-pink-100 dark:border-pink-900/20 mb-3">
                               <p className="text-[10px] text-pink-700 dark:text-pink-300 italic">
                                 <span className="font-bold">Motivo:</span> {payment.rejectionReason || 'No especificado'}
                               </p>
                             </div>
-                            
+
                             <div className="flex items-center justify-between mt-auto">
                               <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
                               <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
@@ -959,11 +971,11 @@ function App({}: AppProps = {}) {
         );
       case 'approvals':
         return (
-          <Approvals 
-            payments={filteredPayments} 
-            onApprove={handleApprove} 
-            onReject={handleReject} 
-            currentUser={currentUser} 
+          <Approvals
+            payments={filteredPayments}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            currentUser={currentUser}
             onApproveAll={handleApproveAll}
             onLoadMore={loadMorePayments}
             hasMore={hasMorePayments}
@@ -979,12 +991,12 @@ function App({}: AppProps = {}) {
         return <CalendarView payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={budgets} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} currentUser={currentUser} />;
       case 'payroll':
         return (
-          <PayrollModule 
-            entries={filteredPayrollEntries} 
+          <PayrollModule
+            entries={filteredPayrollEntries}
             employees={filteredEmployees}
-            onAddEntry={handleAddPayrollEntry} 
+            onAddEntry={handleAddPayrollEntry}
             onUpdateEntry={handleUpdatePayrollEntry}
-            onDeleteEntry={handleDeletePayrollEntry} 
+            onDeleteEntry={handleDeletePayrollEntry}
             onAddEmployee={handleAddEmployee}
             onUpdateEmployee={handleUpdateEmployee}
             onDeleteEmployee={handleDeleteEmployee}
@@ -1001,8 +1013,8 @@ function App({}: AppProps = {}) {
         return <EvaluationModule payments={payments} />;
       case 'notifications':
         return (
-          <NotificationsView 
-            onBack={() => setCurrentView('payments')} 
+          <NotificationsView
+            onBack={() => setCurrentView('payments')}
             payments={filteredPayments}
             onManage={handleManageNotification}
             onRefresh={loadData}
@@ -1016,79 +1028,79 @@ function App({}: AppProps = {}) {
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
             <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
-            
+
             {/* Sección Mi Perfil */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-               <h3 className="font-bold mb-6 flex items-center gap-2 text-blue-500">
-                   <Users size={20} /> Mi Perfil de Usuario
-               </h3>
-               
-               <div className="flex flex-col md:flex-row gap-8 items-start">
-                  <div className="relative group">
-                    <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-900 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden flex items-center justify-center text-4xl font-bold text-slate-400">
-                      {currentUser?.avatar ? (
-                        <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        currentUser?.name?.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <label className="absolute bottom-0 right-0 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
-                      <Plus size={20} />
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file && currentUser) {
-                            setIsLoading(true);
-                            try {
-                              const base64 = await fileToBase64(file);
-                              const updatedUser = { ...currentUser, avatar: base64 };
-                              await firestoreService.updateUser(updatedUser);
-                              setCurrentUser(updatedUser);
-                              setNotification('✅ Avatar actualizado correctamente');
-                            } catch (err) {
-                              setNotification('❌ Error al actualizar avatar');
-                            } finally {
-                              setIsLoading(false);
-                              setTimeout(() => setNotification(null), 3000);
-                            }
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
+              <h3 className="font-bold mb-6 flex items-center gap-2 text-blue-500">
+                <Users size={20} /> Mi Perfil de Usuario
+              </h3>
 
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre</label>
-                      <p className="text-lg font-bold">{currentUser?.name}</p>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correo</label>
-                      <p className="text-slate-600 dark:text-slate-400">{currentUser?.email}</p>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Rol</label>
-                      <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800/50">
-                        {currentUser?.role}
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        {currentUser?.storeId ? stores.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
-                      </p>
-                    </div>
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-900 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden flex items-center justify-center text-4xl font-bold text-slate-400">
+                    {currentUser?.avatar ? (
+                      <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      currentUser?.name?.charAt(0).toUpperCase()
+                    )}
                   </div>
-               </div>
+                  <label className="absolute bottom-0 right-0 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
+                    <Plus size={20} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file && currentUser) {
+                          setIsLoading(true);
+                          try {
+                            const base64 = await fileToBase64(file);
+                            const updatedUser = { ...currentUser, avatar: base64 };
+                            await firestoreService.updateUser(updatedUser);
+                            setCurrentUser(updatedUser);
+                            setNotification('✅ Avatar actualizado correctamente');
+                          } catch (err) {
+                            setNotification('❌ Error al actualizar avatar');
+                          } finally {
+                            setIsLoading(false);
+                            setTimeout(() => setNotification(null), 3000);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre</label>
+                    <p className="text-lg font-bold">{currentUser?.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correo</label>
+                    <p className="text-slate-600 dark:text-slate-400">{currentUser?.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Rol</label>
+                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800/50">
+                      {currentUser?.role}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      {currentUser?.storeId ? stores.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Gestión de Tiendas (Solo Super Usuario y Presidencia) */}
             {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT) && (
               <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                <StoreManagement 
+                <StoreManagement
                   stores={stores}
                   users={users}
                   onAddStore={handleAddStore}
@@ -1100,92 +1112,92 @@ function App({}: AppProps = {}) {
             )}
 
             {currentUser?.role === Role.SUPER_ADMIN && (
-               <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500 rounded-lg text-white">
-                    <Users size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-indigo-300">Modo Super Usuario Activo</h3>
-                    <p className="text-sm text-indigo-200/80">Tiene permisos totales para gestionar mantenimiento, usuarios y configuraciones avanzadas.</p>
-                  </div>
-               </div>
+              <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
+                <div className="p-2 bg-indigo-500 rounded-lg text-white">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-indigo-300">Modo Super Usuario Activo</h3>
+                  <p className="text-sm text-indigo-200/80">Tiene permisos totales para gestionar mantenimiento, usuarios y configuraciones avanzadas.</p>
+                </div>
+              </div>
             )}
-            
+
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
-                   <UserManagement currentUser={currentUser} stores={stores} />
+                  <UserManagement currentUser={currentUser} stores={stores} />
                 </div>
               </div>
             )}
 
             <div className="grid gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
-                       <DollarSign size={20} /> Configuración Financiera
-                   </h3>
-                   <div className="max-w-xs">
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
-                       <div className="flex gap-2">
-                           <div className="relative flex-1">
-                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
-                               <input 
-                                   type="number" 
-                                   step="0.01"
-                                   value={exchangeRateInput}
-                                   onChange={(e) => {
-                                       const val = Number(e.target.value);
-                                       setExchangeRateInput(val);
-                                       setExchangeRate(val);
-                                       localStorage.setItem('fiscal_exchange_rate', val.toString());
-                                   }}
-                                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
-                               />
-                           </div>
-                           <button 
-                               onClick={async () => {
-                                   setIsLoading(true);
-                                   try {
-                                       const currentSettings = await firestoreService.getSettings() || {
-                                           whatsappEnabled: false,
-                                           whatsappPhone: '',
-                                           whatsappGatewayUrl: '',
-                                           daysBeforeWarning: 5,
-                                           daysBeforeCritical: 2,
-                                           emailEnabled: false,
-                                           exchangeRate: 1
-                                       };
-                                       await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
-                                       await firestoreService.saveExchangeRate(exchangeRateInput);
-                                       setExchangeRate(exchangeRateInput);
-                                       localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
-                                       setNotification('✅ Tasa de cambio guardada y actualizada');
-                                   } catch (e) {
-                                       setNotification('❌ Error actualizando tasa');
-                                   } finally {
-                                       setIsLoading(false);
-                                   }
-                               }}
-                               className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                           >
-                               Actualizar
-                           </button>
-                       </div>
-                       <p className="text-[10px] text-slate-500 mt-2 italic">
-                           Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
-                       </p>
-                   </div>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
+                  <DollarSign size={20} /> Configuración Financiera
+                </h3>
+                <div className="max-w-xs">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={exchangeRateInput}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setExchangeRateInput(val);
+                          setExchangeRate(val);
+                          localStorage.setItem('fiscal_exchange_rate', val.toString());
+                        }}
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setIsLoading(true);
+                        try {
+                          const currentSettings = await firestoreService.getSettings() || {
+                            whatsappEnabled: false,
+                            whatsappPhone: '',
+                            whatsappGatewayUrl: '',
+                            daysBeforeWarning: 5,
+                            daysBeforeCritical: 2,
+                            emailEnabled: false,
+                            exchangeRate: 1
+                          };
+                          await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
+                          await firestoreService.saveExchangeRate(exchangeRateInput);
+                          setExchangeRate(exchangeRateInput);
+                          localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
+                          setNotification('✅ Tasa de cambio guardada y actualizada');
+                        } catch (e) {
+                          setNotification('❌ Error actualizando tasa');
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                    >
+                      Actualizar
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 italic">
+                    Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
+                  </p>
                 </div>
+              </div>
 
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
-                   <div className="flex justify-between items-center">
-                      <span className="text-slate-700 dark:text-slate-300">Push Notifications: {pushPermission === 'granted' ? 'Activo' : 'Inactivo'}</span>
-                      {pushPermission !== 'granted' && (
-                        <button onClick={requestPermission} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Activar</button>
-                      )}
-                   </div>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-700 dark:text-slate-300">Push Notifications: {pushPermission === 'granted' ? 'Activo' : 'Inactivo'}</span>
+                  {pushPermission !== 'granted' && (
+                    <button onClick={requestPermission} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Activar</button>
+                  )}
                 </div>
+              </div>
             </div>
           </div>
         );
@@ -1223,32 +1235,34 @@ function App({}: AppProps = {}) {
   return (
     <ExchangeRateProvider exchangeRate={exchangeRate}>
       <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
-        
+
         {/* Sidebar Responsive */}
-        <Sidebar 
-          currentView={currentView} 
-          setCurrentView={setCurrentView} 
+        <Sidebar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
           currentRole={currentUser?.role || Role.ADMIN}
           currentUser={currentUser}
-          onChangeRole={() => {}} 
+          onChangeRole={() => { }}
           onLogout={handleLogout}
           isMobileOpen={isMobileMenuOpen}
           closeMobileMenu={() => setIsMobileMenuOpen(false)}
           installPrompt={installPrompt}
           onInstallClick={handleInstallClick}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
           onPaymentsClick={() => {
             setEditingPayment(null);
             setIsFormOpen(false); // Asegurar que el modal esté cerrado ya que está embebido
           }}
         />
-        
+
         {/* Contenedor Principal */}
-        <main className="flex-1 lg:ml-64 relative transition-all duration-300 flex flex-col h-screen overflow-hidden">
-          
+        <main className={`flex-1 relative transition-all duration-300 flex flex-col h-screen overflow-hidden ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+
           {/* PWA Install Banner */}
           <AnimatePresence>
             {installPrompt && showInstallBanner && (
-              <motion.div 
+              <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -1265,13 +1279,13 @@ function App({}: AppProps = {}) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={handleInstallClick}
                       className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
                     >
                       Instalar
                     </button>
-                    <button 
+                    <button
                       onClick={handleDismissBanner}
                       className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
                     >
@@ -1296,7 +1310,7 @@ function App({}: AppProps = {}) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={requestPermission}
                   className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
                 >
@@ -1308,61 +1322,61 @@ function App({}: AppProps = {}) {
 
           {/* Header Móvil */}
           <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
-             <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg active:scale-90 transition-all"
-                  aria-label="Abrir menú"
-                >
-                    <Menu size={24} />
-                </button>
-                <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
-             </div>
-             <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
-                 <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-             </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg active:scale-90 transition-all"
+                aria-label="Abrir menú"
+              >
+                <Menu size={24} />
+              </button>
+              <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
+            </div>
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
+              <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
+            </div>
           </div>
 
           {/* Loading Overlay */}
           {isLoading && (
-              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                  <RefreshCw size={12} className="animate-spin" />
-                  Procesando...
-              </div>
+            <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+              <RefreshCw size={12} className="animate-spin" />
+              Procesando...
+            </div>
           )}
 
           {/* Notificaciones Toast */}
           {notification && (
             <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-               <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-                  <span className="font-medium">{notification}</span>
-                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
-               </div>
+              <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                <span className="font-medium">{notification}</span>
+                <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+              </div>
             </div>
           )}
 
           {/* Modal Formulario */}
           {isFormOpen && currentView !== 'payments' && (
-             <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                    <PaymentForm 
-                      initialData={editingPayment}
-                      payments={filteredPayments}
-                      onSubmit={handleNewPayment} 
-                      onCancel={() => {
-                        setIsFormOpen(false);
-                        setEditingPayment(null);
-                      }} 
-                      currentUser={currentUser}
-                      stores={stores}
-                    />
-                </div>
-             </div>
+            <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
+                <PaymentForm
+                  initialData={editingPayment}
+                  payments={filteredPayments}
+                  onSubmit={handleNewPayment}
+                  onCancel={() => {
+                    setIsFormOpen(false);
+                    setEditingPayment(null);
+                  }}
+                  currentUser={currentUser}
+                  stores={stores}
+                />
+              </div>
+            </div>
           )}
 
           {/* Contenido Scrollable */}
           <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-             {renderContent()}
+            {renderContent()}
           </div>
         </main>
       </div>
