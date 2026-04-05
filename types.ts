@@ -214,3 +214,11 @@ export interface BudgetEntry {
   category: Category;
   notes?: string;
 }
+
+export interface AnnualBudget {
+  id: string;
+  year: number;
+  months: { [key: string]: number };
+  total: number;
+  storeId: string;
+}
