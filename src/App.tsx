@@ -1,1396 +1,227 @@
-
-import React, { useState, useEffect } from 'react';
-import { PresidencyDashboard } from './components/PresidencyDashboard';
-import { Sidebar } from './components/Sidebar';
-import { PaymentForm } from './components/PaymentForm';
-import { Approvals } from './components/Approvals';
-import { Reports } from './components/Reports';
-import { StoreStatus } from './components/StoreStatus';
-import { CalendarView } from './components/CalendarView';
-import { NotificationsView } from './components/NotificationsView';
-import { Login } from './components/Login'; 
+import { useState, useEffect } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { Auth } from './components/Auth';
+import { AdminDashboard } from './components/AdminDashboard';
+import { QRScanner } from './components/QRScanner';
+import { AttendanceStats } from './components/AttendanceStats';
+import { PaymentModule } from './components/PaymentModule';
+import { StudentProfile } from './components/StudentProfile';
+import { MoraReport } from './components/MoraReport';
 import { UserManagement } from './components/UserManagement';
-import { PayrollModule } from './components/PayrollModule';
-import { EvaluationModule } from './components/EvaluationModule';
-import { PredictiveDashboard } from './components/PredictiveDashboard';
-import { Dashboard } from './components/Dashboard';
-import { StoreManagement } from './components/StoreManagement';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
-import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  QrCode, 
+  BarChart3, 
+  Users, 
+  ShieldCheck,
+  Menu,
+  X,
+  CreditCard,
+  User
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { api } from './services/api';
-import { authService } from './services/auth';
-import { firestoreService } from './services/firestoreService';
-import { notificationService } from './services/notificationService';
-import { APP_LOGO_URL } from './constants';
-import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
+import { cn } from './lib/utils';
 
-interface AppProps {}
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { InstallPWA } from './components/InstallPWA';
 
-function App({}: AppProps = {}) {
-  console.log("App Version: 2.2 - Categoría Fiscal Update");
-  // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+type View = 'admin' | 'scanner' | 'stats' | 'payments' | 'profile' | 'mora-report' | 'users';
 
-  useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-      setIsAuthenticated(!!user);
-      setIsAuthReady(true);
-    });
-    
-    return () => unsubscribe();
-  }, []);
-
-  // --- APP STATE ---
-  const [currentView, setCurrentView] = useState('payments');
-
-  // --- MOBILE & PWA STATE ---
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [settings, setSettings] = useState<SystemSettings | null>(null);
-  const [exchangeRate, setExchangeRate] = useState<number>(() => {
-    const saved = localStorage.getItem('fiscal_exchange_rate');
-    return saved ? Number(saved) : 1;
-  });
-  const [exchangeRateInput, setExchangeRateInput] = useState<number>(() => {
-    const saved = localStorage.getItem('fiscal_exchange_rate');
-    return saved ? Number(saved) : 1;
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-  const [showRejectedModal, setShowRejectedModal] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
-  const [isSyncing, setIsSyncing] = useState(false);
+export default function App() {
+  const { user, appUser, studentData, loading } = useAuth();
+  const [activeView, setActiveView] = useState<View>('scanner');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    const saved = localStorage.getItem('sidebar_collapsed');
-    return saved === 'true';
-  });
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(() => {
-    const dismissed = localStorage.getItem('pwa_banner_dismissed');
-    return dismissed !== 'true';
-  });
-
-  // --- PAGINATION STATE ---
-  const PAGE_SIZE = 20;
-  const [lastVisiblePayment, setLastVisiblePayment] = useState<any>(null);
-  const [hasMorePayments, setHasMorePayments] = useState(true);
-  const [lastVisiblePayroll, setLastVisiblePayroll] = useState<any>(null);
-  const [hasMorePayroll, setHasMorePayroll] = useState(true);
-  const [lastVisibleEmployee, setLastVisibleEmployee] = useState<any>(null);
-  const [hasMoreEmployees, setHasMoreEmployees] = useState(true);
-
-  // PWA Install Prompt Listener
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      // Prevenir que Chrome en Android muestre el prompt automáticamente
-      e.preventDefault();
-      // Guardar el evento para dispararlo después con el botón
-      setInstallPrompt(e);
-      console.log("PWA: Evento de instalación capturado");
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    const handleAppInstalled = () => {
-      setInstallPrompt(null);
-      setShowInstallBanner(false);
-      localStorage.setItem('pwa_banner_dismissed', 'true');
-      console.log("PWA: Aplicación instalada");
-    };
-
-    window.addEventListener('appinstalled', handleAppInstalled);
-    
-    // Check inicial de permisos de notificación
-    if ('Notification' in window) {
-      setPushPermission(Notification.permission);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  const handleInstallClick = () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      installPrompt.userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('Usuario aceptó la instalación');
-          setShowInstallBanner(false);
-          localStorage.setItem('pwa_banner_dismissed', 'true');
-        } else {
-          console.log('Usuario rechazó la instalación');
-        }
-        setInstallPrompt(null);
-      });
-    }
-  };
-
-  const handleDismissBanner = () => {
-    setShowInstallBanner(false);
-    localStorage.setItem('pwa_banner_dismissed', 'true');
-  };
-
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(prev => {
-      const newState = !prev;
-      localStorage.setItem('sidebar_collapsed', newState.toString());
-      return newState;
-    });
-  };
-
-  const getInitialView = (role: Role) => {
-    switch (role) {
-      case Role.SUPER_ADMIN: return 'settings';
-      case Role.AUDITOR: return 'approvals';
-      case Role.PRESIDENT: return 'reports';
-      default: return 'payments';
-    }
-  };
 
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      setCurrentView(getInitialView(currentUser.role));
-      loadData();
+    if (appUser?.role === 'student') {
+      setActiveView('profile');
     }
-  }, [isAuthenticated, currentUser]);
+  }, [appUser]);
 
-  // Abrir formulario automáticamente al entrar en Categoría Fiscal
-  // Eliminado: El formulario ahora está embebido permanentemente en la vista 'payments'
-
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-  };
-
-  const handleAddPayrollEntry = async (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
-    setIsLoading(true);
-    const newEntry: PayrollEntry = {
-      ...entry,
-      id: `PAY-${Date.now()}`,
-      submittedDate: new Date().toISOString()
-    };
-    
-    try {
-      await firestoreService.createPayrollEntry(newEntry);
-      setPayrollEntries([newEntry, ...payrollEntries]);
-      setNotification('✅ Nómina cargada exitosamente');
-    } catch (error) {
-      setNotification('❌ Error guardando nómina');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleUpdatePayrollEntry = async (entry: PayrollEntry) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.updatePayrollEntry(entry);
-      setPayrollEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
-      setNotification('✅ Nómina actualizada');
-    } catch (error) {
-      setNotification('❌ Error actualizando nómina');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeletePayrollEntry = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deletePayrollEntry(id);
-      setPayrollEntries(payrollEntries.filter(e => e.id !== id));
-      setNotification('🗑️ Registro de nómina eliminado');
-    } catch (error) {
-      setNotification('❌ Error eliminando registro de nómina');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleAddEmployee = async (employee: Employee) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.createEmployee(employee);
-      setEmployees(prev => [...prev, employee]);
-      setNotification('✅ Expediente de empleado creado');
-    } catch (error) {
-      setNotification('❌ Error guardando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleUpdateEmployee = async (employee: Employee) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.updateEmployee(employee);
-      setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
-      setNotification('✅ Expediente actualizado');
-    } catch (error) {
-      setNotification('❌ Error actualizando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeleteEmployee = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deleteEmployee(id);
-      setEmployees(prev => prev.filter(e => e.id !== id));
-      setNotification('🗑️ Expediente eliminado');
-    } catch (error) {
-      setNotification('❌ Error eliminando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleAddBudget = async (budget: BudgetEntry) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.createBudget(budget);
-      setBudgets(prev => [...prev, budget]);
-      setNotification('✅ Presupuesto cargado');
-    } catch (error) {
-      setNotification('❌ Error guardando presupuesto');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeleteBudget = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deleteBudget(id);
-      setBudgets(prev => prev.filter(b => b.id !== id));
-      setNotification('🗑️ Presupuesto eliminado');
-    } catch (error) {
-      setNotification('❌ Error eliminando presupuesto');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleAddStore = async (store: Store) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.createStore(store);
-      setStores(prev => [...prev, store]);
-      setNotification('✅ Tienda creada exitosamente');
-    } catch (error) {
-      setNotification('❌ Error guardando tienda');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleUpdateStore = async (store: Store) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.updateStore(store);
-      setStores(prev => prev.map(s => s.id === store.id ? store : s));
-      setNotification('✅ Tienda actualizada');
-    } catch (error) {
-      setNotification('❌ Error actualizando tienda');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeleteStore = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deleteStore(id);
-      setStores(prev => prev.filter(s => s.id !== id));
-      setNotification('🗑️ Tienda eliminada');
-    } catch (error) {
-      setNotification('❌ Error eliminando tienda');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleLogout = async () => {
-    await authService.logout();
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    setPayments([]);
-  };
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      await firestoreService.bootstrap();
-
-      console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
-      const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
-                            currentUser.role === Role.ADMIN || 
-                            currentUser.role === Role.AUDITOR ||
-                            currentUser.role === Role.PRESIDENT;
-      
-      const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
-                           currentUser.role === Role.PRESIDENT ||
-                           currentUser.role === Role.AUDITOR;
-
-      const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
-        firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
-        firestoreService.getEmployees(PAGE_SIZE),
-        firestoreService.getPayrollEntries(PAGE_SIZE),
-        firestoreService.getBudgets(),
-        firestoreService.getSettings(),
-        canManageUsers ? firestoreService.getUsers() : Promise.resolve([]),
-        firestoreService.getStores()
-      ]);
-
-      console.log("Payments fetched:", paymentsRes.payments.length);
-      console.log("Budgets fetched:", budgetsData.length);
-      console.log("Stores fetched:", storesData.length);
-      console.log("Users fetched:", usersData.length);
-      console.log("Settings fetched:", !!settingsData);
-
-      setPayments(paymentsRes.payments);
-      setLastVisiblePayment(paymentsRes.lastVisible);
-      setHasMorePayments(paymentsRes.payments.length === PAGE_SIZE);
-
-      setEmployees(employeesRes.employees);
-      setLastVisibleEmployee(employeesRes.lastVisible);
-      setHasMoreEmployees(employeesRes.employees.length === PAGE_SIZE);
-
-      setPayrollEntries(payrollRes.entries);
-      setLastVisiblePayroll(payrollRes.lastVisible);
-      setHasMorePayroll(payrollRes.entries.length === PAGE_SIZE);
-
-      setBudgets(budgetsData);
-      setSettings(settingsData);
-      setUsers(usersData);
-      if (storesData) {
-        setStores(storesData);
-      }
-
-      if (settingsData && settingsData.exchangeRate) {
-        setExchangeRate(settingsData.exchangeRate);
-        setExchangeRateInput(settingsData.exchangeRate);
-        localStorage.setItem('fiscal_exchange_rate', settingsData.exchangeRate.toString());
-      }
-    } catch (error: any) {
-      console.error('Error loading data:', error);
-      let errorMsg = '❌ Error conectando con Firestore';
-      
-      try {
-        const message = error.message || "";
-        if (message.startsWith('{"error":')) {
-          const firestoreInfo = JSON.parse(message);
-          errorMsg = `❌ Error Firestore (${firestoreInfo.operationType}) en ${firestoreInfo.path || 'desconocido'}: ${firestoreInfo.error}`;
-        } else if (message.includes('permission-denied')) {
-          errorMsg = '❌ Error de permisos en Firestore. Verifique las reglas de seguridad.';
-        }
-      } catch (e) {
-        // Not a JSON error
-      }
-      
-      setNotification(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMorePayments = async () => {
-    if (!hasMorePayments || isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await firestoreService.getPayments(PAGE_SIZE, lastVisiblePayment);
-      setPayments(prev => [...prev, ...res.payments]);
-      setLastVisiblePayment(res.lastVisible);
-      setHasMorePayments(res.payments.length === PAGE_SIZE);
-    } catch (error) {
-      setNotification('❌ Error cargando más pagos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMoreEmployees = async () => {
-    if (!hasMoreEmployees || isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await firestoreService.getEmployees(PAGE_SIZE, lastVisibleEmployee);
-      setEmployees(prev => [...prev, ...res.employees]);
-      setLastVisibleEmployee(res.lastVisible);
-      setHasMoreEmployees(res.employees.length === PAGE_SIZE);
-    } catch (error) {
-      setNotification('❌ Error cargando más empleados');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMorePayroll = async () => {
-    if (!hasMorePayroll || isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await firestoreService.getPayrollEntries(PAGE_SIZE, lastVisiblePayroll);
-      setPayrollEntries(prev => [...prev, ...res.entries]);
-      setLastVisiblePayroll(res.lastVisible);
-      setHasMorePayroll(res.entries.length === PAGE_SIZE);
-    } catch (error) {
-      setNotification('❌ Error cargando más nóminas');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSetupDatabase = () => {
-    setNotification('✅ Base de datos configurada (Firebase)');
-  };
-
-  const requestPermission = () => {
-    if (!('Notification' in window)) {
-      console.log("Este navegador no soporta notificaciones de escritorio");
-      return;
-    }
-    Notification.requestPermission().then(permission => {
-      setPushPermission(permission);
-      if (permission === 'granted') {
-        new Notification("¡Notificaciones Activadas!", {
-          body: "Ahora recibirás alertas importantes de FiscalCtl Pro.",
-          icon: APP_LOGO_URL
-        });
-      }
-    });
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (!file.type.startsWith('image/')) {
-        if (file.size > 800000) {
-          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 800KB. Por favor, intente con un archivo más pequeño o suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
-          return;
-        }
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Compress to JPEG with 0.7 quality to keep size small
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const handleNewPayment = async (paymentData: any) => {
-    setIsLoading(true);
-    const isUpdate = !!paymentData.id;
-    
-    const log: AuditLog = {
-      date: new Date().toISOString(),
-      action: isUpdate ? 'CORRECCION' : 'CREACION',
-      actorName: currentUser?.name || 'Usuario', 
-      role: currentUser?.role || Role.ADMIN,
-      note: isUpdate ? 'Pago corregido tras devolución' : undefined
-    };
-
-    let receiptUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl : undefined;
-    if (paymentData.file) {
-        try {
-            receiptUrl = await fileToBase64(paymentData.file);
-        } catch (e) {
-            console.error("Error converting file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
-            setIsLoading(false);
-            return;
-        }
-    }
-
-    const paymentToSave: Payment = {
-      id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
-      storeId: paymentData.storeId,
-      storeName: stores.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
-      userId: currentUser?.id || 'U-UNK',
-      category: paymentData.category,
-      specificType: paymentData.specificType,
-      amount: paymentData.amount,
-      dueDate: paymentData.dueDate,
-      paymentDate: paymentData.paymentDate,
-      daysToExpire: paymentData.daysToExpire,
-      frequency: paymentData.frequency,
-      status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
-      rejectionReason: '', // Clear rejection reason on correction
-      submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
-      notes: paymentData.notes,
-      history: isUpdate 
-        ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
-        : [log],
-      receiptUrl: receiptUrl,
-      // Soporte Data
-      documentDate: paymentData.documentDate,
-      documentAmount: paymentData.documentAmount,
-      documentName: paymentData.documentName,
-      // Proposed Data
-      proposedAmount: paymentData.proposedAmount,
-      proposedPaymentDate: paymentData.proposedPaymentDate,
-      proposedDueDate: paymentData.proposedDueDate,
-      proposedDaysToExpire: paymentData.proposedDaysToExpire,
-      proposedJustification: paymentData.proposedJustification,
-      proposedStatus: paymentData.proposedStatus
-    };
-    
-    if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
-    if(paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
-
-    try {
-        if (isUpdate) {
-            await firestoreService.updatePayment(paymentToSave);
-            setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
-            setNotification('✅ Pago corregido y enviado a revisión.');
-        } else {
-            await firestoreService.createPayment(paymentToSave);
-            setPayments(prev => [paymentToSave, ...prev]);
-            setNotification('✅ Pago guardado en Firestore.');
-            
-            // Notificar a involucrados (Auditores/Admins)
-            notificationService.notifyNewPayment(paymentToSave, users, settings);
-        }
-        setIsFormOpen(false);
-        setEditingPayment(null);
-    } catch (error) {
-        console.error('Error en handleSavePayment:', error);
-        setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
-    } finally {
-        setIsLoading(false);
-        setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleApprove = async (id: string, newDueDate?: string, newBudgetAmount?: number) => {
-      setIsLoading(true);
-      const paymentToUpdate = payments.find(p => p.id === id);
-      if (paymentToUpdate) {
-        let actionNote = undefined;
-        let actionType: 'APROBACION' | 'ACTUALIZACION' = 'APROBACION';
-        const notes = [];
-
-        let newDaysToExpire = paymentToUpdate.daysToExpire;
-
-        if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
-            
-            // Recalcular daysToExpire si cambia la fecha de vencimiento
-            if (paymentToUpdate.paymentDate) {
-                const d1 = new Date(paymentToUpdate.paymentDate);
-                const d2 = new Date(newDueDate);
-                const diffTime = d2.getTime() - d1.getTime();
-                newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
-                    notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
-                }
-            }
-        }
-
-        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
-            notes.push(`Presupuesto: ${paymentToUpdate.originalBudget || 'N/A'} ➔ ${newBudgetAmount}`);
-        }
-
-        if (notes.length > 0) {
-            actionNote = notes.join(' | ');
-        }
-
-        const log: AuditLog = {
-            date: new Date().toISOString(),
-            action: actionType,
-            actorName: currentUser?.name || 'Auditor',
-            role: currentUser?.role || Role.AUDITOR,
-            note: actionNote
-        };
-
-        const updatedPayment: Payment = {
-            ...paymentToUpdate,
-            status: PaymentStatus.APPROVED,
-            dueDate: newDueDate || paymentToUpdate.dueDate,
-            daysToExpire: newDaysToExpire,
-            originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
-        };
-
-        if (newBudgetAmount !== undefined) {
-            updatedPayment.isOverBudget = paymentToUpdate.amount > newBudgetAmount;
-        }
-
-        try {
-            await firestoreService.updatePayment(updatedPayment);
-            setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
-            setNotification(`Pago ${id} Aprobado y Sincronizado`);
-
-            // Notificar al creador del pago
-            notificationService.notifyPaymentApproved(updatedPayment, users, settings);
-        } catch (error) {
-            console.error('Error en handleApprove:', error);
-            setNotification('❌ Error sincronizando aprobación.');
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => setNotification(null), 3000);
-        }
-      }
-  };
-
-  const handleApproveAll = async () => {
-      setIsLoading(true);
-      const pendingPayments = filteredPayments.filter(p => 
-          p.status === PaymentStatus.PENDING || 
-          p.status === PaymentStatus.UPLOADED || 
-          p.status === PaymentStatus.OVERDUE
-      );
-      
-      if (pendingPayments.length === 0) {
-          setIsLoading(false);
-          setNotification('No hay pagos pendientes para aprobar.');
-          setTimeout(() => setNotification(null), 3000);
-          return;
-      }
-
-      const log: AuditLog = {
-          date: new Date().toISOString(),
-          action: 'APROBACION_MASIVA',
-          actorName: currentUser?.name || 'Auditor',
-          role: currentUser?.role || Role.AUDITOR,
-          note: `Aprobación masiva de ${pendingPayments.length} pagos`
-      };
-
-      const updatedPayments = pendingPayments.map(p => ({
-          ...p,
-          status: PaymentStatus.APPROVED,
-          history: p.history ? [...p.history, log] : [log]
-      }));
-
-      try {
-          for (const p of updatedPayments) {
-              await firestoreService.updatePayment(p);
-          }
-          setPayments(prev => prev.map(p => {
-              const updated = updatedPayments.find(up => up.id === p.id);
-              return updated ? updated : p;
-          }));
-          setNotification(`✅ ${pendingPayments.length} pagos aprobados.`);
-      } catch (error) {
-          setNotification('❌ Error en aprobación masiva.');
-      } finally {
-          setIsLoading(false);
-          setTimeout(() => setNotification(null), 3000);
-      }
-  };
-
-  const handleReject = async (id: string, reason: string) => {
-      setIsLoading(true);
-      const log: AuditLog = {
-        date: new Date().toISOString(),
-        action: 'RECHAZO',
-        actorName: currentUser?.name || 'Auditor',
-        role: currentUser?.role || Role.AUDITOR,
-        note: reason
-      };
-
-      const paymentToUpdate = payments.find(p => p.id === id);
-      if (paymentToUpdate) {
-          const updatedPayment = {
-            ...paymentToUpdate,
-            status: PaymentStatus.REJECTED,
-            rejectionReason: reason,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
-          };
-
-          try {
-            await firestoreService.updatePayment(updatedPayment);
-            setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
-            setNotification(`Pago ${id} Rechazado y Sincronizado`);
-
-            // Notificar al creador del pago
-            notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
-
-            // Enviar Notificación Push
-            if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
-              const title = `⚠️ Pago Devuelto para Corrección`;
-              const options = {
-                body: `El pago ${id} (${paymentToUpdate.storeName}) fue devuelto por el auditor. Razón: ${reason}`,
-                icon: '/icons/icon-192x192.png', // Asegúrate que este ícono exista en /public
-                badge: '/icons/badge.png',
-                vibrate: [200, 100, 200],
-                tag: `payment-rejected-${id}`,
-              };
-              navigator.serviceWorker.ready.then(registration => {
-                if (registration && registration.showNotification) {
-                  registration.showNotification(title, options);
-                }
-              }).catch(err => console.error('Error showing push notification:', err));
-            }
-
-          } catch (error) {
-             console.error('Error en handleReject:', error);
-             setNotification('❌ Error sincronizando rechazo.');
-          } finally {
-             setIsLoading(false);
-             setTimeout(() => setNotification(null), 3000);
-          }
-      }
-  };
-
-  const handleManageNotification = (paymentId: string) => {
-    if (currentUser?.role === Role.AUDITOR || currentUser?.role === Role.SUPER_ADMIN) {
-      setCurrentView('approvals');
-    } else {
-      setCurrentView('payments');
-    }
-    setNotification(`Gestionando pago ${paymentId}...`);
-    setTimeout(() => setNotification(null), 2000);
-  };
-
-  const handlePaymentSuccess = async (paymentId: string) => {
-    setIsLoading(true);
-    try {
-      const payment = payments.find(p => p.id === paymentId);
-      if (payment) {
-        const updatedPayment = { ...payment, status: PaymentStatus.PAID };
-        await firestoreService.updatePayment(updatedPayment);
-        setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
-        setNotification('✅ Pago procesado exitosamente');
-      }
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      setNotification('❌ Error al actualizar el estado del pago');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  // Filter data based on user's assigned store
-  const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
-  const userStoreId = isGlobalUser ? null : currentUser?.storeId;
-  
-  const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
-  const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
-  const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
-
-  const renderContent = () => {
-    if (!isAuthenticated) return null;
-
-    if (isLoading && payments.length === 0) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
-                <p>Conectando con Servidor Fiscal...</p>
-            </div>
-        );
-    }
-
-    switch (currentView) {
-      case 'payments':
-        const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
-        return (
-          <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-slate-900 custom-scrollbar">
-            {rejectedPayments.length > 0 && (
-              <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-b border-pink-100 dark:border-pink-900/30">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/40 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400">
-                      <AlertCircle size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-pink-900 dark:text-pink-100">Pagos Devueltos ({rejectedPayments.length})</h3>
-                      <p className="text-xs text-pink-700 dark:text-pink-300">Tienes pagos que requieren corrección según el auditor.</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setShowRejectedModal(true)}
-                    className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                  >
-                    Ver y Corregir
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <PaymentForm 
-              initialData={editingPayment}
-              payments={filteredPayments}
-              onSubmit={handleNewPayment} 
-              onCancel={() => {
-                setEditingPayment(null);
-                setIsFormOpen(false);
-              }} 
-              isEmbedded={true}
-              currentUser={currentUser}
-              stores={stores}
-            />
-            
-            {/* Modal for Rejected Payments */}
-            {showRejectedModal && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/40 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400">
-                        <RefreshCw size={20} />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Corrección de Pagos Devueltos</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona un pago para editar y reenviar al auditor.</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setShowRejectedModal(false);
-                        setEditingPayment(null);
-                      }}
-                      className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    {editingPayment && editingPayment.status === PaymentStatus.REJECTED ? (
-                      <div className="space-y-4">
-                        <button 
-                          onClick={() => setEditingPayment(null)}
-                          className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline mb-4"
-                        >
-                          <ChevronLeft size={16} />
-                          Volver a la lista
-                        </button>
-                        <PaymentForm 
-                          initialData={editingPayment}
-                          payments={filteredPayments}
-                          onSubmit={async (data) => {
-                            await handleNewPayment(data);
-                            setEditingPayment(null);
-                            // If no more rejected payments, close modal
-                            if (rejectedPayments.length <= 1) {
-                              setShowRejectedModal(false);
-                            }
-                          }}
-                          onCancel={() => setEditingPayment(null)}
-                          isEmbedded={true}
-                          currentUser={currentUser}
-                          stores={stores}
-                        />
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {rejectedPayments.map(payment => (
-                          <div 
-                            key={payment.id}
-                            onClick={() => setEditingPayment(payment)}
-                            className="p-4 bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-900/30 rounded-2xl hover:border-pink-500 dark:hover:border-pink-500 cursor-pointer transition-all group"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{payment.category}</span>
-                              <span className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 text-[10px] font-bold px-2 py-0.5 rounded-full">Devuelto</span>
-                            </div>
-                            <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-pink-600 transition-colors">{payment.specificType}</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{payment.storeName} • {payment.dueDate}</p>
-                            
-                            <div className="p-2 bg-pink-50 dark:bg-pink-900/10 rounded-lg border border-pink-100 dark:border-pink-900/20 mb-3">
-                              <p className="text-[10px] text-pink-700 dark:text-pink-300 italic">
-                                <span className="font-bold">Motivo:</span> {payment.rejectionReason || 'No especificado'}
-                              </p>
-                            </div>
-                            
-                            <div className="flex items-center justify-between mt-auto">
-                              <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
-                              <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
-                                Corregir <ChevronRight size={14} />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      case 'approvals':
-        return (
-          <Approvals 
-            payments={filteredPayments} 
-            onApprove={handleApprove} 
-            onReject={handleReject} 
-            currentUser={currentUser} 
-            onApproveAll={handleApproveAll}
-            onLoadMore={loadMorePayments}
-            hasMore={hasMorePayments}
-          />
-        );
-      case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={stores} />;
-      case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={stores} />;
-      case 'network':
-        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} stores={stores} />;
-      case 'calendar':
-        return <CalendarView 
-          payments={filteredPayments} 
-          payrollEntries={filteredPayrollEntries} 
-          budgets={budgets} 
-          onAddBudget={handleAddBudget} 
-          onDeleteBudget={handleDeleteBudget} 
-          onUpdatePayment={handlePaymentSuccess}
-          currentUser={currentUser} 
-        />;
-      case 'payroll':
-        return (
-          <PayrollModule 
-            entries={filteredPayrollEntries} 
-            employees={filteredEmployees}
-            onAddEntry={handleAddPayrollEntry} 
-            onUpdateEntry={handleUpdatePayrollEntry}
-            onDeleteEntry={handleDeletePayrollEntry} 
-            onAddEmployee={handleAddEmployee}
-            onUpdateEmployee={handleUpdateEmployee}
-            onDeleteEmployee={handleDeleteEmployee}
-            currentUser={currentUser}
-            settings={settings}
-            onLoadMorePayroll={loadMorePayroll}
-            hasMorePayroll={hasMorePayroll}
-            onLoadMoreEmployees={loadMoreEmployees}
-            hasMoreEmployees={hasMoreEmployees}
-            stores={stores}
-          />
-        );
-      case 'evaluation':
-        return <EvaluationModule payments={payments} />;
-      case 'notifications':
-        return (
-          <NotificationsView 
-            onBack={() => setCurrentView('payments')} 
-            payments={filteredPayments}
-            onManage={handleManageNotification}
-            onRefresh={loadData}
-            users={users}
-            settings={settings}
-          />
-        );
-      case 'predictive':
-        return <PredictiveDashboard payments={payments} />;
-      case 'settings':
-        return (
-          <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
-            <h1 className="text-2xl font-bold mb-4">Configuración del Sistema</h1>
-            
-            {/* Sección Mi Perfil */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-               <h3 className="font-bold mb-6 flex items-center gap-2 text-blue-500">
-                   <Users size={20} /> Mi Perfil de Usuario
-               </h3>
-               
-               <div className="flex flex-col md:flex-row gap-8 items-start">
-                  <div className="relative group">
-                    <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-900 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden flex items-center justify-center text-4xl font-bold text-slate-400">
-                      {currentUser?.avatar ? (
-                        <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        currentUser?.name?.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <label className="absolute bottom-0 right-0 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
-                      <Plus size={20} />
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file && currentUser) {
-                            setIsLoading(true);
-                            try {
-                              const base64 = await fileToBase64(file);
-                              const updatedUser = { ...currentUser, avatar: base64 };
-                              await firestoreService.updateUser(updatedUser);
-                              setCurrentUser(updatedUser);
-                              setNotification('✅ Avatar actualizado correctamente');
-                            } catch (err) {
-                              setNotification('❌ Error al actualizar avatar');
-                            } finally {
-                              setIsLoading(false);
-                              setTimeout(() => setNotification(null), 3000);
-                            }
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre</label>
-                      <p className="text-lg font-bold">{currentUser?.name}</p>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Correo</label>
-                      <p className="text-slate-600 dark:text-slate-400">{currentUser?.email}</p>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Rol</label>
-                      <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-800/50">
-                        {currentUser?.role}
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        {currentUser?.storeId ? stores.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
-                      </p>
-                    </div>
-                  </div>
-               </div>
-            </div>
-
-            {/* Gestión de Tiendas (Solo Super Usuario y Presidencia) */}
-            {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT) && (
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                <StoreManagement 
-                  stores={stores}
-                  users={users}
-                  onAddStore={handleAddStore}
-                  onUpdateStore={handleUpdateStore}
-                  onDeleteStore={handleDeleteStore}
-                  currentUser={currentUser}
-                />
-              </div>
-            )}
-
-            {currentUser?.role === Role.SUPER_ADMIN && (
-               <div className="bg-indigo-900/40 border border-indigo-500/50 p-4 rounded-xl flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500 rounded-lg text-white">
-                    <Users size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-indigo-300">Modo Super Usuario Activo</h3>
-                    <p className="text-sm text-indigo-200/80">Tiene permisos totales para gestionar mantenimiento, usuarios y configuraciones avanzadas.</p>
-                  </div>
-               </div>
-            )}
-            
-            {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="p-6 border-b border-slate-700 bg-slate-800/50">
-                   <UserManagement currentUser={currentUser} stores={stores} />
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
-                       <DollarSign size={20} /> Configuración Financiera
-                   </h3>
-                   <div className="max-w-xs">
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
-                       <div className="flex gap-2">
-                           <div className="relative flex-1">
-                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
-                               <input 
-                                   type="number" 
-                                   step="0.01"
-                                   value={exchangeRateInput}
-                                   onChange={(e) => {
-                                       const val = Number(e.target.value);
-                                       setExchangeRateInput(val);
-                                       setExchangeRate(val);
-                                       localStorage.setItem('fiscal_exchange_rate', val.toString());
-                                   }}
-                                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
-                               />
-                           </div>
-                           <button 
-                               onClick={async () => {
-                                   setIsLoading(true);
-                                   try {
-                                       const currentSettings = await firestoreService.getSettings() || {
-                                           whatsappEnabled: false,
-                                           whatsappPhone: '',
-                                           whatsappGatewayUrl: '',
-                                           daysBeforeWarning: 5,
-                                           daysBeforeCritical: 2,
-                                           emailEnabled: false,
-                                           exchangeRate: 1
-                                       };
-                                       await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
-                                       await firestoreService.saveExchangeRate(exchangeRateInput);
-                                       setExchangeRate(exchangeRateInput);
-                                       localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
-                                       setNotification('✅ Tasa de cambio guardada y actualizada');
-                                   } catch (e) {
-                                       setNotification('❌ Error actualizando tasa');
-                                   } finally {
-                                       setIsLoading(false);
-                                   }
-                               }}
-                               className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                           >
-                               Actualizar
-                           </button>
-                       </div>
-                       <p className="text-[10px] text-slate-500 mt-2 italic">
-                           Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
-                       </p>
-                   </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
-                   <div className="flex justify-between items-center">
-                      <span className="text-slate-700 dark:text-slate-300">Push Notifications: {pushPermission === 'granted' ? 'Activo' : 'Inactivo'}</span>
-                      {pushPermission !== 'granted' && (
-                        <button onClick={requestPermission} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Activar</button>
-                      )}
-                   </div>
-                </div>
-            </div>
-          </div>
-        );
-      default:
-        return <div className="p-10 text-white">Vista no encontrada.</div>;
-    }
-  };
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency', 'evaluation', 'predictive'];
-    const allowedViews: Record<Role, string[]> = {
-      [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'reports', 'evaluation'],
-      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency', 'predictive']
-    };
-    if (!allowedViews[currentUser.role].includes(currentView)) {
-      setCurrentView(getInitialView(currentUser.role));
-    }
-  }, [currentView, currentUser]);
-
-  if (!isAuthReady) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-brand-bg relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-accent/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 flex flex-col items-center gap-6"
+        >
+          <div className="w-20 h-20 bg-brand-card border border-white/5 rounded-3xl flex items-center justify-center shadow-2xl">
+            <ShieldCheck size={40} className="text-brand-accent animate-bounce" />
+          </div>
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-black tracking-tighter">QR-School<span className="text-brand-accent">.</span></h1>
+            <div className="flex items-center gap-2 justify-center">
+              <div className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" />
+              <div className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce delay-150" />
+              <div className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce delay-300" />
+            </div>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLogin} />;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
+        <Auth />
+      </div>
+    );
   }
 
+  const isAdmin = appUser?.role === 'admin';
+
+  const navItems = [
+    { id: 'scanner', label: 'Escáner', icon: QrCode, roles: ['admin', 'teacher'] },
+    { id: 'payments', label: 'Pagos', icon: CreditCard, roles: ['admin'] },
+    { id: 'admin', label: 'Alumnos', icon: Users, roles: ['admin'] },
+    { id: 'users', label: 'Usuarios', icon: ShieldCheck, roles: ['admin'] },
+    { id: 'stats', label: 'Reportes', icon: BarChart3, roles: ['admin', 'teacher'] },
+    { id: 'profile', label: 'Mi QR', icon: User, roles: ['student'] },
+  ].filter(item => item.roles.includes(appUser?.role || ''));
+
   return (
-    <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
-        
-        {/* Sidebar Responsive */}
-        <Sidebar 
-          currentView={currentView} 
-          setCurrentView={setCurrentView} 
-          currentRole={currentUser?.role || Role.ADMIN}
-          currentUser={currentUser}
-          onChangeRole={() => {}} 
-          onLogout={handleLogout}
-          isMobileOpen={isMobileMenuOpen}
-          closeMobileMenu={() => setIsMobileMenuOpen(false)}
-          installPrompt={installPrompt}
-          onInstallClick={handleInstallClick}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebar}
-          onPaymentsClick={() => {
-            setEditingPayment(null);
-            setIsFormOpen(false); // Asegurar que el modal esté cerrado ya que está embebido
-          }}
-        />
-        
-        {/* Contenedor Principal */}
-        <main className={`flex-1 relative transition-all duration-300 flex flex-col h-screen overflow-hidden ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-          
-          {/* PWA Install Banner */}
-          <AnimatePresence>
-            {installPrompt && showInstallBanner && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="bg-blue-600 text-white overflow-hidden z-40 shrink-0"
+    <ErrorBoundary>
+      <div className="min-h-screen bg-brand-bg flex flex-col md:flex-row text-white">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden md:flex flex-col w-72 bg-brand-card/30 border-r border-white/5 p-8">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="bg-brand-accent/20 p-2 rounded-xl text-brand-accent">
+              <ShieldCheck size={28} />
+            </div>
+            <h1 className="font-black text-2xl tracking-tighter">QR-School<span className="text-brand-accent">.</span></h1>
+          </div>
+
+          <nav className="flex-1 space-y-3">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id as View)}
+                className={cn(
+                  "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all group",
+                  activeView === item.id 
+                    ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" 
+                    : "text-brand-text-muted hover:bg-white/5 hover:text-white"
+                )}
               >
-                <div className="p-3 flex items-center justify-between max-w-7xl mx-auto w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2 rounded-lg">
-                      <Download size={20} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
-                      <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={handleInstallClick}
-                      className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                    >
-                      Instalar
-                    </button>
-                    <button 
-                      onClick={handleDismissBanner}
-                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
+                <item.icon size={22} className={cn(activeView === item.id ? "text-white" : "group-hover:text-brand-accent transition-colors")} />
+                <span className="font-bold">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-8 border-t border-white/5">
+            <Auth />
+          </div>
+        </aside>
+
+        {/* Mobile Header */}
+        <header className="md:hidden bg-brand-card/50 backdrop-blur-md border-b border-white/5 p-5 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={24} className="text-brand-accent" />
+            <span className="font-black text-xl tracking-tighter">QR-School<span className="text-brand-accent">.</span></span>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 bg-white/5 rounded-lg"
+          >
+            {isMobileMenuOpen ? <X /> : <Menu />}
+          </button>
+        </header>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: -100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              className="fixed inset-0 z-50 md:hidden bg-brand-bg p-8 flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck size={32} className="text-brand-accent" />
+                  <span className="font-black text-2xl tracking-tighter">QR-School<span className="text-brand-accent">.</span></span>
                 </div>
-              </motion.div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-xl">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <nav className="space-y-4">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveView(item.id as View);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-5 px-6 py-5 rounded-2xl text-xl transition-all",
+                      activeView === item.id 
+                        ? "bg-brand-accent text-white font-bold shadow-xl shadow-brand-accent/20" 
+                        : "text-brand-text-muted bg-white/5"
+                    )}
+                  >
+                    <item.icon size={28} />
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-auto">
+                <Auth />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6 md:p-10 lg:p-14 max-w-7xl mx-auto w-full overflow-y-auto">
+          <motion.div
+            key={activeView}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            {activeView === 'scanner' && (
+              <QRScanner onNavigateToPayments={() => setActiveView('payments')} />
             )}
-          </AnimatePresence>
-
-          {/* Push Notification Permission Banner */}
-          {pushPermission === 'default' && (
-            <div className="bg-indigo-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0 border-b border-indigo-500">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <BellRing size={20} />
+            {activeView === 'payments' && <PaymentModule />}
+            {activeView === 'users' && isAdmin && <UserManagement />}
+            {activeView === 'admin' && isAdmin && (
+              <AdminDashboard onNavigateToPayments={() => setActiveView('payments')} />
+            )}
+            {activeView === 'stats' && (
+              <div className="space-y-6">
+                <div className="flex justify-end">
+                  <button 
+                    onClick={() => setActiveView('mora-report')}
+                    className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-3 rounded-2xl hover:bg-red-500/20 transition-all active:scale-95 font-bold shadow-lg"
+                  >
+                    <BarChart3 size={20} />
+                    Reporte de Mora
+                  </button>
                 </div>
-                <div>
-                  <p className="text-sm font-bold">Activar Notificaciones</p>
-                  <p className="text-[10px] opacity-80">Recibe alertas sobre aprobaciones y pagos vencidos al instante.</p>
-                </div>
+                <AttendanceStats />
               </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={requestPermission}
-                  className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
-                >
-                  Permitir
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Header Móvil */}
-          <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
-             <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg active:scale-90 transition-all"
-                  aria-label="Abrir menú"
-                >
-                    <Menu size={24} />
-                </button>
-                <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
-             </div>
-             <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
-                 <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-             </div>
-          </div>
-
-          {/* Loading Overlay */}
-          {isLoading && (
-              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                  <RefreshCw size={12} className="animate-spin" />
-                  Procesando...
-              </div>
-          )}
-
-          {/* Notificaciones Toast */}
-          {notification && (
-            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-               <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-                  <span className="font-medium">{notification}</span>
-                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
-               </div>
-            </div>
-          )}
-
-          {/* Modal Formulario */}
-          {isFormOpen && currentView !== 'payments' && (
-             <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                    <PaymentForm 
-                      initialData={editingPayment}
-                      payments={filteredPayments}
-                      onSubmit={handleNewPayment} 
-                      onCancel={() => {
-                        setIsFormOpen(false);
-                        setEditingPayment(null);
-                      }} 
-                      currentUser={currentUser}
-                      stores={stores}
-                    />
-                </div>
-             </div>
-          )}
-
-          {/* Contenido Scrollable */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-             {renderContent()}
-          </div>
+            )}
+            {activeView === 'mora-report' && (
+              <MoraReport onBack={() => setActiveView('stats')} />
+            )}
+            {activeView === 'profile' && studentData && (
+              <StudentProfile student={studentData} />
+            )}
+          </motion.div>
         </main>
+        <InstallPWA />
       </div>
-    </ExchangeRateProvider>
-  );
-}
+    </ErrorBoundary>
+);
 
-export default App;
+}
