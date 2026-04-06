@@ -28,6 +28,7 @@ interface CalendarViewProps {
   budgets: BudgetEntry[];
   onAddBudget: (budget: BudgetEntry) => Promise<void>;
   onDeleteBudget: (id: string) => Promise<void>;
+  onUpdatePayment?: (id: string) => Promise<void>;
   currentUser: User | null;
 }
 
@@ -107,6 +108,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   budgets, 
   onAddBudget, 
   onDeleteBudget,
+  onUpdatePayment,
   currentUser 
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -255,12 +257,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     
-    // Filtrar pagos aprobados del mes actual
-    const approvedPayments = payments.filter(p => {
+    // Filtrar pagos ejecutados (aprobados o pagados) del mes actual
+    const executedPayments = payments.filter(p => {
       const pDate = new Date(p.paymentDate || p.dueDate);
       return pDate.getFullYear() === year && 
              pDate.getMonth() === month && 
-             p.status === PaymentStatus.APPROVED;
+             (p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
     });
 
     // Filtrar presupuestos del mes actual
@@ -272,7 +274,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // Agrupar por categoría
     const categories = Object.values(Category);
     return categories.map(cat => {
-      const spent = approvedPayments
+      const spent = executedPayments
         .filter(p => p.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
       
@@ -411,8 +413,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <div className="flex gap-1 flex-wrap">
                     {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
                     {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
-                    {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !hasOverdue && !hasPending && 
-                        <div className="w-2 h-2 rounded-full bg-green-500" title="Pagado"></div>
+                    {dayPayments.some(p => p.status === PaymentStatus.PAID) && 
+                        <div className="w-2 h-2 rounded-full bg-green-500" title="Pago Realizado"></div>
+                    }
+                    {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !dayPayments.some(p => p.status === PaymentStatus.PAID) && !hasOverdue && !hasPending && 
+                        <div className="w-2 h-2 rounded-full bg-blue-500" title="Aprobado"></div>
                     }
                     {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
                 </div>
@@ -814,6 +819,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Pago Realizado</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Pago Aprobado</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
@@ -1045,16 +1052,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             <div className="flex justify-between items-start mb-2">
                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${
                                     payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                    payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    payment.status === PaymentStatus.PAID ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    payment.status === PaymentStatus.APPROVED ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                 }`}>
-                                    {payment.status}
+                                    {payment.status === PaymentStatus.PAID ? 'REALIZADO' : payment.status}
                                 </span>
                                 <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
                             </div>
                             <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">{payment.specificType}</h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                                 <span className="truncate max-w-[150px]">{payment.storeName}</span>
+                                {payment.status === PaymentStatus.APPROVED && onUpdatePayment && (
+                                    <button 
+                                        onClick={() => onUpdatePayment(payment.id)}
+                                        className="px-2 py-1 bg-green-600 text-white rounded text-[9px] font-bold hover:bg-green-700 transition-colors"
+                                    >
+                                        Marcar Realizado
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

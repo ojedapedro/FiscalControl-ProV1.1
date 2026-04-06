@@ -47,3 +47,16 @@ export const formatTime = (date: string | Date | number | undefined | null) => {
   
   return `${hours}:${minutes}`;
 };
+
+export const getFrequencyDays = (frequency: string): number => {
+  switch (frequency) {
+    case 'Anual': return 365;
+    case 'Semestral': return 180;
+    case 'Cuatrimestral': return 120;
+    case 'Mensual': return 30;
+    case 'Quincenal': return 15;
+    case 'Semanal': return 7;
+    case 'Diario': return 1;
+    default: return 0;
+  }
+};

@@ -30,6 +30,17 @@ export enum Category {
   OTHER = 'Otro'
 }
 
+export enum PaymentFrequency {
+  NONE = 'Único',
+  ANNUAL = 'Anual',
+  SEMIANNUAL = 'Semestral',
+  QUADRIMESTER = 'Cuatrimestral',
+  MONTHLY = 'Mensual',
+  BIWEEKLY = 'Quincenal',
+  WEEKLY = 'Semanal',
+  DAILY = 'Diario'
+}
+
 // Interfaz para el registro de auditoría
 export interface AuditLog {
   date: string;
@@ -86,6 +97,7 @@ export interface Payment {
   // Campos para Control de Presupuesto
   originalBudget?: number;
   isOverBudget?: boolean;
+  frequency?: PaymentFrequency;
 
   // Campos del Soporte
   documentDate?: string;
@@ -213,12 +225,4 @@ export interface BudgetEntry {
   amount: number;
   category: Category;
   notes?: string;
-}
-
-export interface AnnualBudget {
-  id: string;
-  year: number;
-  months: { [key: string]: number };
-  total: number;
-  storeId: string;
 }

@@ -24,8 +24,8 @@ import {
   FileWarning,
   Users
 } from 'lucide-react';
-import { Category, Payment, PaymentStatus, User, Store } from '../types';
-import { formatDate } from '../src/utils';
+import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency } from '../types';
+import { formatDate, getFrequencyDays } from '../src/utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { firestoreService } from '../services/firestoreService';
@@ -384,6 +384,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [dueDate, setDueDate] = React.useState(initialData?.dueDate || '');
   const [paymentDate, setPaymentDate] = React.useState(initialData?.paymentDate || new Date().toISOString().split('T')[0]);
   const [daysToExpire, setDaysToExpire] = React.useState<string>(initialData?.daysToExpire?.toString() || '');
+  const [frequency, setFrequency] = React.useState<PaymentFrequency>(initialData?.frequency || PaymentFrequency.NONE);
   const [specificType, setSpecificType] = React.useState(initialData?.specificType || '');
   
   // Archivos
@@ -420,6 +421,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDueDate(initialData.dueDate || '');
       setPaymentDate(initialData.paymentDate || new Date().toISOString().split('T')[0]);
       setDaysToExpire(initialData.daysToExpire?.toString() || '');
+      setFrequency(initialData.frequency || PaymentFrequency.NONE);
       setSpecificType(initialData.specificType || '');
       setPreviewUrl(initialData.receiptUrl || null);
       setIsOverBudget(initialData.isOverBudget || false);
@@ -436,6 +438,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDueDate('');
       setPaymentDate(new Date().toISOString().split('T')[0]);
       setDaysToExpire('');
+      setFrequency(PaymentFrequency.NONE);
       setSpecificType('');
       setPreviewUrl(null);
       setIsOverBudget(false);
@@ -465,6 +468,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setAmount('');
     setExpectedBudget(null);
     setDueDate('');
+    setFrequency(PaymentFrequency.NONE);
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setSpecificType('');
     setFile(null);
@@ -920,6 +924,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             dueDate,
             paymentDate,
             daysToExpire: daysToExpire ? parseInt(daysToExpire) : undefined,
+            frequency,
             specificType,
             file,
             notes,
@@ -1395,6 +1400,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
                                 {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
+                            </div>
+
+                            {/* Frequency */}
+                            <div>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Frecuencia de Pago</label>
+                                <div className="relative group">
+                                    <select
+                                        value={frequency}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => {
+                                            const newFreq = e.target.value as PaymentFrequency;
+                                            setFrequency(newFreq);
+                                            if (newFreq !== PaymentFrequency.NONE) {
+                                                const days = getFrequencyDays(newFreq);
+                                                setDaysToExpire(days.toString());
+                                                if (dueDate) {
+                                                    const d = new Date(dueDate);
+                                                    d.setDate(d.getDate() + days);
+                                                    setPaymentDate(d.toISOString().split('T')[0]);
+                                                }
+                                            }
+                                        }}
+                                        className="w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                                    >
+                                        {Object.entries(PaymentFrequency).map(([key, value]) => (
+                                            <option key={key} value={value} className="bg-slate-50 dark:bg-slate-900">{value}</option>
+                                        ))}
+                                    </select>
+                                    <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} />
+                                </div>
                             </div>
 
                             {/* Days to Expire */}
