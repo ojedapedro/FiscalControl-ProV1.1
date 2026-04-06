@@ -24,6 +24,7 @@ import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
+import { calculateNextDueDate } from './src/utils';
 
 interface AppProps {}
 
@@ -809,7 +810,34 @@ function App({}: AppProps = {}) {
       if (payment) {
         const updatedPayment = { ...payment, status: PaymentStatus.PAID };
         await firestoreService.updatePayment(updatedPayment);
-        setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
+        
+        // Generate next payment if it has a frequency
+        if (payment.frequency && payment.frequency !== 'Único') {
+          const nextDueDate = calculateNextDueDate(payment.dueDate, payment.frequency);
+          const nextPayment: Payment = {
+            ...payment,
+            id: `PAY-${Math.random().toString(36).substr(2, 9)}`,
+            dueDate: nextDueDate,
+            status: PaymentStatus.PENDING,
+            paymentDate: undefined,
+            receiptUrl: undefined,
+            notes: '',
+            rejectionReason: undefined,
+            submittedDate: new Date().toISOString(),
+            history: [{
+              date: new Date().toISOString(),
+              action: 'CREACION',
+              actorName: 'Sistema (Renovación Automática)',
+              role: Role.SUPER_ADMIN,
+              note: `Generado automáticamente a partir del pago ${payment.id}`
+            }]
+          };
+          await firestoreService.createPayment(nextPayment);
+          setPayments(prev => [...prev.map(p => p.id === paymentId ? updatedPayment : p), nextPayment]);
+        } else {
+          setPayments(prev => prev.map(p => p.id === paymentId ? updatedPayment : p));
+        }
+        
         setNotification('✅ Pago procesado exitosamente');
       }
     } catch (error) {
@@ -1243,7 +1271,7 @@ function App({}: AppProps = {}) {
 
   return (
     <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
+      <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
         
         {/* Sidebar Responsive */}
         <Sidebar 

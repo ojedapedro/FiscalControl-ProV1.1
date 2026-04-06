@@ -60,3 +60,48 @@ export const getFrequencyDays = (frequency: string): number => {
     default: return 0;
   }
 };
+
+export const calculateNextDueDate = (currentDate: string, frequency: string): string => {
+  // Parse YYYY-MM-DD manually to avoid timezone issues
+  const parts = currentDate.split('-');
+  if (parts.length !== 3) return currentDate;
+  
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  
+  const date = new Date(year, month, day);
+  if (isNaN(date.getTime())) return currentDate;
+
+  switch (frequency) {
+    case 'Anual':
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    case 'Semestral':
+      date.setMonth(date.getMonth() + 6);
+      break;
+    case 'Cuatrimestral':
+      date.setMonth(date.getMonth() + 4);
+      break;
+    case 'Mensual':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case 'Quincenal':
+      date.setDate(date.getDate() + 15);
+      break;
+    case 'Semanal':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'Diario':
+      date.setDate(date.getDate() + 1);
+      break;
+    default:
+      return currentDate;
+  }
+
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, '0');
+  const nextDay = String(date.getDate()).padStart(2, '0');
+  
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+};

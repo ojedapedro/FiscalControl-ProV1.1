@@ -25,7 +25,7 @@ import {
   Users
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency } from '../types';
-import { formatDate, getFrequencyDays } from '../src/utils';
+import { formatDate, getFrequencyDays, calculateNextDueDate } from '../src/utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { firestoreService } from '../services/firestoreService';
@@ -542,48 +542,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Sync daysToExpire when paymentDate changes
   const handlePaymentDateChange = React.useCallback((val: string) => {
     setPaymentDate(val);
-    if (val && dueDate) {
-      const d1 = new Date(val);
-      const d2 = new Date(dueDate);
-      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setDaysToExpire(diffDays.toString());
-    }
-  }, [dueDate]);
+  }, []);
 
   // Sync paymentDate or daysToExpire when dueDate changes
   const handleDueDateChange = React.useCallback((val: string) => {
     setDueDate(val);
-    if (val && daysToExpire) {
-      const days = parseInt(daysToExpire);
-      if (!isNaN(days)) {
-        const d = new Date(val);
-        d.setDate(d.getDate() + days); // Add days instead of subtract
-        const formatted = d.toISOString().split('T')[0];
-        setPaymentDate(formatted);
-      }
-    } else if (val && paymentDate) {
-      const d1 = new Date(paymentDate);
-      const d2 = new Date(val);
-      const diffTime = d1.getTime() - d2.getTime(); // paymentDate - dueDate
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setDaysToExpire(diffDays.toString());
-    }
-  }, [daysToExpire, paymentDate]);
+  }, []);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
     setDaysToExpire(val);
-    if (val && dueDate) {
-      const days = parseInt(val);
-      if (!isNaN(days)) {
-        const d = new Date(dueDate);
-        d.setDate(d.getDate() + days); // Add days instead of subtract
-        const formatted = d.toISOString().split('T')[0];
-        setPaymentDate(formatted);
-      }
-    }
-  }, [dueDate]);
+  }, []);
 
   // --- Proposed Changes Handlers ---
   const handleProposedPaymentDateChange = React.useCallback((val: string) => {
@@ -1415,11 +1384,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             if (newFreq !== PaymentFrequency.NONE) {
                                                 const days = getFrequencyDays(newFreq);
                                                 setDaysToExpire(days.toString());
-                                                if (dueDate) {
-                                                    const d = new Date(dueDate);
-                                                    d.setDate(d.getDate() + days);
-                                                    setPaymentDate(d.toISOString().split('T')[0]);
-                                                }
+                                            } else {
+                                                setDaysToExpire('');
                                             }
                                         }}
                                         className="w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
@@ -1464,6 +1430,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
                                 {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
+                                {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
+                                    <p className="text-[10px] font-black text-brand-500 uppercase tracking-tighter mt-2 ml-1">
+                                        Próximo Vencimiento: {formatDate(calculateNextDueDate(dueDate, frequency))}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
