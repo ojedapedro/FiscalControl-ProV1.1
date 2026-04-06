@@ -21,7 +21,7 @@
 
 @layer base {
   body {
-    @apply bg-[#111827] text-slate-700 dark:bg-slate-950 dark:text-slate-300 antialiased transition-colors duration-300;
+    @apply bg-[#3c6475] text-slate-700 dark:bg-slate-950 dark:text-slate-300 antialiased transition-colors duration-300;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
