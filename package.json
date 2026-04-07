@@ -17,7 +17,7 @@
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.11.0",
     "@types/d3": "^7.4.3",
-    "@vis.gl/react-google-maps": "^1.7.1",
+    "@vis.gl/react-google-maps": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "d3": "^7.9.0",
     "express": "^5.2.1",

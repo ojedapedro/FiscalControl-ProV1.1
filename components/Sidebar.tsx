@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, FC } from 'react';
-import {
-  FileText,
-  CheckSquare,
-  PieChart,
-  Calendar,
-  Settings,
+import { 
+  FileText, 
+  CheckSquare, 
+  PieChart, 
+  Calendar, 
+  Settings, 
   LogOut,
   Building2,
   BellRing,
@@ -41,10 +41,10 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-export const Sidebar: FC<SidebarProps> = ({
-  currentView,
-  setCurrentView,
-  currentRole,
+export const Sidebar: FC<SidebarProps> = ({ 
+  currentView, 
+  setCurrentView, 
+  currentRole, 
   currentUser,
   onLogout,
   isMobileOpen,
@@ -61,13 +61,13 @@ export const Sidebar: FC<SidebarProps> = ({
   useEffect(() => {
     setImgError(false);
   }, [APP_LOGO_URL]);
-
+  
   const navItems = [
     { id: 'payments', label: 'Categoría Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
-    { id: 'calendar', label: '  Presupuesto Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'calendar', label: 'Asistente de Presupuesto Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
     { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
@@ -82,7 +82,7 @@ export const Sidebar: FC<SidebarProps> = ({
     <>
       {/* Backdrop para Móvil */}
       {isMobileOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={closeMobileMenu}
         ></div>
@@ -96,17 +96,17 @@ export const Sidebar: FC<SidebarProps> = ({
         ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
         ${!isMobileOpen && isCollapsed ? 'lg:w-20' : 'lg:w-64'}
       `}>
-
+        
         {/* Header Logo & User Profile */}
         <div className={`space-y-6 transition-all duration-300 ${isCollapsed && !isMobileOpen ? 'p-4 items-center' : 'p-6'}`}>
           <div className={`flex items-center ${isCollapsed && !isMobileOpen ? 'flex-col gap-4' : 'justify-between'}`}>
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xl shadow-brand-500/20 bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10">
                 {!imgError ? (
-                  <img
-                    src={APP_LOGO_URL}
-                    alt="FiscalCtl Logo"
-                    className="w-full h-full object-cover"
+                  <img 
+                    src={APP_LOGO_URL} 
+                    alt="FiscalCtl Logo" 
+                    className="w-full h-full object-cover" 
                     onError={() => setImgError(true)}
                     referrerPolicy="no-referrer"
                   />
@@ -121,9 +121,9 @@ export const Sidebar: FC<SidebarProps> = ({
                 </div>
               )}
             </div>
-
+            
             {/* Toggle Button for Desktop */}
-            <button
+            <button 
               onClick={onToggleCollapse}
               className="hidden lg:flex p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-500 hover:text-brand-500 transition-all active:scale-90 border border-slate-200 dark:border-slate-800"
               aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
@@ -132,8 +132,8 @@ export const Sidebar: FC<SidebarProps> = ({
             </button>
 
             {/* Botón Cerrar solo en móvil */}
-            <button
-              onClick={closeMobileMenu}
+            <button 
+              onClick={closeMobileMenu} 
               className="lg:hidden p-3 -mr-2 text-slate-500 hover:text-slate-950 dark:hover:text-slate-50 transition-colors active:scale-90"
               aria-label="Cerrar menú"
             >
@@ -180,10 +180,11 @@ export const Sidebar: FC<SidebarProps> = ({
                   }
                   closeMobileMenu();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group active:scale-[0.98] ${isActive
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20'
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group active:scale-[0.98] ${
+                  isActive 
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' 
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-950 dark:hover:text-slate-50'
-                  } ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
+                } ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
                 title={isCollapsed && !isMobileOpen ? item.label : undefined}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors'} />
@@ -198,10 +199,10 @@ export const Sidebar: FC<SidebarProps> = ({
 
         {/* Footer Actions */}
         <div className={`p-4 border-t border-slate-200 dark:border-slate-900 space-y-3 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-sm ${isCollapsed && !isMobileOpen ? 'items-center' : ''}`}>
-
+          
           {/* Install PWA Button (Visible only if installable) */}
           {installPrompt && (
-            <button
+            <button 
               onClick={onInstallClick}
               className={`w-full flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl text-white font-bold shadow-lg shadow-brand-600/20 hover:scale-[1.02] active:scale-95 transition-all animate-pulse ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
               title={isCollapsed && !isMobileOpen ? "Instalar App" : undefined}
@@ -214,17 +215,17 @@ export const Sidebar: FC<SidebarProps> = ({
           )}
 
           {/* Theme Toggle */}
-          <button
+          <button 
             onClick={toggleTheme}
             className={`w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-50 transition-all border border-slate-200 dark:border-slate-800/50 active:scale-[0.98] ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
             title={isCollapsed && !isMobileOpen ? `Tema: ${theme === 'dark' ? 'Oscuro' : 'Claro'}` : undefined}
           >
-            <div className="flex items-center gap-3">
-              {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}
-              {(!isCollapsed || isMobileOpen) && (
-                <span className="font-medium text-xs animate-in fade-in slide-in-from-left-2 duration-300">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
-              )}
-            </div>
+             <div className="flex items-center gap-3">
+               {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-slate-600" />}
+               {(!isCollapsed || isMobileOpen) && (
+                 <span className="font-medium text-xs animate-in fade-in slide-in-from-left-2 duration-300">Tema: {theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+               )}
+             </div>
           </button>
 
           {(!isCollapsed || isMobileOpen) && (
@@ -237,8 +238,8 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
             </div>
           )}
-
-          <button
+          
+          <button 
             onClick={onLogout}
             className={`w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all group active:scale-[0.98] ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
             title={isCollapsed && !isMobileOpen ? "Cerrar Sesión" : undefined}

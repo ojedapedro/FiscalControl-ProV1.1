@@ -17,7 +17,7 @@ import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from './services/api';
 import { authService } from './services/auth';
 import { firestoreService } from './services/firestoreService';
@@ -187,9 +187,18 @@ function App({}: AppProps = {}) {
     try {
       await firestoreService.createPayrollEntry(newEntry);
       setPayrollEntries([newEntry, ...payrollEntries]);
+      
+      // Notificar al empleado
+      const emp = employees.find(e => e.id === newEntry.employeeId);
+      if (emp) {
+        notificationService.notifyPayrollReceipt(newEntry, emp, settings);
+      }
+
       setNotification('✅ Nómina cargada exitosamente');
+      return newEntry;
     } catch (error) {
       setNotification('❌ Error guardando nómina');
+      throw error;
     } finally {
       setIsLoading(false);
       setTimeout(() => setNotification(null), 3000);

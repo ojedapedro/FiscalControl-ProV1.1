@@ -3,7 +3,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Store } from '../types';
 import { Maximize2, RefreshCw } from 'lucide-react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
 interface VenezuelaMapProps {
   stores: Store[];
@@ -60,7 +60,24 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                         <div className="absolute w-10 h-10 rounded-full border-2 border-white border-dashed animate-[spin_4s_linear_infinite]" />
                       )}
                       <div className={`absolute w-8 h-8 rounded-full opacity-30 ${isSelected ? 'animate-pulse' : 'animate-ping'}`} style={{ backgroundColor: color }} />
-                      <Pin background={color} borderColor={isSelected ? '#fff' : color} glyphColor="#fff" />
+                      
+                      {/* Custom Pin Marker */}
+                      <div className="relative group/pin">
+                        <svg 
+                          width="28" 
+                          height="36" 
+                          viewBox="0 0 24 32" 
+                          className="drop-shadow-lg transition-transform group-hover/pin:scale-110"
+                        >
+                          <path 
+                            d="M12 0C5.37 0 0 5.37 0 12C0 21 12 32 12 32C12 32 24 21 24 12C24 5.37 18.63 0 12 0Z" 
+                            fill={color} 
+                            stroke={isSelected ? '#fff' : 'rgba(255,255,255,0.3)'} 
+                            strokeWidth="1.5" 
+                          />
+                          <circle cx="12" cy="12" r="5" fill="white" />
+                        </svg>
+                      </div>
                     </div>
                   </AdvancedMarker>
                 );

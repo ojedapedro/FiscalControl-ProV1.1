@@ -18,7 +18,7 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
 import { formatDate } from '../src/utils';
 import { ConfirmationModal } from './ConfirmationModal';
