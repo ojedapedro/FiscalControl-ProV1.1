@@ -1802,11 +1802,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              </div>
 
                              <div className="flex flex-col flex-1">
-                                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Observaciones / Notas</label>
+                                 <div className="flex items-center justify-between mb-3 px-1">
+                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">Observaciones / Notas</label>
+                                     <span className={`text-[10px] font-black uppercase tracking-tighter ${notes.length >= 500 ? 'text-red-500' : 'text-slate-400'}`}>
+                                         {notes.length} / 500
+                                     </span>
+                                 </div>
                                  <div className="relative h-full group">
                                      <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
+                                        maxLength={500}
                                         disabled={isSubmitting}
                                         placeholder="Añada notas adicionales para el auditor..."
                                         className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[240px] resize-none transition-all disabled:opacity-50 leading-relaxed"

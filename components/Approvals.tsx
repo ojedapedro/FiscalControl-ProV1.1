@@ -16,6 +16,7 @@ import {
   Search, 
   ArrowUpDown, 
   CheckSquare,
+  ChevronDown,
   FileText,
   ExternalLink,
   AlertTriangle,
@@ -71,6 +72,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
     stampLegible: false,
     storeConceptMatch: false,
     datesApproved: false,
+    documentDateApproved: false,
     proposedDatesApproved: false,
     amountsApproved: false,
     proposedAmountApproved: false,
@@ -165,6 +167,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
       stampLegible: false,
       storeConceptMatch: false,
       datesApproved: false,
+      documentDateApproved: false,
       proposedDatesApproved: false,
       amountsApproved: false,
       proposedAmountApproved: false,
@@ -495,33 +498,96 @@ export const Approvals: React.FC<ApprovalsProps> = ({
 
             {/* Search & Filter Bar */}
             <div className="flex gap-2">
-                <div className="relative flex-1">
+                <div className="relative flex-1 group">
                     <input 
                         type="text" 
                         placeholder="Buscar ID, Tienda, Concepto..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-slate-900 dark:text-slate-100 transition-all shadow-sm"
                     />
-                    <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        >
+                            <XCircle size={14} />
+                        </button>
+                    )}
                 </div>
                 <div className="relative group">
-                    <button className="h-full px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-xs font-bold">
-                        <ArrowUpDown size={14} />
-                        <span className="hidden sm:inline">Orden</span>
+                    <button className="h-full px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 text-xs font-black uppercase tracking-tight transition-all shadow-sm group-hover:shadow-md">
+                        <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-500 group-hover:text-blue-500 transition-colors">
+                            <ArrowUpDown size={14} />
+                        </div>
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Ordenar por</span>
+                            <span className="hidden sm:inline">
+                                {sortOption === 'urgency' && 'Urgencia'}
+                                {sortOption === 'date_desc' && 'Recientes'}
+                                {sortOption === 'amount_desc' && 'Mayor Monto'}
+                                {sortOption === 'amount_asc' && 'Menor Monto'}
+                            </span>
+                        </div>
+                        <ChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform duration-300" />
                     </button>
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 shadow-xl rounded-lg border border-slate-100 dark:border-slate-700 hidden group-hover:block z-10 p-1">
-                        <button onClick={() => setSortOption('urgency')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'urgency' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                            <span>Por Urgencia</span>
-                            {sortOption === 'urgency' && <CheckCircle2 size={12} />}
+                    
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 shadow-2xl rounded-2xl border border-slate-200 dark:border-slate-800 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 p-2 transform origin-top-right scale-95 group-hover:scale-100">
+                        <div className="px-3 py-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Criterios de Orden</span>
+                        </div>
+                        
+                        <button 
+                            onClick={() => setSortOption('urgency')} 
+                            className={`w-full text-left px-3 py-2.5 text-[11px] rounded-xl flex items-center gap-3 transition-all ${
+                                sortOption === 'urgency' 
+                                ? 'bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20' 
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold'
+                            }`}
+                        >
+                            <Clock size={14} className={sortOption === 'urgency' ? 'text-white' : 'text-slate-400'} />
+                            <span className="flex-1">Por Urgencia (Vencimiento)</span>
+                            {sortOption === 'urgency' && <Check size={14} strokeWidth={3} />}
                         </button>
-                        <button onClick={() => setSortOption('date_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'date_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                            <span>Más Recientes</span>
-                            {sortOption === 'date_desc' && <CheckCircle2 size={12} />}
+
+                        <button 
+                            onClick={() => setSortOption('date_desc')} 
+                            className={`w-full text-left px-3 py-2.5 text-[11px] rounded-xl flex items-center gap-3 mt-1 transition-all ${
+                                sortOption === 'date_desc' 
+                                ? 'bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20' 
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold'
+                            }`}
+                        >
+                            <History size={14} className={sortOption === 'date_desc' ? 'text-white' : 'text-slate-400'} />
+                            <span className="flex-1">Más Recientes (Carga)</span>
+                            {sortOption === 'date_desc' && <Check size={14} strokeWidth={3} />}
                         </button>
-                        <button onClick={() => setSortOption('amount_desc')} className={`w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between ${sortOption === 'amount_desc' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                            <span>Mayor Monto</span>
-                            {sortOption === 'amount_desc' && <CheckCircle2 size={12} />}
+
+                        <button 
+                            onClick={() => setSortOption('amount_desc')} 
+                            className={`w-full text-left px-3 py-2.5 text-[11px] rounded-xl flex items-center gap-3 mt-1 transition-all ${
+                                sortOption === 'amount_desc' 
+                                ? 'bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20' 
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold'
+                            }`}
+                        >
+                            <TrendingUp size={14} className={sortOption === 'amount_desc' ? 'text-white' : 'text-slate-400'} />
+                            <span className="flex-1">Mayor Monto</span>
+                            {sortOption === 'amount_desc' && <Check size={14} strokeWidth={3} />}
+                        </button>
+
+                        <button 
+                            onClick={() => setSortOption('amount_asc')} 
+                            className={`w-full text-left px-3 py-2.5 text-[11px] rounded-xl flex items-center gap-3 mt-1 transition-all ${
+                                sortOption === 'amount_asc' 
+                                ? 'bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20' 
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold'
+                            }`}
+                        >
+                            <DollarSign size={14} className={sortOption === 'amount_asc' ? 'text-white' : 'text-slate-400'} />
+                            <span className="flex-1">Menor Monto</span>
+                            {sortOption === 'amount_asc' && <Check size={14} strokeWidth={3} />}
                         </button>
                     </div>
                 </div>
@@ -530,6 +596,26 @@ export const Approvals: React.FC<ApprovalsProps> = ({
 
         {/* List Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50 dark:bg-slate-950/50">
+            {processedPayments.length > 0 && (
+                <div className="flex items-center justify-between mb-2 px-1">
+                    <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-t-xl rounded-br-xl shadow-lg shadow-blue-500/20 animate-in slide-in-from-left-2 duration-300">
+                        {sortOption === 'urgency' && <Clock size={12} strokeWidth={3} />}
+                        {sortOption === 'date_desc' && <History size={12} strokeWidth={3} />}
+                        {sortOption === 'amount_desc' && <TrendingUp size={12} strokeWidth={3} />}
+                        {sortOption === 'amount_asc' && <DollarSign size={12} strokeWidth={3} />}
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                            {sortOption === 'urgency' && 'Por Urgencia'}
+                            {sortOption === 'date_desc' && 'Por Recientes'}
+                            {sortOption === 'amount_desc' && 'Por Mayor Monto'}
+                            {sortOption === 'amount_asc' && 'Por Menor Monto'}
+                        </span>
+                    </div>
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                        {processedPayments.length} Resultados
+                    </div>
+                </div>
+            )}
+            
             {processedPayments.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-64 text-center opacity-60">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
@@ -808,7 +894,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                 <div className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Protocolo de Validación</div>
                                             </div>
                                             <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800/50">
-                                                {Object.values(checklist).filter(Boolean).length} / 8
+                                                {Object.values(checklist).filter(Boolean).length} / 9
                                             </div>
                                         </div>
                                         <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -882,7 +968,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
 
                                 {/* GRID DE TABLAS TÉCNICAS */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* TABLE 1: PRESUPUESTO VS ACTUAL */}
+                                    {/* TABLE 1: CRONOGRAMA */}
                                     <div className="flex flex-col">
                                         <div className="flex items-center justify-between mb-2 px-1">
                                             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cronograma</div>
@@ -899,15 +985,37 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </button>
                                         </div>
                                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-                                            <div className="grid grid-cols-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                                            <div className="grid grid-cols-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                                                 <div className="text-[9px] font-black text-slate-400 text-center py-2 uppercase border-r border-slate-200 dark:border-slate-700">Pago</div>
-                                                <div className="text-[9px] font-black text-slate-400 text-center py-2 uppercase border-r border-slate-200 dark:border-slate-700">Vencimiento</div>
-                                                <div className="text-[9px] font-black text-slate-400 text-center py-2 uppercase">Documento</div>
+                                                <div className="text-[9px] font-black text-slate-400 text-center py-2 uppercase">Vencimiento</div>
                                             </div>
-                                            <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 font-mono text-xs">
+                                            <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 font-mono text-xs">
                                                 <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">{formatDate(selectedPayment.paymentDate)}</div>
                                                 <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">{formatDate(selectedPayment.dueDate)}</div>
-                                                <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">{selectedPayment.documentDate ? formatDate(selectedPayment.documentDate) : '—'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* TABLE 1.5: FECHA DOCUMENTO */}
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center justify-between mb-2 px-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha Documento</div>
+                                            <button 
+                                                onClick={() => handleCheckItem('documentDateApproved')}
+                                                className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
+                                                    checklist.documentDateApproved 
+                                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                                                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                                                }`}
+                                            >
+                                                <Check size={12} strokeWidth={3} />
+                                                <span className="text-[9px] font-black uppercase">Validar</span>
+                                            </button>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4">
+                                            <div className="text-[9px] font-black text-slate-400 uppercase mb-1">Fecha del Soporte</div>
+                                            <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
+                                                {selectedPayment.documentDate ? formatDate(selectedPayment.documentDate) : '—'}
                                             </div>
                                         </div>
                                     </div>
