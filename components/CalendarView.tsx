@@ -18,9 +18,10 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
 import { formatDate } from '../src/utils';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface CalendarViewProps {
   payments: Payment[];
@@ -136,6 +137,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     amount: string;
     category: Category;
   }>({ title: '', amount: '', category: Category.MUNICIPAL_TAX });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+    title: '',
+    message: ''
+  });
 
   // Estado combinado para la vista lateral
   const [dayEvents, setDayEvents] = useState<{
@@ -344,9 +357,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleDeleteBudget = async (id: string) => {
-      if (confirm('¿Estás seguro de eliminar este presupuesto?')) {
-          await onDeleteBudget(id);
-      }
+    setConfirmModal({
+      isOpen: true,
+      title: '¿Eliminar presupuesto?',
+      message: '¿Estás seguro de que deseas eliminar este presupuesto? Esta acción no se puede deshacer.',
+      onConfirm: () => onDeleteBudget(id)
+    });
   };
 
   // Generación de Grid
@@ -1106,6 +1122,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             Asistente Anual
         </button>
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };
