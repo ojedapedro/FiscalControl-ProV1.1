@@ -9,6 +9,7 @@ import {
   Calendar as CalendarIcon, 
   ChevronDown, 
   CheckCircle2, 
+  XCircle,
   AlertCircle,
   Calculator,
   MapPin,
@@ -430,6 +431,34 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDaysToExpire(initialData.daysToExpire?.toString() || '');
       setFrequency(initialData.frequency || PaymentFrequency.NONE);
       setSpecificType(initialData.specificType || '');
+
+      // Initialize taxGroup and taxItem from specificType
+      const config = getTaxConfig(initialData.category || '');
+      if (config && initialData.specificType) {
+        const code = initialData.specificType.split(' - ')[0];
+        let found = false;
+        for (const [groupKey, groupData] of Object.entries(config)) {
+          const item = (groupData as any).items?.find((i: any) => i.code === code);
+          if (item) {
+            setTaxGroup(groupKey);
+            setTaxItem(code);
+            found = true;
+            break;
+          }
+        }
+        // Fallback if code split didn't work as expected
+        if (!found) {
+           for (const [groupKey, groupData] of Object.entries(config)) {
+             const item = (groupData as any).items?.find((i: any) => initialData.specificType.includes(i.name));
+             if (item) {
+               setTaxGroup(groupKey);
+               setTaxItem(item.code);
+               break;
+             }
+           }
+        }
+      }
+
       setPreviewUrl(initialData.receiptUrl || null);
       setPreviewUrl2(initialData.receiptUrl2 || null);
       setIsOverBudget(initialData.isOverBudget || false);
@@ -448,6 +477,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDaysToExpire('');
       setFrequency(PaymentFrequency.NONE);
       setSpecificType('');
+      setTaxGroup('');
+      setTaxItem('');
       setPreviewUrl(null);
       setPreviewUrl2(null);
       setFile(null);
@@ -534,14 +565,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       const itemData = groupData?.items?.find(i => i.code === taxItem);
       
       if (itemData) {
-        setSpecificType(`${itemData.code} - ${itemData.name}`);
-        if (itemData.amount !== undefined && !itemData.isVariable) {
-          // Convert tax config USD amount to Bs for the input
-          setAmount((itemData.amount * effectiveExchangeRate).toFixed(2));
-          setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
-        } else if (itemData.isVariable) {
-           setAmount(''); 
-           setExpectedBudget(null); // No fixed budget for variable items
+        const newSpecificType = `${itemData.code} - ${itemData.name}`;
+        
+        if (newSpecificType !== specificType) {
+          setSpecificType(newSpecificType);
+          
+          // Only auto-fill amount if it's a NEW selection (not loading initialData)
+          // and manual override is not active
+          if (!isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
+            if (itemData.amount !== undefined && !itemData.isVariable) {
+              // Convert tax config USD amount to Bs for the input
+              setAmount((itemData.amount * effectiveExchangeRate).toFixed(2));
+              setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
+            } else if (itemData.isVariable) {
+               setAmount(''); 
+               setExpectedBudget(null); // No fixed budget for variable items
+            }
+          }
         }
       }
     } else if (!isTaxCategory) {
@@ -976,10 +1016,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       
       {/* Top Banner for Rejected Payments */}
       {initialData?.status === PaymentStatus.REJECTED && (
-        <div className="mb-6 -mx-6 -mt-6 p-3 bg-red-600 text-slate-900 dark:text-white text-center text-xs font-bold uppercase tracking-[0.2em] rounded-t-2xl flex items-center justify-center gap-2">
-          <AlertTriangle size={14} />
-          Atención: Este pago requiere correcciones inmediatas
-          <AlertTriangle size={14} />
+        <div className="mb-10 -mx-6 lg:-mx-10 xl:-mx-12 -mt-6 lg:-mt-10 xl:-mt-12 p-4 bg-red-600 text-white text-center text-sm font-black uppercase tracking-[0.3em] rounded-t-2xl flex items-center justify-center gap-4 shadow-xl shadow-red-500/20 border-b border-red-500">
+          <AlertTriangle size={20} className="animate-pulse" />
+          <span>Atención: Este pago requiere correcciones inmediatas</span>
+          <AlertTriangle size={20} className="animate-pulse" />
         </div>
       )}
 
@@ -1027,10 +1067,46 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 </div>
                 <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{formatDate(new Date())}</span>
               </div>
-              <div className="relative">
-                <p className="text-slate-300 text-lg font-serif italic leading-relaxed pl-4 border-l-2 border-slate-200 dark:border-slate-800">
-                  "{initialData.rejectionReason}"
-                </p>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 relative">
+                  <p className="text-slate-300 text-lg font-serif italic leading-relaxed pl-4 border-l-2 border-slate-200 dark:border-slate-800">
+                    "{initialData.rejectionReason}"
+                  </p>
+                  
+                  {initialData.checklist && (
+                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {Object.entries(initialData.checklist).map(([key, value]) => {
+                        const labels: Record<string, string> = {
+                          receiptValid: 'Comprobante Válido',
+                          stampLegible: 'Sello Legible',
+                          storeConceptMatch: 'Tienda y Concepto',
+                          datesApproved: 'Fechas de Vencimiento',
+                          documentDateApproved: 'Fecha de Documento',
+                          proposedDatesApproved: 'Fechas Propuestas',
+                          amountsApproved: 'Montos y Presupuesto',
+                          proposedAmountApproved: 'Monto Autorizado',
+                          observationsApproved: 'Notas y Observaciones'
+                        };
+                        return (
+                          <div key={key} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                            value 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' 
+                            : 'bg-red-500/10 border-red-500/20 text-red-500'
+                          }`}>
+                            {value ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                            <span className="text-[10px] font-black uppercase tracking-wider">{labels[key] || key}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="lg:col-span-1 bg-slate-900/40 p-4 rounded-xl border border-slate-800 flex flex-col justify-center">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Instrucciones de Auditoría</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Por favor, revise los campos resaltados en rojo y asegúrese de que la documentación adjunta sea legible y corresponda al concepto solicitado.
+                  </p>
+                </div>
               </div>
               <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <p className="text-xs text-slate-500 font-medium flex items-center gap-2">
@@ -1057,8 +1133,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 Ubicación y Clasificación Fiscal
             </h2>
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-4 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                <div className="lg:col-span-3 space-y-8">
                     <div>
                         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Sucursal / Tienda</label>
                         <div className="relative group">
@@ -1108,7 +1184,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     )}
                 </div>
 
-                <div className="lg:col-span-8">
+                <div className="lg:col-span-9">
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">Categoría Fiscal</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                         {[
@@ -1155,33 +1231,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="lg:col-span-12 space-y-10">
                 {/* Dynamic Tax Section with Traffic Light */}
                 {!!getTaxConfig(category) && (
-                    <section className={`rounded-2xl border transition-all duration-300 animate-in slide-in-from-top-4 overflow-hidden ${globalStatus.bg} ${globalStatus.border}`}>
+                    <section className={`rounded-3xl border-2 transition-all duration-500 animate-in slide-in-from-top-4 overflow-hidden shadow-2xl ${globalStatus.bg} ${globalStatus.border}`}>
                         
                         {/* Header Dinámico */}
-                        <div className={`p-4 border-b ${globalStatus.border} flex items-center justify-between`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${globalStatus.color} text-slate-950 dark:text-slate-50 shadow-sm`}>
-                                    <Calculator size={20} />
+                        <div className={`p-6 border-b-2 ${globalStatus.border} flex items-center justify-between bg-white/40 dark:bg-black/10 backdrop-blur-md`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-2xl ${globalStatus.color} text-slate-950 dark:text-slate-50 shadow-lg`}>
+                                    <Calculator size={24} />
                                 </div>
                                 <div>
-                                    <h3 className={`font-bold ${globalStatus.text}`}>Desglose de Obligaciones</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 opacity-80">Estado fiscal actualizado al día de hoy</p>
+                                    <h3 className={`text-xl font-black uppercase tracking-tight ${globalStatus.text}`}>Desglose de Obligaciones</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Estado fiscal actualizado al día de hoy</p>
                                 </div>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-white/50 dark:bg-black/20 ${globalStatus.text} ${globalStatus.border}`}>
+                            <div className={`px-4 py-1.5 rounded-full text-xs font-black border-2 uppercase tracking-widest bg-white/80 dark:bg-black/40 shadow-sm ${globalStatus.text} ${globalStatus.border}`}>
                                 {globalStatus.label}
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
                             {/* Selector de Rubro */}
-                            <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
-                                <label className="text-xs font-bold text-slate-500 uppercase mb-3 block">Seleccione Rubro a Pagar</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                            <div className="p-8 bg-white/30 dark:bg-slate-900/30">
+                                <div className="flex items-center justify-between mb-6">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Seleccione Rubro a Pagar</label>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{taxStatusList.length} Rubros Disponibles</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                                     {taxStatusList.map((item) => (
                                         <button
                                             key={item.key}
@@ -1190,21 +1269,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 setTaxGroup(item.key);
                                                 setTaxItem(''); 
                                             }}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group active:scale-[0.98] ${
+                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left group active:scale-[0.98] ${
                                                 taxGroup === item.key 
-                                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-sm' 
-                                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
+                                                ? 'bg-brand-500/10 border-brand-500 ring-4 ring-brand-500/10 shadow-lg' 
+                                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600'
                                             }`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-3 h-3 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
-                                                <span className={`text-[11px] font-medium ${taxGroup === item.key ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
-                                                    {item.label.split(' ')[1]} {item.label.split(' ')[2]}...
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-3.5 h-3.5 rounded-full shadow-md ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                <span className={`text-xs font-black uppercase tracking-tight ${taxGroup === item.key ? 'text-brand-600 dark:text-brand-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                    {item.label.split(' ').slice(1, 5).join(' ')}
                                                 </span>
                                             </div>
-                                            <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${item.bgSoft} ${item.text}`}>
-                                                <item.icon size={8} />
-                                                <span className="hidden sm:inline">{item.status}</span>
+                                            <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1.5 ${item.bgSoft} ${item.text} border border-current/10`}>
+                                                <item.icon size={10} />
+                                                <span className="hidden sm:inline uppercase tracking-tighter">{item.status}</span>
                                             </div>
                                         </button>
                                     ))}
@@ -1212,74 +1291,77 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             </div>
 
                             {/* Selector de Concepto Específico */}
-                            <div className="p-6 flex flex-col justify-center bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                                <div className="space-y-4">
-                                    <div className="space-y-3">
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
-                                        
-                                        {!taxGroup ? (
-                                            <div className="p-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center">
-                                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full mb-3">
-                                                    <ChevronDown className="text-slate-500 dark:text-slate-400 rotate-90" size={24} />
-                                                </div>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                                    Seleccione un rubro a la izquierda para ver los conceptos específicos
-                                                </p>
+                            <div className="p-8 flex flex-col bg-white dark:bg-slate-900">
+                                <div className="flex items-center justify-between mb-6">
+                                    <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
+                                    {taxGroup && (
+                                        <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">
+                                            {specificItemStatusList.length} Conceptos encontrados
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                <div className="flex-1">
+                                    {!taxGroup ? (
+                                        <div className="h-full min-h-[300px] border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center text-center p-10 bg-slate-50/30 dark:bg-slate-900/30">
+                                            <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl mb-5 shadow-xl border border-slate-100 dark:border-slate-700">
+                                                <ChevronDown className="text-brand-500 rotate-90" size={32} />
                                             </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1 animate-in fade-in slide-in-from-bottom-2">
-                                                {specificItemStatusList.map((item) => (
-                                                    <button
-                                                        key={item.code}
-                                                        type="button"
-                                                        disabled={isSubmitting}
-                                                        onClick={() => setTaxItem(item.code)}
-                                                        className={`w-full flex flex-col p-3 rounded-xl border transition-all text-left group relative active:scale-[0.98] ${
-                                                            taxItem === item.code 
-                                                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500/20 shadow-md' 
-                                                            : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.bgSoft} ${item.text} flex items-center gap-1`}>
-                                                                <item.icon size={10} />
-                                                                {item.status}
-                                                            </span>
-                                                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{item.code}</span>
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className={`text-xs font-bold leading-tight mb-1 ${taxItem === item.code ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                                {item.name}
-                                                            </span>
-                                                            {item.amount !== undefined && (
-                                                                <span className="text-[10px] font-bold text-blue-500">
-                                                                    ${item.amount.toLocaleString()}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                        
-                                        {errors.taxItem && <p className="text-red-500 text-xs ml-1 font-bold">{errors.taxItem}</p>}
-                                        
-                                        {taxItem && (
-                                            <div className="mt-4 animate-in zoom-in-95 duration-200">
-                                                <TaxInfoSearch category={category} taxItem={taxItem} />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                                        <div className="flex gap-2">
-                                            <AlertCircle size={14} className="mt-0.5 text-blue-500" />
-                                            <p>
-                                                Seleccione el rubro en la lista de arriba para ver su estado actual. 
-                                                El color indica la urgencia del pago según la fecha de vencimiento.
+                                            <p className="text-base text-slate-500 dark:text-slate-400 font-black uppercase tracking-tight mb-2">
+                                                Seleccione un rubro
+                                            </p>
+                                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-[200px]">
+                                                Haga clic en un rubro a la izquierda para desplegar sus conceptos específicos
                                             </p>
                                         </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                            {specificItemStatusList.map((item) => (
+                                                <button
+                                                    key={item.code}
+                                                    type="button"
+                                                    disabled={isSubmitting}
+                                                    onClick={() => setTaxItem(item.code)}
+                                                    className={`w-full flex flex-col p-4 rounded-2xl border-2 transition-all text-left group relative active:scale-[0.98] ${
+                                                        taxItem === item.code 
+                                                        ? 'bg-brand-500/10 border-brand-500 ring-4 ring-brand-500/10 shadow-xl' 
+                                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${item.bgSoft} ${item.text} flex items-center gap-1.5 border border-current/10 uppercase tracking-tighter`}>
+                                                            <item.icon size={12} />
+                                                            {item.status}
+                                                        </span>
+                                                        <span className="text-[10px] font-black font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">{item.code}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-sm font-black leading-tight mb-2 uppercase tracking-tight ${taxItem === item.code ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                            {item.name}
+                                                        </span>
+                                                        {item.amount !== undefined && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs font-black text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-md">
+                                                                    ${item.amount.toLocaleString()}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Presupuestaria</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-8 p-4 bg-brand-500/5 dark:bg-brand-500/10 rounded-2xl border border-brand-500/20 text-xs text-slate-500 dark:text-slate-300">
+                                    <div className="flex gap-3">
+                                        <AlertCircle size={18} className="shrink-0 text-brand-500" />
+                                        <p className="leading-relaxed">
+                                            <span className="font-black uppercase tracking-widest text-brand-500 block mb-1">Guía de Selección</span>
+                                            Seleccione el rubro y concepto exacto. El color indica la urgencia según la fecha de vencimiento legal.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1288,7 +1370,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 )}
 
                 {/* Section 2: Detalles Financieros */}
-                <section className={`glass-card p-8 transition-all duration-500 ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
+                <section className={`glass-card p-10 transition-all duration-500 shadow-xl ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="label-caps flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
@@ -1828,7 +1910,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </div>
 
             {/* Right Column: Map (Sticky) */}
-            <div className="lg:col-span-5 hidden lg:block">
+            <div className="lg:col-span-4 hidden lg:block">
                 <div className="sticky top-8">
                     <div className="glass-card p-4 border-brand-500/20">
                         <VenezuelaMap 

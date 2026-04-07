@@ -551,6 +551,7 @@ function App({}: AppProps = {}) {
   const handleNewPayment = async (paymentData: any) => {
     setIsLoading(true);
     const isUpdate = !!paymentData.id;
+    const originalPayment = isUpdate ? payments.find(p => p.id === paymentData.id) : null;
     
     const log: AuditLog = {
       date: new Date().toISOString(),
@@ -560,8 +561,8 @@ function App({}: AppProps = {}) {
       note: isUpdate ? 'Pago corregido tras devolución' : undefined
     };
 
-    let receiptUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl : undefined;
-    let receiptUrl2 = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl2 : undefined;
+    let receiptUrl = isUpdate ? originalPayment?.receiptUrl : undefined;
+    let receiptUrl2 = isUpdate ? originalPayment?.receiptUrl2 : undefined;
     
     if (paymentData.file) {
         try {
@@ -585,42 +586,26 @@ function App({}: AppProps = {}) {
         }
     }
 
+    // Create the payment object preserving ALL existing data and overwriting with new data
     const paymentToSave: Payment = {
+      ...(originalPayment || {}), // Start with all existing data (Absolutamente TODOS)
+      ...paymentData, // Overwrite with new data from the form
       id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
-      storeId: paymentData.storeId,
-      storeName: stores.find(s => s.id === paymentData.storeId)?.name || 'Tienda Desconocida',
-      userId: currentUser?.id || 'U-UNK',
-      category: paymentData.category,
-      specificType: paymentData.specificType,
-      amount: paymentData.amount,
-      dueDate: paymentData.dueDate,
-      paymentDate: paymentData.paymentDate,
-      daysToExpire: paymentData.daysToExpire,
-      frequency: paymentData.frequency,
+      storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
+      userId: currentUser?.id || originalPayment?.userId || 'U-UNK',
       status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
       rejectionReason: '', // Clear rejection reason on correction
-      submittedDate: isUpdate ? (payments.find(p => p.id === paymentData.id)?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
-      notes: paymentData.notes,
+      submittedDate: isUpdate ? (originalPayment?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
       history: isUpdate 
-        ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
+        ? [...(originalPayment?.history || []), log]
         : [log],
       receiptUrl: receiptUrl,
       receiptUrl2: receiptUrl2,
-      // Soporte Data
-      documentDate: paymentData.documentDate,
-      documentAmount: paymentData.documentAmount,
-      documentName: paymentData.documentName,
-      // Proposed Data
-      proposedAmount: paymentData.proposedAmount,
-      proposedPaymentDate: paymentData.proposedPaymentDate,
-      proposedDueDate: paymentData.proposedDueDate,
-      proposedDaysToExpire: paymentData.proposedDaysToExpire,
-      proposedJustification: paymentData.proposedJustification,
-      proposedStatus: paymentData.proposedStatus
     };
     
-    if(paymentData.originalBudget) paymentToSave.originalBudget = paymentData.originalBudget;
-    if(paymentData.isOverBudget) paymentToSave.isOverBudget = paymentData.isOverBudget;
+    // Clean up temporary file objects that shouldn't be in the final object
+    if ((paymentToSave as any).file) delete (paymentToSave as any).file;
+    if ((paymentToSave as any).file2) delete (paymentToSave as any).file2;
 
     try {
         if (isUpdate) {
@@ -646,7 +631,7 @@ function App({}: AppProps = {}) {
     }
   };
 
-  const handleApprove = async (id: string, newDueDate?: string, newBudgetAmount?: number) => {
+  const handleApprove = async (id: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => {
       setIsLoading(true);
       const paymentToUpdate = payments.find(p => p.id === id);
       if (paymentToUpdate) {
@@ -693,7 +678,8 @@ function App({}: AppProps = {}) {
             dueDate: newDueDate || paymentToUpdate.dueDate,
             daysToExpire: newDaysToExpire,
             originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
+            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
+            checklist: checklist || paymentToUpdate.checklist
         };
 
         if (newBudgetAmount !== undefined) {
@@ -763,23 +749,45 @@ function App({}: AppProps = {}) {
       }
   };
 
-  const handleReject = async (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => {
       setIsLoading(true);
-      const log: AuditLog = {
-        date: new Date().toISOString(),
-        action: 'RECHAZO',
-        actorName: currentUser?.name || 'Auditor',
-        role: currentUser?.role || Role.AUDITOR,
-        note: reason
-      };
-
       const paymentToUpdate = payments.find(p => p.id === id);
+      
       if (paymentToUpdate) {
-          const updatedPayment = {
+          let newDaysToExpire = paymentToUpdate.daysToExpire;
+          let rejectionNote = reason;
+
+          if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
+              rejectionNote += ` | Sugerencia Vencimiento: ${newDueDate}`;
+              if (paymentToUpdate.paymentDate) {
+                  const d1 = new Date(paymentToUpdate.paymentDate);
+                  const d2 = new Date(newDueDate);
+                  const diffTime = d2.getTime() - d1.getTime();
+                  newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              }
+          }
+
+          if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
+              rejectionNote += ` | Sugerencia Presupuesto: $${newBudgetAmount.toLocaleString()}`;
+          }
+
+          const log: AuditLog = {
+            date: new Date().toISOString(),
+            action: 'RECHAZO',
+            actorName: currentUser?.name || 'Auditor',
+            role: currentUser?.role || Role.AUDITOR,
+            note: rejectionNote
+          };
+
+          const updatedPayment: Payment = {
             ...paymentToUpdate,
             status: PaymentStatus.REJECTED,
             rejectionReason: reason,
-            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log]
+            dueDate: newDueDate || paymentToUpdate.dueDate,
+            daysToExpire: newDaysToExpire,
+            originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
+            history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
+            checklist: checklist || paymentToUpdate.checklist
           };
 
           try {
@@ -936,7 +944,7 @@ function App({}: AppProps = {}) {
             {/* Modal for Rejected Payments */}
             {showRejectedModal && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-[95vw] xl:max-w-[1600px] max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/40 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400">

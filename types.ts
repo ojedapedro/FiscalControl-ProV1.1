@@ -112,6 +112,19 @@ export interface Payment {
   proposedDaysToExpire?: number;
   proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   proposedJustification?: string;
+
+  // Checklist de Auditoría
+  checklist?: {
+    receiptValid: boolean;
+    stampLegible: boolean;
+    storeConceptMatch: boolean;
+    datesApproved: boolean;
+    documentDateApproved: boolean;
+    proposedDatesApproved: boolean;
+    amountsApproved: boolean;
+    proposedAmountApproved: boolean;
+    observationsApproved: boolean;
+  };
 }
 
 export interface ChartData {

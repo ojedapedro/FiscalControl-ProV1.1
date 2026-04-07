@@ -38,8 +38,8 @@ import { useExchangeRate } from '../contexts/ExchangeRateContext';
 
 interface ApprovalsProps {
   payments: Payment[];
-  onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number) => void;
-  onReject: (id: string, reason: string) => void;
+  onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => void;
+  onReject: (id: string, reason: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => void;
   currentUser?: User;
   onApproveAll: () => void;
   onLoadMore?: () => Promise<void>;
@@ -162,18 +162,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({
     setIsImageFullscreen(false);
     setImageError(false);
     setShowApprovalModal(false); 
-    setChecklist({
-      receiptValid: false,
-      stampLegible: false,
-      storeConceptMatch: false,
-      datesApproved: false,
-      documentDateApproved: false,
-      proposedDatesApproved: false,
-      amountsApproved: false,
-      proposedAmountApproved: false,
-      observationsApproved: false
-    });
-  }, [selectedId]);
+    
+    if (selectedPayment && selectedPayment.checklist) {
+      setChecklist(selectedPayment.checklist);
+    } else {
+      setChecklist({
+        receiptValid: false,
+        stampLegible: false,
+        storeConceptMatch: false,
+        datesApproved: false,
+        documentDateApproved: false,
+        proposedDatesApproved: false,
+        amountsApproved: false,
+        proposedAmountApproved: false,
+        observationsApproved: false
+      });
+    }
+  }, [selectedId, selectedPayment]);
 
   const handleCheckItem = (item: keyof typeof checklist) => {
     setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
@@ -184,8 +189,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({
         setIsRejecting(true);
     } else {
         if (selectedId && rejectionNote.trim()) {
-            onReject(selectedId, rejectionNote);
+            onReject(
+                selectedId, 
+                rejectionNote, 
+                showApprovalModal ? confirmationDate : undefined,
+                showApprovalModal && updateBudget ? Number(confirmationBudget) : undefined,
+                checklist
+            );
             setSelectedId(null);
+            setShowApprovalModal(false);
+            setIsRejecting(false);
+            setRejectionNote('');
         }
     }
   };
@@ -448,20 +462,34 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="p-8 border-t border-slate-100 dark:border-slate-800/50 flex gap-4 bg-white dark:bg-slate-900">
+                  <div className="p-8 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-4 bg-white dark:bg-slate-900">
+                      <div className="flex gap-4">
+                        <button 
+                            onClick={() => setShowApprovalModal(false)}
+                            className="flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all text-sm uppercase tracking-widest"
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            onClick={handleConfirmApproval}
+                            disabled={!confirmationDate}
+                            className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                        >
+                            <CheckCircle2 size={20} />
+                            {isDateModified ? 'Confirmar y Aprobar' : 'Aprobar Pago'}
+                        </button>
+                      </div>
+                      
                       <button 
-                          onClick={() => setShowApprovalModal(false)}
-                          className="flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all text-sm uppercase tracking-widest"
+                          onClick={() => {
+                              setShowApprovalModal(false);
+                              setIsRejecting(true);
+                              // Scroll to rejection area if needed, but it will show up in the main panel
+                          }}
+                          className="w-full py-4 border-2 border-red-500/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center justify-center gap-2"
                       >
-                          Cancelar
-                      </button>
-                      <button 
-                          onClick={handleConfirmApproval}
-                          disabled={!confirmationDate}
-                          className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                      >
-                          <CheckCircle2 size={20} />
-                          {isDateModified ? 'Confirmar y Aprobar' : 'Aprobar Pago'}
+                          <XCircle size={16} />
+                          Devolver para Corrección
                       </button>
                   </div>
               </div>
