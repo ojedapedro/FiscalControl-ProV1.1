@@ -744,9 +744,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
                                         
-                                        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group border border-slate-100 dark:border-slate-800 shadow-inner">
+                                        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group border border-slate-100 dark:border-slate-800 shadow-inner flex flex-col gap-4 p-2 overflow-y-auto">
                                             {selectedPayment.receiptUrl ? (
-                                                <div className="w-full h-full flex items-center justify-center p-2">
+                                                <div className="w-full min-h-[400px] flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800 rounded-xl relative">
+                                                    <div className="absolute top-2 left-2 bg-slate-900/50 text-white text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest z-10 backdrop-blur-sm">Principal</div>
                                                     {isPdf(selectedPayment.receiptUrl) ? (
                                                         <embed
                                                             src={selectedPayment.receiptUrl}
@@ -756,18 +757,44 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     ) : (
                                                         <img 
                                                             src={selectedPayment.receiptUrl} 
-                                                            alt="Recibo" 
+                                                            alt="Recibo Principal" 
                                                             className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.02]"
                                                             onError={() => setImageError(true)}
                                                         />
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
-                                                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                                                        <FileText size={40} strokeWidth={1} />
+                                                <div className="w-full h-40 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                                                    <FileText size={24} strokeWidth={1} />
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest mt-2">Sin Soporte Principal</p>
+                                                </div>
+                                            )}
+
+                                            {selectedPayment.receiptUrl2 && (
+                                                <div className="w-full min-h-[400px] flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800 rounded-xl relative mt-2">
+                                                    <div className="absolute top-2 left-2 bg-blue-600/50 text-white text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest z-10 backdrop-blur-sm">Adicional</div>
+                                                    <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                                        <button 
+                                                            onClick={() => openInNewTab(selectedPayment.receiptUrl2!)}
+                                                            className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white transition-colors shadow-sm"
+                                                            title="Abrir en pestaña nueva"
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                        </button>
                                                     </div>
-                                                    <p className="text-xs font-bold uppercase tracking-widest">Sin Soporte Digital</p>
+                                                    {isPdf(selectedPayment.receiptUrl2) ? (
+                                                        <embed
+                                                            src={selectedPayment.receiptUrl2}
+                                                            type="application/pdf"
+                                                            className="w-full h-full rounded-lg"
+                                                        />
+                                                    ) : (
+                                                        <img 
+                                                            src={selectedPayment.receiptUrl2} 
+                                                            alt="Recibo Adicional" 
+                                                            className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.02]"
+                                                        />
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -858,7 +885,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                     {/* TABLE 1: PRESUPUESTO VS ACTUAL */}
                                     <div className="flex flex-col">
                                         <div className="flex items-center justify-between mb-2 px-1">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cronología de Vencimientos</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cronograma</div>
                                             <button 
                                                 onClick={() => handleCheckItem('datesApproved')}
                                                 className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${

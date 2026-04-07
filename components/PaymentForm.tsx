@@ -14,6 +14,7 @@ import {
   MapPin,
   FileText,
   DollarSign,
+  Plus,
   Loader2,
   Trash2,
   Scan,
@@ -390,6 +391,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Archivos
   const [file, setFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialData?.receiptUrl || null);
+  const [file2, setFile2] = React.useState<File | null>(null);
+  const [previewUrl2, setPreviewUrl2] = React.useState<string | null>(initialData?.receiptUrl2 || null);
+  const [isFileScanning2, setIsFileScanning2] = React.useState(false);
+  const [uploadProgress2, setUploadProgress2] = React.useState(0);
 
   // --- Justification State ---
   const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
@@ -426,6 +431,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setFrequency(initialData.frequency || PaymentFrequency.NONE);
       setSpecificType(initialData.specificType || '');
       setPreviewUrl(initialData.receiptUrl || null);
+      setPreviewUrl2(initialData.receiptUrl2 || null);
       setIsOverBudget(initialData.isOverBudget || false);
       setDocDate(initialData.documentDate || '');
       setDocAmount(initialData.documentAmount?.toString() || '');
@@ -443,6 +449,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setFrequency(PaymentFrequency.NONE);
       setSpecificType('');
       setPreviewUrl(null);
+      setPreviewUrl2(null);
+      setFile(null);
+      setFile2(null);
       setIsOverBudget(false);
       setDocDate('');
       setDocAmount('');
@@ -849,6 +858,40 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setFile(null); setPreviewUrl(null);
   };
 
+  const handleFileChange2 = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+        const isImage = selectedFile.type.startsWith('image/');
+        const maxSize = isImage ? 5 * 1024 * 1024 : 800 * 1024;
+        if (selectedFile.size > maxSize) {
+            setErrors(prev => ({...prev, file2: `El archivo excede el límite de ${isImage ? '5MB' : '800KB'}.`}));
+            return;
+        }
+        setIsFileScanning2(true);
+        setUploadProgress2(0);
+        setFile2(null); 
+        setPreviewUrl2(null);
+        
+        // Simulate progress
+        for (let i = 0; i <= 100; i += 10) {
+            setUploadProgress2(i);
+            await new Promise(resolve => setTimeout(resolve, 80));
+        }
+
+        if (selectedFile.type.startsWith('image/')) {
+            setPreviewUrl2(URL.createObjectURL(selectedFile));
+        }
+        setFile2(selectedFile);
+        setIsFileScanning2(false);
+        setErrors(prev => { const newErrs = {...prev}; delete newErrs.file2; return newErrs; });
+    }
+  };
+
+  const clearFile2 = (e: React.MouseEvent) => {
+      e.stopPropagation(); e.preventDefault();
+      setFile2(null); setPreviewUrl2(null);
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!store) newErrors.store = "La tienda es obligatoria";
@@ -902,6 +945,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             frequency,
             specificType,
             file,
+            file2,
             notes,
             // Extra Data
             originalBudget: expectedBudget,
@@ -1456,7 +1500,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         {/* File Upload */}
                         <div className="space-y-6">
-                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo</label>
+                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo Principal</label>
                              <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
                                  isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
                              } ${
@@ -1545,6 +1589,75 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              </label>
                              {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
 
+                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 ml-1">Soporte Adicional / Certificación de Pago</label>
+                             <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
+                                 isSubmitting || isFileScanning2 ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
+                             } ${
+                                 file2 || previewUrl2 ? 'border-brand-500/50 bg-brand-500/5' : 
+                                 errors.file2 ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
+                             }`}>
+                                 {/* Overlay de Carga de Archivo */}
+                                {isFileScanning2 && (
+                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
+                                        <Scan className="w-10 h-10 text-brand-600 dark:text-brand-400 animate-pulse mb-4" />
+                                        <span className="text-sm font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">Analizando...</span>
+                                        <div className="w-full max-w-[240px] bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                                            <div className="bg-brand-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: `${uploadProgress2}%` }}></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col items-center justify-center w-full h-full p-4">
+                                    {file2 || previewUrl2 ? (
+                                        <div className="w-full h-full relative group/file">
+                                            {previewUrl2 ? (
+                                                <div className="w-full h-full relative p-2">
+                                                    <img
+                                                        src={previewUrl2}
+                                                        alt="Preview 2"
+                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
+                                                    />
+                                                    <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+                                                         <button
+                                                            onClick={clearFile2}
+                                                            type="button"
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
+                                                         >
+                                                            <Trash2 size={16} />
+                                                            <span>Eliminar</span>
+                                                         </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                                    <FileText size={40} className="text-red-500" />
+                                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mt-2 uppercase tracking-tight">
+                                                        {file2?.name || 'Soporte Adicional'}
+                                                    </p>
+                                                    <button onClick={clearFile2} type="button" className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase mt-4">Eliminar Adjunto</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file2 ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                                                <Plus size={32} />
+                                            </div>
+                                            <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Añadir Certificación de Pago</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">PDF, JPG, PNG (Max 5MB)</p>
+                                        </>
+                                    )}
+                                </div>
+                                <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept=".pdf,.jpg,.jpeg,.png" 
+                                    onChange={handleFileChange2} 
+                                    disabled={isSubmitting || isFileScanning2}
+                                />
+                             </label>
+                             {errors.file2 && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file2}</p>}
+
                              {/* Proposed Changes Section */}
                              <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/prop:opacity-20 transition-opacity">
@@ -1619,15 +1732,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Justificación de la Propuesta</label>
-                                        <textarea
-                                            value={proposedJustification}
-                                            onChange={(e) => setProposedJustification(e.target.value)}
-                                            placeholder="Explique por qué propone estos cambios..."
-                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-medium text-slate-300 outline-none focus:ring-4 focus:ring-brand-500/10 h-28 resize-none transition-all leading-relaxed"
-                                        />
-                                    </div>
                                 </div>
                              </div>
                         </div>

@@ -561,12 +561,25 @@ function App({}: AppProps = {}) {
     };
 
     let receiptUrl = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl : undefined;
+    let receiptUrl2 = paymentData.id ? payments.find(p => p.id === paymentData.id)?.receiptUrl2 : undefined;
+    
     if (paymentData.file) {
         try {
             receiptUrl = await fileToBase64(paymentData.file);
         } catch (e) {
-            console.error("Error converting file", e);
-            setNotification(e instanceof Error ? e.message : "Error procesando el comprobante.");
+            console.error("Error converting file 1", e);
+            setNotification("Error procesando el comprobante principal.");
+            setIsLoading(false);
+            return;
+        }
+    }
+
+    if (paymentData.file2) {
+        try {
+            receiptUrl2 = await fileToBase64(paymentData.file2);
+        } catch (e) {
+            console.error("Error converting file 2", e);
+            setNotification("Error procesando el soporte adicional.");
             setIsLoading(false);
             return;
         }
@@ -592,6 +605,7 @@ function App({}: AppProps = {}) {
         ? [...(payments.find(p => p.id === paymentData.id)?.history || []), log]
         : [log],
       receiptUrl: receiptUrl,
+      receiptUrl2: receiptUrl2,
       // Soporte Data
       documentDate: paymentData.documentDate,
       documentAmount: paymentData.documentAmount,

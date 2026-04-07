@@ -87,6 +87,7 @@ export interface Payment {
   daysToExpire?: number;
   status: PaymentStatus;
   receiptUrl?: string;
+  receiptUrl2?: string;
   notes?: string;
   rejectionReason?: string;
   submittedDate: string;
