@@ -416,7 +416,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (initialData) {
       setStore(initialData.storeId || '');
       setCategory(initialData.category || '');
-      setAmount(initialData.amount?.toString() || '');
+      // Convert USD amount from database to Bs for the form input
+      const initialAmountInBs = initialData.amount ? (initialData.amount * (docExchangeRate || exchangeRate)).toFixed(2) : '';
+      setAmount(initialAmountInBs);
       setExpectedBudget(initialData.originalBudget || null);
       setDueDate(initialData.dueDate || '');
       setPaymentDate(initialData.paymentDate || new Date().toISOString().split('T')[0]);
@@ -525,8 +527,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       if (itemData) {
         setSpecificType(`${itemData.code} - ${itemData.name}`);
         if (itemData.amount !== undefined && !itemData.isVariable) {
-          setAmount(itemData.amount.toString());
-          setExpectedBudget(itemData.amount); // Set budget baseline
+          // Convert tax config USD amount to Bs for the input
+          setAmount((itemData.amount * effectiveExchangeRate).toFixed(2));
+          setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
         } else if (itemData.isVariable) {
            setAmount(''); 
            setExpectedBudget(null); // No fixed budget for variable items
@@ -630,15 +633,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Budget Monitoring Logic
   React.useEffect(() => {
-    // Usar el monto del documento si está presente, de lo contrario el monto principal
-    const effectiveAmount = docAmount ? parseFloat(docAmount) : parseFloat(amount);
+    // Convert current Bs amount to USD for budget comparison
+    const amountInUsd = parseFloat(amount) / (effectiveExchangeRate || 1);
+    // Use document amount if present (already in USD), otherwise use converted main amount
+    const effectiveAmountInUsd = docAmount ? parseFloat(docAmount) : amountInUsd;
     
     if (isCurrentTaxItemVariable) {
         // For variable items, only manual flag determines over budget
         setIsOverBudget(false);
-    } else if (expectedBudget !== null && !isNaN(effectiveAmount)) {
+    } else if (expectedBudget !== null && !isNaN(effectiveAmountInUsd)) {
         // For fixed items, compare amount to budget
-        if (effectiveAmount > expectedBudget) {
+        if (effectiveAmountInUsd > expectedBudget) {
             setIsOverBudget(true);
         } else {
             setIsOverBudget(false);
@@ -646,7 +651,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     } else {
         setIsOverBudget(false);
     }
-  }, [amount, docAmount, expectedBudget, isCurrentTaxItemVariable]);
+  }, [amount, docAmount, expectedBudget, isCurrentTaxItemVariable, effectiveExchangeRate]);
 
 
   // Reset tax selection when category changes to prevent inconsistent state
@@ -889,7 +894,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             id: initialData?.id,
             storeId: store,
             category,
-            amount: parseFloat(amount),
+            // Convert Bs amount back to USD for storage
+            amount: parseFloat(amount) / (effectiveExchangeRate || 1),
             dueDate,
             paymentDate,
             daysToExpire: daysToExpire ? parseInt(daysToExpire) : undefined,
@@ -1293,9 +1299,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                             {/* Amount */}
                             <div className="md:col-span-1">
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Total ($)</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Total (Bs.)</label>
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
+                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -1307,7 +1313,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             isOverBudget 
                                                 ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
                                                 : errors.amount ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'
-                                        } text-slate-900 dark:text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-10 p-4 outline-none font-mono transition-all`}
+                                        } text-slate-900 dark:text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all`}
                                     />
                                     {isOverBudget && (
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
@@ -1325,16 +1331,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 {effectiveExchangeRate !== undefined && (
                                     <div className="mt-3 p-3 bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
                                         <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                                            <Calculator size={16} />
+                                            <DollarSign size={16} />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
+                                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en $</p>
                                                 <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-slate-50 dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                             </div>
                                             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
                                                 <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
-                                                    Bs. {(parseFloat(amount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    $ {(parseFloat(amount || '0') / effectiveExchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </p>
                                                 <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
@@ -1347,7 +1353,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                                         <div className="text-[11px] text-amber-200/80 font-medium leading-relaxed">
                                             <p className="font-black mb-1 uppercase tracking-widest text-amber-400">Excedente de Presupuesto</p>
-                                            Excede por ${ (parseFloat(amount || '0') - (expectedBudget || 0)).toLocaleString() } (Bs. { ((parseFloat(amount || '0') - (expectedBudget || 0)) * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }).
+                                            Excede por ${ ((parseFloat(amount || '0') / effectiveExchangeRate) - (expectedBudget || 0)).toLocaleString() } (Bs. { (parseFloat(amount || '0') - ((expectedBudget || 0) * effectiveExchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }).
                                         </div>
                                     </div>
                                 )}
@@ -1355,10 +1361,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                             </div>
 
-                            {/* Payment Date */}
+                            {/* Payment Date and Due Date Column */}
                             <div>
                                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Alertas</label>
-                                <div className="relative group">
+                                <div className="relative group mb-8">
                                     <input
                                         type="date"
                                         value={paymentDate}
@@ -1368,7 +1374,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
-                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
+                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter mb-4">{errors.paymentDate}</p>}
+
+                                {/* Due Date moved here */}
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Vencimiento</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="date"
+                                            value={dueDate}
+                                            disabled={isSubmitting}
+                                            onChange={(e) => handleDueDateChange(e.target.value)}
+                                            className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        />
+                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    </div>
+                                    {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
+                                    {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
+                                        <p className="text-[10px] font-black text-brand-500 uppercase tracking-tighter mt-2 ml-1">
+                                            Próximo Vencimiento: {formatDate(calculateNextDueDate(dueDate, frequency))}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Frequency */}
@@ -1414,27 +1441,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                 </div>
                                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mt-2 ml-1">Lapsos de vencimiento</p>
-                            </div>
-
-                            {/* Due Date */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Vencimiento</label>
-                                <div className="relative group">
-                                    <input
-                                        type="date"
-                                        value={dueDate}
-                                        disabled={isSubmitting}
-                                        onChange={(e) => handleDueDateChange(e.target.value)}
-                                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
-                                    />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                </div>
-                                {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
-                                {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
-                                    <p className="text-[10px] font-black text-brand-500 uppercase tracking-tighter mt-2 ml-1">
-                                        Próximo Vencimiento: {formatDate(calculateNextDueDate(dueDate, frequency))}
-                                    </p>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -1548,7 +1554,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
                                         <RefreshCw size={18} />
                                     </div>
-                                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Proponer Cambios</h3>
+                                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Propuesta</h3>
                                 </div>
                                 
                                 <div className="space-y-4">

@@ -15,6 +15,7 @@ import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1279,154 +1280,156 @@ function App({}: AppProps = {}) {
   }
 
   return (
-    <ExchangeRateProvider exchangeRate={exchangeRate}>
-      <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
-        
-        {/* Sidebar Responsive */}
-        <Sidebar 
-          currentView={currentView} 
-          setCurrentView={setCurrentView} 
-          currentRole={currentUser?.role || Role.ADMIN}
-          currentUser={currentUser}
-          onChangeRole={() => {}} 
-          onLogout={handleLogout}
-          isMobileOpen={isMobileMenuOpen}
-          closeMobileMenu={() => setIsMobileMenuOpen(false)}
-          installPrompt={installPrompt}
-          onInstallClick={handleInstallClick}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebar}
-          onPaymentsClick={() => {
-            setEditingPayment(null);
-            setIsFormOpen(false); // Asegurar que el modal esté cerrado ya que está embebido
-          }}
-        />
-        
-        {/* Contenedor Principal */}
-        <main className={`flex-1 relative transition-all duration-300 flex flex-col h-screen overflow-hidden ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+    <ErrorBoundary>
+      <ExchangeRateProvider exchangeRate={exchangeRate}>
+        <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
           
-          {/* PWA Install Banner */}
-          <AnimatePresence>
-            {installPrompt && showInstallBanner && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="bg-blue-600 text-white overflow-hidden z-40 shrink-0"
-              >
-                <div className="p-3 flex items-center justify-between max-w-7xl mx-auto w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2 rounded-lg">
-                      <Download size={20} />
+          {/* Sidebar Responsive */}
+          <Sidebar 
+            currentView={currentView} 
+            setCurrentView={setCurrentView} 
+            currentRole={currentUser?.role || Role.ADMIN}
+            currentUser={currentUser}
+            onChangeRole={() => {}} 
+            onLogout={handleLogout}
+            isMobileOpen={isMobileMenuOpen}
+            closeMobileMenu={() => setIsMobileMenuOpen(false)}
+            installPrompt={installPrompt}
+            onInstallClick={handleInstallClick}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+            onPaymentsClick={() => {
+              setEditingPayment(null);
+              setIsFormOpen(false); // Asegurar que el modal esté cerrado ya que está embebido
+            }}
+          />
+          
+          {/* Contenedor Principal */}
+          <main className={`flex-1 relative transition-all duration-300 flex flex-col h-screen overflow-hidden ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+            
+            {/* PWA Install Banner */}
+            <AnimatePresence>
+              {installPrompt && showInstallBanner && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="bg-blue-600 text-white overflow-hidden z-40 shrink-0"
+                >
+                  <div className="p-3 flex items-center justify-between max-w-7xl mx-auto w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 p-2 rounded-lg">
+                        <Download size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
+                        <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
-                      <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={handleInstallClick}
+                        className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                      >
+                        Instalar
+                      </button>
+                      <button 
+                        onClick={handleDismissBanner}
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={handleInstallClick}
-                      className="bg-white text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                    >
-                      Instalar
-                    </button>
-                    <button 
-                      onClick={handleDismissBanner}
-                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <X size={18} />
-                    </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Push Notification Permission Banner */}
+            {pushPermission === 'default' && (
+              <div className="bg-indigo-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0 border-b border-indigo-500">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <BellRing size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">Activar Notificaciones</p>
+                    <p className="text-[10px] opacity-80">Recibe alertas sobre aprobaciones y pagos vencidos al instante.</p>
                   </div>
                 </div>
-              </motion.div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={requestPermission}
+                    className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
+                  >
+                    Permitir
+                  </button>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
 
-          {/* Push Notification Permission Banner */}
-          {pushPermission === 'default' && (
-            <div className="bg-indigo-600 text-white p-3 flex items-center justify-between animate-in slide-in-from-top duration-500 z-40 shrink-0 border-b border-indigo-500">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <BellRing size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">Activar Notificaciones</p>
-                  <p className="text-[10px] opacity-80">Recibe alertas sobre aprobaciones y pagos vencidos al instante.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={requestPermission}
-                  className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
-                >
-                  Permitir
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Header Móvil */}
-          <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
-             <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg active:scale-90 transition-all"
-                  aria-label="Abrir menú"
-                >
-                    <Menu size={24} />
-                </button>
-                <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
-             </div>
-             <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
-                 <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-             </div>
-          </div>
-
-          {/* Loading Overlay */}
-          {isLoading && (
-              <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                  <RefreshCw size={12} className="animate-spin" />
-                  Procesando...
-              </div>
-          )}
-
-          {/* Notificaciones Toast */}
-          {notification && (
-            <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
-               <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-                  <span className="font-medium">{notification}</span>
-                  <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            {/* Header Móvil */}
+            <div className="lg:hidden h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">
+               <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="p-2 text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg active:scale-90 transition-all"
+                    aria-label="Abrir menú"
+                  >
+                      <Menu size={24} />
+                  </button>
+                  <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
+               </div>
+               <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
+                   <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
                </div>
             </div>
-          )}
 
-          {/* Modal Formulario */}
-          {isFormOpen && currentView !== 'payments' && (
-             <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
-                    <PaymentForm 
-                      initialData={editingPayment}
-                      payments={filteredPayments}
-                      onSubmit={handleNewPayment} 
-                      onCancel={() => {
-                        setIsFormOpen(false);
-                        setEditingPayment(null);
-                      }} 
-                      currentUser={currentUser}
-                      stores={stores}
-                    />
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div className="absolute top-20 right-4 lg:top-4 lg:right-4 z-50 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+                    <RefreshCw size={12} className="animate-spin" />
+                    Procesando...
                 </div>
-             </div>
-          )}
+            )}
 
-          {/* Contenido Scrollable */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-             {renderContent()}
-          </div>
-        </main>
-      </div>
-    </ExchangeRateProvider>
+            {/* Notificaciones Toast */}
+            {notification && (
+              <div className="fixed top-20 right-6 lg:top-6 lg:right-6 z-[60] animate-in slide-in-from-right-10 fade-in duration-300">
+                 <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl border-l-4 border-blue-500 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                    <span className="font-medium">{notification}</span>
+                    <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+                 </div>
+              </div>
+            )}
+
+            {/* Modal Formulario */}
+            {isFormOpen && currentView !== 'payments' && (
+               <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+                  <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
+                      <PaymentForm 
+                        initialData={editingPayment}
+                        payments={filteredPayments}
+                        onSubmit={handleNewPayment} 
+                        onCancel={() => {
+                          setIsFormOpen(false);
+                          setEditingPayment(null);
+                        }} 
+                        currentUser={currentUser}
+                        stores={stores}
+                      />
+                  </div>
+               </div>
+            )}
+
+            {/* Contenido Scrollable */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+               {renderContent()}
+            </div>
+          </main>
+        </div>
+      </ExchangeRateProvider>
+    </ErrorBoundary>
   );
 }
 
