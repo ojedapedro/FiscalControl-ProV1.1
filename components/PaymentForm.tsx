@@ -1357,7 +1357,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                             {/* Payment Date */}
                             <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha de Pago</label>
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Alertas</label>
                                 <div className="relative group">
                                     <input
                                         type="date"

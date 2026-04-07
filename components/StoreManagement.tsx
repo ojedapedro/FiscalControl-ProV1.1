@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Store, User, Role } from '../types';
 import { Building2, Plus, Edit2, Trash2, MapPin, Users, X, Save, Search } from 'lucide-react';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface StoreManagementProps {
   stores: Store[];
@@ -23,6 +24,17 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+    title: '',
+    message: ''
+  });
   
   const [formData, setFormData] = useState({
     name: '',
@@ -150,9 +162,12 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
                   </button>
                   <button 
                     onClick={() => {
-                      if (window.confirm(`¿Estás seguro de eliminar la tienda ${store.name}?`)) {
-                        onDeleteStore(store.id);
-                      }
+                      setConfirmModal({
+                        isOpen: true,
+                        title: '¿Eliminar tienda?',
+                        message: `¿Estás seguro de que deseas eliminar la tienda ${store.name}? Esta acción no se puede deshacer.`,
+                        onConfirm: () => onDeleteStore(store.id)
+                      });
                     }}
                     className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors"
                   >
@@ -273,6 +288,14 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
           </div>
         </div>
       )}
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

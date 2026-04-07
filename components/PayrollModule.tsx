@@ -45,6 +45,7 @@ import { PayrollEntry, Employee, PPEAssignment, SystemSettings, Store } from '..
 import { formatDate, formatTime } from '../src/utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { PPEModal } from './PPEModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { notificationService } from '../services/notificationService';
 import { api } from '../services/api';
 
@@ -53,7 +54,7 @@ import { User } from '../types';
 interface PayrollModuleProps {
   entries: PayrollEntry[];
   employees: Employee[];
-  onAddEntry: (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => Promise<void>;
+  onAddEntry: (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => Promise<PayrollEntry | void>;
   onUpdateEntry?: (entry: PayrollEntry) => Promise<void>;
   onDeleteEntry: (id: string) => Promise<void>;
   onAddEmployee: (employee: Employee) => Promise<void>;
@@ -99,6 +100,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [ppeSearchTerm, setPpeSearchTerm] = React.useState('');
   const [ppeStoreFilter, setPpeStoreFilter] = React.useState('');
   const [ppeDateFilter, setPpeDateFilter] = React.useState('');
+  const [confirmModal, setConfirmModal] = React.useState<{
+    isOpen: boolean;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+    title: '',
+    message: ''
+  });
   const [notification, setNotification] = React.useState<string | null>(null);
   const [payrollIdFilter, setPayrollIdFilter] = React.useState('');
   const [payrollDateFilter, setPayrollDateFilter] = React.useState('');
@@ -463,12 +475,6 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     };
     await onAddEntry(entry);
     
-    // Notificar al empleado si existe
-    const emp = employees.find(e => e.id === entry.employeeId);
-    if (emp) {
-      notificationService.notifyPayrollReceipt(entry as PayrollEntry, emp, settings || null);
-    }
-    
     setIsAddingEntry(false);
   };
 
@@ -531,12 +537,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
         ...totals,
         status: 'PROCESADO'
       };
-      await onAddEntry(entry);
-      const fullEntry = { ...entry, id: Math.random().toString(), submittedDate: new Date().toISOString() } as PayrollEntry;
-      newEntries.push(fullEntry);
-      
-      // Notificar al empleado
-      notificationService.notifyPayrollReceipt(fullEntry, emp, settings || null);
+      const createdEntry = await onAddEntry(entry);
+      if (createdEntry) {
+        newEntries.push(createdEntry as PayrollEntry);
+      } else {
+        const fullEntry = { ...entry, id: Math.random().toString(), submittedDate: new Date().toISOString() } as PayrollEntry;
+        newEntries.push(fullEntry);
+      }
     }
 
     if (newEntries.length > 0) {
@@ -1606,7 +1613,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               <Eye size={18} />
                             </button>
                             <button 
-                              onClick={() => onDeleteEntry(entry.id)}
+                              onClick={() => setConfirmModal({
+                                isOpen: true,
+                                title: '¿Eliminar registro de nómina?',
+                                message: `¿Estás seguro de que deseas eliminar el registro de nómina de ${entry.employeeName} para el mes de ${entry.month}? Esta acción no se puede deshacer.`,
+                                onConfirm: () => onDeleteEntry(entry.id)
+                              })}
                               className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                               title="Eliminar"
                             >
@@ -1781,7 +1793,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             <Edit3 size={18} />
                           </button>
                           <button 
-                            onClick={() => onDeleteEmployee(emp.id)}
+                            onClick={() => setConfirmModal({
+                              isOpen: true,
+                              title: '¿Eliminar expediente de empleado?',
+                              message: `¿Estás seguro de que deseas eliminar el expediente de ${emp.name} ${emp.lastName || ''}? Se perderán todos sus datos históricos. Esta acción no se puede deshacer.`,
+                              onConfirm: () => onDeleteEmployee(emp.id)
+                            })}
                             className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
                             title="Eliminar Expediente"
                           >
@@ -2894,6 +2911,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           />
         )}
       </AnimatePresence>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
 
       <AnimatePresence>
         {viewingEmployee && (
