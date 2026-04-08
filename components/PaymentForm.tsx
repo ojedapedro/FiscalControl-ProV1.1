@@ -809,6 +809,64 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   };
 
+  const getCategoryTrafficLight = React.useCallback((catId: Category, storeId: string) => {
+    if (!storeId) return 'slate';
+    
+    const config = getTaxConfig(catId);
+    if (!config) {
+        const catPayments = payments.filter(p => p.storeId === storeId && p.category === catId);
+        if (catPayments.length === 0) return 'slate';
+        const hasRed = catPayments.some(p => p.status === PaymentStatus.OVERDUE || p.status === PaymentStatus.REJECTED);
+        if (hasRed) return 'red';
+        const allGreen = catPayments.every(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+        if (allGreen) return 'green';
+        return 'slate';
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    let hasRed = false;
+    let allGreen = true;
+    let hasItems = false;
+
+    Object.values(config).forEach(groupConfig => {
+        const status = getTaxStatus(groupConfig.deadlineDay);
+        
+        groupConfig.items.forEach(item => {
+            hasItems = true;
+            
+            const itemPayments = payments.filter(p => {
+                const pDate = new Date(p.dueDate);
+                return p.storeId === storeId && 
+                       p.category === catId && 
+                       p.specificType.startsWith(item.code) &&
+                       pDate.getMonth() === currentMonth &&
+                       pDate.getFullYear() === currentYear;
+            });
+
+            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+            const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
+            const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
+
+            if (hasRejected || hasOverdue) {
+                hasRed = true;
+                allGreen = false;
+            } else if (!hasApprovedOrPending) {
+                allGreen = false;
+                if (status.status === 'Vencido') {
+                    hasRed = true;
+                }
+            }
+        });
+    });
+
+    if (hasRed) return 'red';
+    if (hasItems && allGreen) return 'green';
+    return 'slate';
+  }, [payments]);
+
   const taxStatusList = React.useMemo(() => {
     const config = getTaxConfig(category);
     if (!config) return [];
@@ -1201,24 +1259,46 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         ].map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
+                            const trafficLight = getCategoryTrafficLight(cat.id, store);
+                            
+                            let trafficClasses = '';
+                            let iconClasses = '';
+                            let textClasses = '';
+                            
+                            if (trafficLight === 'red') {
+                                trafficClasses = isSelected 
+                                    ? 'border-red-500 bg-red-500/10 text-red-900 dark:text-red-100 shadow-[0_0_20px_rgba(239,68,68,0.15)]' 
+                                    : 'border-red-500/50 bg-red-500/5 text-red-700 dark:text-red-400 hover:border-red-500 hover:bg-red-500/10';
+                                iconClasses = isSelected ? 'bg-red-500 text-white shadow-red-500/20 scale-110' : 'bg-red-500/20 text-red-500 group-hover:bg-red-500/30';
+                                textClasses = isSelected ? 'text-red-900 dark:text-red-100' : 'text-red-700 dark:text-red-400 group-hover:text-red-500';
+                            } else if (trafficLight === 'green') {
+                                trafficClasses = isSelected 
+                                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.15)]' 
+                                    : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 hover:border-emerald-500 hover:bg-emerald-500/10';
+                                iconClasses = isSelected ? 'bg-emerald-500 text-white shadow-emerald-500/20 scale-110' : 'bg-emerald-500/20 text-emerald-500 group-hover:bg-emerald-500/30';
+                                textClasses = isSelected ? 'text-emerald-900 dark:text-emerald-100' : 'text-emerald-700 dark:text-emerald-400 group-hover:text-emerald-500';
+                            } else {
+                                trafficClasses = isSelected 
+                                    ? 'border-brand-500 bg-brand-500/10 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
+                                    : 'border-slate-200 dark:border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800';
+                                iconClasses = isSelected ? 'bg-brand-500 text-slate-900 dark:text-white shadow-brand-500/20 scale-110' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300';
+                                textClasses = isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 group-hover:text-slate-300';
+                            }
+
                             return (
                                 <button
                                     key={cat.id}
                                     type="button"
                                     disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
-                                    className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${
-                                        isSelected 
-                                        ? 'border-brand-500 bg-brand-500/10 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
-                                        : 'border-slate-200 dark:border-slate-800 bg-slate-900/50 text-slate-500 hover:border-slate-700 hover:bg-slate-800'
-                                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${trafficClasses} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${isSelected ? 'bg-brand-500 text-slate-900 dark:text-white shadow-lg shadow-brand-500/20 scale-110' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}`}>
+                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${iconClasses}`}>
                                         <Icon size={20} />
                                     </div>
-                                    <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{cat.label}</span>
+                                    <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${textClasses}`}>{cat.label}</span>
                                     {isSelected && (
-                                        <div className="absolute top-2 right-2 text-brand-400 animate-in zoom-in duration-300">
+                                        <div className={`absolute top-2 right-2 animate-in zoom-in duration-300 ${trafficLight === 'red' ? 'text-red-500' : trafficLight === 'green' ? 'text-emerald-500' : 'text-brand-400'}`}>
                                             <CheckCircle2 size={14} />
                                         </div>
                                     )}
