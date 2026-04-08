@@ -47,7 +47,7 @@ function App({}: AppProps = {}) {
   }, []);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = useState('payments');
+  const [currentView, setCurrentView] = useState('dashboard');
 
   // --- MOBILE & PWA STATE ---
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -369,7 +369,7 @@ function App({}: AppProps = {}) {
                            currentUser.role === Role.AUDITOR;
 
       const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
-        firestoreService.getPayments(isGlobalUser ? 1000 : PAGE_SIZE),
+        firestoreService.getPayments(PAGE_SIZE),
         firestoreService.getEmployees(PAGE_SIZE),
         firestoreService.getPayrollEntries(PAGE_SIZE),
         firestoreService.getBudgets(),
@@ -902,6 +902,23 @@ function App({}: AppProps = {}) {
     }
 
     switch (currentView) {
+      case 'dashboard':
+        return (
+          <Dashboard 
+            payments={filteredPayments}
+            payrollEntries={filteredPayrollEntries}
+            onNewPayment={() => setCurrentView('payments')}
+            onEditPayment={(payment) => {
+              setEditingPayment(payment);
+              setCurrentView('payments');
+            }}
+            onPaymentSuccess={handlePaymentSuccess}
+            currentUser={currentUser}
+            onLoadMore={loadMorePayments}
+            hasMore={hasMorePayments}
+            isLoadingMore={isLoading}
+          />
+        );
       case 'payments':
         const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
         return (

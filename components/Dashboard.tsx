@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { FixedSizeList } from 'react-window';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -20,7 +21,8 @@ import {
   Download,
   ChevronUp,
   ChevronDown,
-  ArrowUpDown
+  ArrowUpDown,
+  Loader2
 } from 'lucide-react';
 import { Payment, PaymentStatus, PayrollEntry, Role, User } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
@@ -34,6 +36,9 @@ interface DashboardProps {
   onEditPayment: (payment: Payment) => void;
   onPaymentSuccess: (paymentId: string) => void;
   currentUser?: User | null;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
@@ -42,7 +47,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNewPayment, 
   onEditPayment,
   onPaymentSuccess,
-  currentUser
+  currentUser,
+  onLoadMore,
+  hasMore,
+  isLoadingMore
 }) => {
   const [filter, setFilter] = React.useState<'all' | 'pending' | 'overdue' | 'approved' | 'rejected'>('all');
   const [paymentToPay, setPaymentToPay] = React.useState<Payment | null>(null);
@@ -573,82 +581,112 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-slate-500 dark:text-slate-400 font-medium">No hay pagos en esta categoría.</p>
              </div>
           ) : (
-            filteredPayments.map((payment) => (
-              <div 
-                key={payment.id} 
-                className={`p-4 rounded-2xl shadow-sm border flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4 transition-colors ${
-                  payment.status === PaymentStatus.REJECTED 
-                    ? 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800 hover:border-pink-300 dark:hover:border-pink-700' 
-                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800'
-                }`}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+              <FixedSizeList
+                height={Math.min(filteredPayments.length * 100, 600)}
+                itemCount={filteredPayments.length}
+                itemSize={100}
+                width="100%"
+                className="scrollbar-hide"
               >
-                <div className="col-span-4 flex items-center gap-4">
-                  <div className={`w-12 h-12 ${getBgForType(payment.specificType)} rounded-xl flex items-center justify-center shrink-0`}>
-                    {getIconForType(payment.specificType)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-slate-950 dark:text-slate-50 truncate">{payment.specificType}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs truncate">{payment.storeName}</p>
-                  </div>
-                </div>
-                
-                <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{payment.paymentDate ? formatDate(payment.paymentDate) : '---'}</p>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Pago</p>
-                </div>
+                {({ index, style }) => {
+                  const payment = filteredPayments[index];
+                  return (
+                    <div style={style} className="px-4 py-2">
+                      <div 
+                        className={`p-3 h-full rounded-xl shadow-sm border flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4 transition-colors ${
+                          payment.status === PaymentStatus.REJECTED 
+                            ? 'bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800 hover:border-pink-300 dark:hover:border-pink-700' 
+                            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800'
+                        }`}
+                      >
+                        <div className="col-span-4 flex items-center gap-3 overflow-hidden">
+                          <div className={`w-10 h-10 ${getBgForType(payment.specificType)} rounded-lg flex items-center justify-center shrink-0`}>
+                            {getIconForType(payment.specificType)}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-slate-950 dark:text-slate-50 truncate text-sm">{payment.specificType}</h3>
+                            <p className="text-slate-600 dark:text-slate-400 text-[10px] truncate">{payment.storeName}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="col-span-2 hidden sm:block">
+                          <p className="text-slate-950 dark:text-slate-50 text-xs font-medium">{payment.paymentDate ? formatDate(payment.paymentDate) : '---'}</p>
+                          <p className="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Pago</p>
+                        </div>
 
-                <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Envío</p>
-                </div>
+                        <div className="col-span-2 hidden sm:block">
+                          <p className="text-slate-950 dark:text-slate-50 text-xs font-medium">{formatDate(payment.submittedDate || payment.dueDate)}</p>
+                          <p className="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Envío</p>
+                        </div>
 
-                <div className="col-span-2 hidden sm:block">
-                  <p className="text-slate-950 dark:text-slate-50 text-sm font-medium">{formatDate(payment.dueDate)}</p>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Vencimiento</p>
-                </div>
+                        <div className="col-span-2 hidden sm:block">
+                          <p className="text-slate-950 dark:text-slate-50 text-xs font-medium">{formatDate(payment.dueDate)}</p>
+                          <p className="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">Vencimiento</p>
+                        </div>
 
-                <div className="col-span-2 flex flex-col items-end gap-1 w-full sm:w-auto">
-                    <span className="font-bold text-lg text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                          payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                          {payment.status === PaymentStatus.REJECTED ? 'Devuelto para Corrección' : payment.status}
-                      </span>
-                      {payment.status === PaymentStatus.REJECTED && payment.rejectionReason && (
-                        <p className="text-[10px] text-pink-600 dark:text-pink-400 italic max-w-[200px] text-right">
-                          Obs: {payment.rejectionReason}
-                        </p>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        {payment.status === PaymentStatus.REJECTED && (
-                          <button 
-                            onClick={() => onEditPayment(payment)}
-                            className="text-[10px] bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded-lg font-bold transition-all active:scale-95 flex items-center gap-1"
-                          >
-                            <RefreshCw size={10} />
-                            Corregir Ahora
-                          </button>
-                        )}
-                        {payment.status === PaymentStatus.APPROVED && (
-                          <button 
-                            onClick={() => setPaymentToPay(payment)}
-                            className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold transition-all active:scale-95 flex items-center gap-1"
-                          >
-                            <Wallet size={10} />
-                            Pagar Ahora
-                          </button>
-                        )}
+                        <div className="col-span-2 flex flex-col items-end gap-0.5 w-full sm:w-auto">
+                            <span className="font-bold text-sm text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                  payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                  payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                  payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
+                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              }`}>
+                                  {payment.status === PaymentStatus.REJECTED ? 'Devuelto' : payment.status}
+                              </span>
+                              <div className="flex gap-1">
+                                {payment.status === PaymentStatus.REJECTED && (
+                                  <button 
+                                    onClick={() => onEditPayment(payment)}
+                                    className="p-1 bg-pink-600 hover:bg-pink-700 text-white rounded-md transition-all active:scale-95"
+                                    title="Corregir Ahora"
+                                  >
+                                    <RefreshCw size={10} />
+                                  </button>
+                                )}
+                                {payment.status === PaymentStatus.APPROVED && (
+                                  <button 
+                                    onClick={() => setPaymentToPay(payment)}
+                                    className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-all active:scale-95"
+                                    title="Pagar Ahora"
+                                  >
+                                    <Wallet size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                        </div>
                       </div>
                     </div>
-                </div>
-              </div>
-            ))
+                  );
+                }}
+              </FixedSizeList>
+            </div>
+          )}
+
+          {hasMore && onLoadMore && (
+            <div className="flex justify-center mt-6">
+              <button 
+                onClick={onLoadMore}
+                disabled={isLoadingMore}
+                className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} />
+                    Cargar más transacciones
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>
