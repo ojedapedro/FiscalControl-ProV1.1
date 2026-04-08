@@ -854,9 +854,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                 hasRed = true;
                 allGreen = false;
             } else if (!hasApprovedOrPending) {
-                allGreen = false;
                 if (status.status === 'Vencido') {
                     hasRed = true;
+                    allGreen = false;
+                } else if (status.status === 'Próximo') {
+                    allGreen = false;
                 }
             }
         });
@@ -870,11 +872,55 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const taxStatusList = React.useMemo(() => {
     const config = getTaxConfig(category);
     if (!config) return [];
-    return Object.entries(config).map(([key, config]) => {
-        const status = getTaxStatus(config.deadlineDay);
-        return { key, label: config.label, ...status };
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return Object.entries(config).map(([key, groupConfig]) => {
+        let hasRed = false;
+        let allGreen = true;
+        let hasYellow = false;
+        
+        const baseStatus = getTaxStatus(groupConfig.deadlineDay);
+
+        groupConfig.items.forEach(item => {
+            const itemPayments = payments.filter(p => {
+                const pDate = new Date(p.dueDate);
+                return p.storeId === store && 
+                       p.category === category && 
+                       p.specificType.startsWith(item.code) &&
+                       pDate.getMonth() === currentMonth &&
+                       pDate.getFullYear() === currentYear;
+            });
+
+            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+            const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
+            const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
+
+            if (hasRejected || hasOverdue) {
+                hasRed = true;
+                allGreen = false;
+            } else if (!hasApprovedOrPending) {
+                if (baseStatus.status === 'Vencido') {
+                    hasRed = true;
+                    allGreen = false;
+                } else if (baseStatus.status === 'Próximo') {
+                    hasYellow = true;
+                    allGreen = false;
+                }
+            }
+        });
+
+        if (hasRed) {
+            return { key, label: groupConfig.label, color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
+        } else if (hasYellow) {
+            return { key, label: groupConfig.label, color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Próximo', icon: Clock };
+        } else {
+            return { key, label: groupConfig.label, color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
+        }
     });
-  }, [category]);
+  }, [category, store, payments]);
 
   const specificItemStatusList = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -887,18 +933,31 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const currentYear = now.getFullYear();
 
     return groupConfig.items.map(item => {
-      // Verificar si ya existe un pago para este concepto en esta tienda para el mes actual
-      const existingPayment = payments.find(p => {
+      const itemPayments = payments.filter(p => {
         const pDate = new Date(p.dueDate);
         return p.storeId === store && 
                p.category === category && 
                p.specificType.startsWith(item.code) &&
                pDate.getMonth() === currentMonth &&
-               pDate.getFullYear() === currentYear &&
-               (p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
+               pDate.getFullYear() === currentYear;
       });
 
-      if (existingPayment) {
+      const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+      const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
+      const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
+
+      if (hasRejected || hasOverdue) {
+        return { 
+          ...item, 
+          color: 'bg-red-500', 
+          text: 'text-red-600', 
+          bgSoft: 'bg-red-100', 
+          status: 'Vencido', 
+          icon: AlertCircle 
+        };
+      }
+
+      if (hasApprovedOrPending) {
         return { 
           ...item, 
           color: 'bg-emerald-500', 
