@@ -777,10 +777,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       
       {/* Top Banner for Rejected Payments */}
       {initialData?.status === PaymentStatus.REJECTED && (
-        <div className="mb-10 -mx-6 lg:-mx-10 xl:-mx-12 -mt-6 lg:-mt-10 xl:-mt-12 p-4 bg-red-600 text-white text-center text-sm font-black uppercase tracking-[0.3em] rounded-t-2xl flex items-center justify-center gap-4 shadow-xl shadow-red-500/20 border-b border-red-500">
-          <AlertTriangle size={20} className="animate-pulse" />
+        <div 
+          role="alert" 
+          aria-live="assertive"
+          className="mb-10 -mx-6 lg:-mx-10 xl:-mx-12 -mt-6 lg:-mt-10 xl:-mt-12 p-4 bg-red-600 text-white text-center text-sm font-black uppercase tracking-[0.3em] rounded-t-2xl flex items-center justify-center gap-4 shadow-xl shadow-red-500/20 border-b border-red-500"
+        >
+          <AlertTriangle size={20} className="animate-pulse" aria-hidden="true" />
           <span>Atención: Este pago requiere correcciones inmediatas</span>
-          <AlertTriangle size={20} className="animate-pulse" />
+          <AlertTriangle size={20} className="animate-pulse" aria-hidden="true" />
         </div>
       )}
 
@@ -998,15 +1002,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     type="button"
                                     disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
+                                    aria-pressed={isSelected}
+                                    aria-label={`${cat.label} - Estado: ${trafficLight === 'red' ? 'Vencido' : 'Al día'}`}
                                     className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${trafficClasses} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${iconClasses}`}>
+                                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${iconClasses}`} aria-hidden="true">
                                         <Icon size={20} />
                                     </div>
                                     <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${textClasses}`}>{cat.label}</span>
+                                    <span className="sr-only">
+                                        {trafficLight === 'red' ? 'Esta categoría tiene obligaciones vencidas' : 'Categoría al día'}
+                                    </span>
                                     {isSelected && (
                                         <div className={`absolute top-2 right-2 animate-in zoom-in duration-300 ${trafficLight === 'red' ? 'text-red-500' : trafficLight === 'green' ? 'text-emerald-500' : 'text-brand-400'}`}>
-                                            <CheckCircle2 size={14} />
+                                            <CheckCircle2 size={14} aria-hidden="true" />
                                         </div>
                                     )}
                                 </button>
@@ -1047,11 +1056,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Seleccione Rubro a Pagar</label>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{taxStatusList.length} Rubros Disponibles</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                                <div 
+                                    role="listbox"
+                                    aria-label="Seleccione Rubro a Pagar"
+                                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2"
+                                >
                                     {taxStatusList.map((item) => (
                                         <button
                                             key={item.key}
                                             type="button"
+                                            role="option"
+                                            aria-selected={taxGroup === item.key}
                                             onClick={() => {
                                                 setTaxGroup(item.key);
                                                 setTaxItem('');
@@ -1067,13 +1082,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             }`}
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className={`w-3.5 h-3.5 rounded-full shadow-md ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                <div 
+                                                    className={`w-3.5 h-3.5 rounded-full shadow-md ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}
+                                                    aria-label={`Estado: ${item.status}`}
+                                                ></div>
                                                 <span className={`text-xs font-black uppercase tracking-tight ${taxGroup === item.key ? 'text-brand-600 dark:text-brand-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                                     {item.label.split(' ').slice(1, 5).join(' ')}
                                                 </span>
                                             </div>
                                             <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1.5 ${item.bgSoft} ${item.text} border border-current/10`}>
-                                                <item.icon size={10} />
+                                                <item.icon size={10} aria-hidden="true" />
                                                 <span className="hidden sm:inline uppercase tracking-tighter">{item.status}</span>
                                             </div>
                                         </button>
@@ -1102,6 +1120,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                     <button
                                                         key={item.code}
                                                         type="button"
+                                                        role="option"
+                                                        aria-selected={taxItem === item.code}
                                                         disabled={isSubmitting}
                                                         onClick={() => {
                                                             setTaxGroup(group.groupKey);
@@ -1115,7 +1135,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                     >
                                                         <div className="flex items-center justify-between mb-3">
                                                             <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${item.bgSoft} ${item.text} flex items-center gap-1.5 border border-current/10 uppercase tracking-tighter`}>
-                                                                <item.icon size={12} />
+                                                                <item.icon size={12} aria-hidden="true" />
                                                                 {item.status}
                                                             </span>
                                                             <span className="text-[10px] font-black font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">{item.code}</span>
@@ -1149,13 +1169,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                                                     : 'bg-amber-50 text-amber-600 border-amber-200'
                                                                                 }`}
                                                                             >
-                                                                                <div className={`w-1 h-1 rounded-full ${
-                                                                                    p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID
-                                                                                    ? 'bg-emerald-500'
-                                                                                    : p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE
-                                                                                    ? 'bg-red-500'
-                                                                                    : 'bg-amber-500'
-                                                                                }`}></div>
+                                                                                <div 
+                                                                                    className={`w-1 h-1 rounded-full ${
+                                                                                        p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID
+                                                                                        ? 'bg-emerald-500'
+                                                                                        : p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE
+                                                                                        ? 'bg-red-500'
+                                                                                        : 'bg-amber-500'
+                                                                                    }`}
+                                                                                    aria-label={`Estado del pago: ${p.status}`}
+                                                                                ></div>
                                                                                 {p.status}
                                                                             </div>
                                                                         ))}
@@ -1163,7 +1186,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                        <div 
+                                                            className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}
+                                                            aria-label={`Estado de la obligación: ${item.status}`}
+                                                        ></div>
                                                     </button>
                                                 ))}
                                             </div>
@@ -1310,11 +1336,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <input
                                         type="date"
                                         value={paymentDate}
+                                        aria-label="Fecha de Pago"
                                         disabled={isSubmitting}
                                         onChange={(e) => handlePaymentDateChange(e.target.value)}
                                         className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
                                 {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter mb-4">{errors.paymentDate}</p>}
 
@@ -1325,11 +1352,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <input
                                             type="date"
                                             value={dueDate}
+                                            aria-label="Fecha de Vencimiento"
                                             disabled={isSubmitting}
                                             onChange={(e) => handleDueDateChange(e.target.value)}
                                             className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                         />
-                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                     </div>
                                     {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
                                     {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
@@ -1346,6 +1374,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <div className="relative group">
                                     <select
                                         value={frequency}
+                                        aria-label="Frecuencia de Pago"
                                         disabled={isSubmitting}
                                         onChange={(e) => {
                                             const newFreq = e.target.value as PaymentFrequency;
@@ -1363,8 +1392,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <option key={key} value={value} className="bg-slate-50 dark:bg-slate-900">{value}</option>
                                         ))}
                                     </select>
-                                    <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} />
+                                    <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} aria-hidden="true" />
                                 </div>
                             </div>
 
