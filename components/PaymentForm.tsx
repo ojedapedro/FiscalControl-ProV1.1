@@ -1220,9 +1220,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         </div>
                     )}
 
-                    <div className="space-y-8">
+                    <div className="space-y-10">
+                        {/* Row 1: Description */}
                         <div>
-                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Descripción del Pago</label>
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Descripción del Pago</label>
                             <div className="relative group">
                                 <input
                                     type="text"
@@ -1230,140 +1231,119 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     value={specificType}
                                     readOnly={(!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`w-full bg-[#0a0c10] border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
-                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} />
                             </div>
                             {errors.specificType && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.specificType}</p>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                            {/* Amount */}
-                            <div className="md:col-span-1">
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Total (Bs.)</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0.00"
-                                        value={amount}
-                                        readOnly={!isManualOverride}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        className={`w-full ${!isManualOverride ? 'bg-slate-900/50 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950/50'} border ${
-                                            isOverBudget 
-                                                ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
-                                                : errors.amount ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'
-                                        } text-slate-900 dark:text-white text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all`}
-                                    />
-                                    {isOverBudget && (
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
-                                            <AlertTriangle size={20} />
-                                        </div>
-                                    )}
-                                </div>
-                                {parseFloat(amount) === 0 && !!getTaxConfig(category) && (
-                                    <p className="text-[10px] font-black text-emerald-500 uppercase mt-2 ml-1 tracking-tighter flex items-center gap-1 animate-in fade-in slide-in-from-left-1">
-                                        <CheckCircle2 size={10} /> Trámite Exonerado / Pago Cero
-                                    </p>
-                                )}
-                                {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
-                                
-                                {effectiveExchangeRate !== undefined && (
-                                    <div className="mt-3 p-3 bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-800/80 overflow-hidden shadow-inner">
-                                        <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
-                                            <DollarSign size={16} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Equivalente en $</p>
-                                                <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-slate-50 dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
-                                            </div>
-                                            <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                                <p className="text-sm sm:text-base font-black text-emerald-300 tabular-nums break-all">
-                                                    $ {(parseFloat(amount || '0') / effectiveExchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </p>
-                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {isOverBudget && (
-                                    <div className="mt-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
-                                        <div className="text-[11px] text-amber-200/80 font-medium leading-relaxed">
-                                            <p className="font-black mb-1 uppercase tracking-widest text-amber-400">Excedente de Presupuesto</p>
-                                            Excede por ${ ((parseFloat(amount || '0') / effectiveExchangeRate) - (expectedBudget || 0)).toLocaleString() } (Bs. { (parseFloat(amount || '0') - ((expectedBudget || 0) * effectiveExchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2 }) }).
-                                        </div>
-                                    </div>
-                                )}
-
-
-                            </div>
-
-                            {/* Financial Details Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                {/* Fecha de vencimiento */}
+                        {/* Row 2: Financial Grid */}
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                            
+                            {/* Column 1: Amount & Equivalent */}
+                            <div className="xl:col-span-3 space-y-5">
                                 <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha de vencimiento</label>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
                                     <div className="relative group">
-                                        <input
-                                            type="date"
-                                            value={dueDate}
-                                            aria-label="Fecha de Vencimiento"
-                                            disabled={isSubmitting}
-                                            onChange={(e) => handleDueDateChange(e.target.value)}
-                                            className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
-                                        />
-                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
-                                    </div>
-                                    {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
-                                    {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
-                                        <p className="text-[10px] font-black text-brand-500 uppercase tracking-tighter mt-2 ml-1">
-                                            Próximo: {formatDate(calculateNextDueDate(dueDate, frequency))}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Dias a Vencer */}
-                                <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Dias a Vencer</label>
-                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-700 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
                                         <input
                                             type="number"
-                                            placeholder="0"
-                                            value={daysToExpire}
-                                            disabled={isSubmitting}
-                                            onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                            className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={amount}
+                                            readOnly={!isManualOverride}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className={`w-full ${!isManualOverride ? 'bg-[#0a0c10]/60 cursor-not-allowed' : 'bg-[#0a0c10]'} border ${
+                                                isOverBudget 
+                                                    ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
+                                                    : errors.amount ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'
+                                            } text-slate-200 text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all`}
                                         />
-                                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                        {isOverBudget && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
+                                                <AlertTriangle size={20} />
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mt-2 ml-1">Lapsos de vencimiento</p>
+                                    {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 </div>
 
-                                {/* Alerta */}
-                                <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Alerta</label>
-                                    <div className="relative group">
-                                        <input
-                                            type="date"
-                                            value={paymentDate}
-                                            aria-label="Alerta"
-                                            disabled={isSubmitting}
-                                            onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                            className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
-                                        />
-                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                {effectiveExchangeRate !== undefined && (
+                                    <div className="p-4 bg-emerald-500/[0.03] border border-emerald-500/20 rounded-2xl flex items-center gap-4 group/conv transition-all hover:bg-emerald-500/[0.06] overflow-hidden relative shadow-inner">
+                                        <div className="p-2 bg-emerald-500/10 text-emerald-500/80 rounded-xl shrink-0">
+                                            <DollarSign size={18} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
+                                                <span className="text-[8px] font-black text-slate-950 bg-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Actual</span>
+                                            </div>
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <p className="text-2xl font-black text-emerald-400 tabular-nums">
+                                                    $ {(parseFloat(amount || '0') / effectiveExchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </p>
+                                                <p className="text-[9px] font-bold text-slate-600 tabular-nums">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
-                                </div>
+                                )}
                             </div>
 
-                            {/* Frequency */}
-                            <div className="mb-4">
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Frecuencia</label>
+                            {/* Column 2: Due Date */}
+                            <div className="xl:col-span-2">
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={dueDate}
+                                        aria-label="Fecha de Vencimiento"
+                                        disabled={isSubmitting}
+                                        onChange={(e) => handleDueDateChange(e.target.value)}
+                                        className={`w-full bg-[#0a0c10] border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                    />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                </div>
+                                {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
+                            </div>
+
+                            {/* Column 3: Days to Expire */}
+                            <div className="xl:col-span-2">
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
+                                <div className="relative group">
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={daysToExpire}
+                                        disabled={isSubmitting}
+                                        onChange={(e) => handleDaysToExpireChange(e.target.value)}
+                                        className="w-full bg-[#0a0c10] border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                    />
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                </div>
+                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
+                            </div>
+
+                            {/* Column 4: Alert */}
+                            <div className="xl:col-span-2">
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={paymentDate}
+                                        aria-label="Alerta"
+                                        disabled={isSubmitting}
+                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
+                                        className={`w-full bg-[#0a0c10] border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                    />
+                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                </div>
+                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
+                            </div>
+
+                            {/* Column 5: Frequency */}
+                            <div className="xl:col-span-3">
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
                                 <div className="relative group">
                                     <select
                                         value={frequency}
@@ -1379,13 +1359,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 setDaysToExpire('');
                                             }
                                         }}
-                                        className="w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                                        className="w-full appearance-none bg-[#0a0c10] border border-slate-800 text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                         {Object.entries(PaymentFrequency).map(([key, value]) => (
-                                            <option key={key} value={value} className="bg-slate-50 dark:bg-slate-900">{value}</option>
+                                            <option key={key} value={value} className="bg-slate-900">{value}</option>
                                         ))}
                                     </select>
-                                    <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                    <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} aria-hidden="true" />
                                 </div>
                             </div>
