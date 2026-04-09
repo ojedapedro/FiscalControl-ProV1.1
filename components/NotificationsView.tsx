@@ -19,12 +19,11 @@ import {
   RefreshCw,
   Send
 } from 'lucide-react';
-import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus, User, Store, Role } from '../types';
+import { AlertItem, AlertSeverity, SystemSettings, Payment, PaymentStatus, User } from '../types';
 import { api } from '../services/api';
 import { firestoreService } from '../services/firestoreService';
 import { notificationService } from '../services/notificationService';
 import { formatTime } from '../src/utils';
-import { Building2, ChevronDown as ChevronDownIcon } from 'lucide-react';
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -33,8 +32,6 @@ interface NotificationsViewProps {
   onRefresh?: () => Promise<void> | void; // Callback para actualizar datos
   users?: User[];
   settings?: SystemSettings | null;
-  currentUser?: User | null;
-  stores?: Store[];
 }
 
 const ITEMS_PER_PAGE = 6;
@@ -46,12 +43,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   onManage, 
   onRefresh,
   users = [],
-  settings = null,
-  currentUser,
-  stores = []
+  settings = null
 }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(currentUser?.storeId || 'all');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -149,11 +143,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const filteredPayments = selectedStoreId === 'all' 
-      ? payments 
-      : payments.filter(p => p.storeId === selectedStoreId);
-
-    return filteredPayments
+    return payments
       .filter(p => p.status !== PaymentStatus.APPROVED && p.status !== PaymentStatus.REJECTED) // Solo pendientes/vencidos/cargados
       .map(p => {
         const effectiveDueDate = customExpirations[p.id] || p.dueDate;
@@ -208,7 +198,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
           // Si tienen misma severidad, por fecha
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
-  }, [payments, config.daysBeforeWarning, customExpirations, sortBy, selectedStoreId]);
+  }, [payments, config.daysBeforeWarning, customExpirations, sortBy]);
 
   // Reset pagination when filter changes
   useEffect(() => {
@@ -613,31 +603,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                 </div>
             </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-            {currentUser?.role === Role.ADMIN && (
-              <div className="relative group">
-                <select
-                  value={selectedStoreId}
-                  onChange={(e) => setSelectedStoreId(e.target.value)}
-                  className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block py-2.5 pl-10 pr-10 transition-all outline-none cursor-pointer shadow-sm"
-                >
-                  <option value="all">Todas las Tiendas</option>
-                  {stores.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-              </div>
-            )}
-            <button 
-                onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg"
-            >
-                <Settings size={18} />
-                <span>Configurar</span>
-            </button>
-        </div>
+        <button 
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg"
+        >
+            <Settings size={18} />
+            <span>Configurar Automatización</span>
+        </button>
       </header>
 
       {/* Filters & Sorting */}
@@ -693,12 +665,12 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                 {visibleAlerts.map((alert) => (
                     <div key={alert.id} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow group relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Status Strip */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${alert.severity === 'critical' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
 
                         <div className="flex-1 flex gap-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                                 alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' :
-                                'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600'
+                                'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
                             }`}>
                                 {getSeverityIcon(alert.severity)}
                             </div>
@@ -711,7 +683,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <p className={`text-sm font-medium ${
-                                        alert.severity === 'critical' ? 'text-red-600' : 'text-emerald-600'
+                                        alert.severity === 'critical' ? 'text-red-600' : 'text-blue-600'
                                     }`}>
                                         {alert.timeLabel}
                                     </p>

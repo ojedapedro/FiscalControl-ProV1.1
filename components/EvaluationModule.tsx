@@ -284,9 +284,9 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
                         <div key={idx} className="flex items-start gap-3 group/step">
                           <div className="flex flex-col items-center">
                             <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                              log.action === 'APROBACION' || log.action === 'APROBACION_MASIVA' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                              log.action === 'APROBACION' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
                               log.action === 'RECHAZO' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 
-                              log.action === 'CORRECCION' ? 'bg-amber-500' : 'bg-slate-400'
+                              log.action === 'CORRECCION' ? 'bg-blue-500' : 'bg-slate-400'
                             }`} />
                             {idx < e.fullHistory.length - 1 && <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 my-1" />}
                           </div>
@@ -324,7 +324,7 @@ export const EvaluationModule: React.FC<EvaluationModuleProps> = ({ payments }) 
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${e.efficiencyScore > 80 ? 'bg-emerald-500' : e.efficiencyScore > 50 ? 'bg-amber-500' : 'bg-red-500'}`} />
+                      <div className={`w-2 h-2 rounded-full ${e.efficiencyScore > 80 ? 'bg-green-500' : e.efficiencyScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`} />
                       <span className="font-bold text-slate-900 dark:text-white">{e.efficiencyScore}</span>
                     </div>
                   </td>

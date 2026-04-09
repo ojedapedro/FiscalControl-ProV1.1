@@ -110,14 +110,14 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
     { 
       name: 'En Regla', 
       value: dynamicStores.filter(s => s.status === 'En Regla').length, 
-      color: '#10b981', // emerald-500
-      textColor: 'text-emerald-600'
+      color: '#22c55e', // green-500
+      textColor: 'text-green-600'
     },
     { 
       name: 'En Riesgo', 
       value: dynamicStores.filter(s => s.status === 'En Riesgo').length, 
-      color: '#f59e0b', // amber-500
-      textColor: 'text-amber-600'
+      color: '#eab308', // yellow-500
+      textColor: 'text-yellow-600'
     },
     { 
       name: 'Vencido', 
@@ -231,8 +231,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
                                    <p className="text-[10px] text-slate-400">{store.location}</p>
                                </div>
                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                    store.status === 'En Regla' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                    store.status === 'En Riesgo' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                    store.status === 'En Regla' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                    store.status === 'En Riesgo' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
                                     'bg-red-500/10 text-red-400 border-red-500/20'
                                 }`}>
                                     {store.status}
@@ -262,8 +262,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
                                <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
                                    <div 
                                        className={`h-full transition-all duration-500 ${
-                                           store.status === 'En Regla' ? 'bg-emerald-500' : 
-                                           store.status === 'En Riesgo' ? 'bg-amber-500' : 'bg-red-500'
+                                           store.status === 'En Regla' ? 'bg-green-500' : 
+                                           store.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
                                        }`}
                                        style={{ width: `${Math.round((store.stats.totalPaid / (store.stats.totalPaid + store.stats.totalPending || 1)) * 100)}%` }}
                                    ></div>
@@ -320,8 +320,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                                         store.status === 'Vencido' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' : 
-                                        store.status === 'En Riesgo' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600' : 
-                                        'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600'
+                                        store.status === 'En Riesgo' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' : 
+                                        'bg-blue-100 dark:bg-blue-900/20 text-blue-600'
                                     }`}>
                                         <MapPin size={18} />
                                     </div>
@@ -345,8 +345,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
                                     </div>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                    store.status === 'En Regla' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900' :
-                                    store.status === 'En Riesgo' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900' :
+                                    store.status === 'En Regla' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900' :
+                                    store.status === 'En Riesgo' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900' :
                                     'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900'
                                 }`}>
                                     {store.status}
@@ -357,8 +357,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
                                 <span className="text-slate-500 dark:text-slate-400">Próximo cierre:</span>
                                 <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200">
                                     {store.nextDeadline}
-                                    {store.status === 'En Regla' && <CheckCircle2 size={14} className="text-emerald-500" />}
-                                    {store.status === 'En Riesgo' && <AlertTriangle size={14} className="text-amber-500" />}
+                                    {store.status === 'En Regla' && <CheckCircle2 size={14} className="text-green-500" />}
+                                    {store.status === 'En Riesgo' && <AlertTriangle size={14} className="text-yellow-500" />}
                                     {store.status === 'Vencido' && <XCircle size={14} className="text-red-500" />}
                                 </div>
                             </div>
