@@ -969,8 +969,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
                             const rawTrafficLight = getCategoryTrafficLight(cat.id, store, payments);
-                            // Map amber to green as per user request: "Si tienes alguna tarjeta de categoría fiscal vencida, cámbiala a rojo. En caso contrario, va a quedar en verde."
-                            const trafficLight = rawTrafficLight === 'red' ? 'red' : (rawTrafficLight === 'slate' ? 'slate' : 'green');
+                            const trafficLight = rawTrafficLight;
                             
                             let trafficClasses = '';
                             let iconClasses = '';
@@ -982,6 +981,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     : 'border-red-500/50 bg-red-500/5 text-red-700 dark:text-red-400 hover:border-red-500 hover:bg-red-500/10';
                                 iconClasses = isSelected ? 'bg-red-500 text-white shadow-red-500/20 scale-110' : 'bg-red-500/20 text-red-500 group-hover:bg-red-500/30';
                                 textClasses = isSelected ? 'text-red-900 dark:text-red-100' : 'text-red-700 dark:text-red-400 group-hover:text-red-500';
+                            } else if (trafficLight === 'amber') {
+                                trafficClasses = isSelected 
+                                    ? 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.15)]' 
+                                    : 'border-amber-500/50 bg-amber-500/5 text-amber-700 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-500/10';
+                                iconClasses = isSelected ? 'bg-amber-500 text-white shadow-amber-500/20 scale-110' : 'bg-amber-500/20 text-amber-500 group-hover:bg-amber-500/30';
+                                textClasses = isSelected ? 'text-amber-900 dark:text-amber-100' : 'text-amber-700 dark:text-amber-400 group-hover:text-amber-500';
                             } else if (trafficLight === 'green') {
                                 trafficClasses = isSelected 
                                     ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.15)]' 
@@ -1003,7 +1008,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     disabled={isSubmitting}
                                     onClick={() => setCategory(cat.id)}
                                     aria-pressed={isSelected}
-                                    aria-label={`${cat.label} - Estado: ${trafficLight === 'red' ? 'Vencido' : 'Al día'}`}
+                                    aria-label={`${cat.label} - Estado: ${trafficLight === 'red' ? 'Vencido' : trafficLight === 'amber' ? 'Pendiente' : 'Al día'}`}
                                     className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${trafficClasses} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <div className={`p-2.5 rounded-xl transition-all duration-300 ${iconClasses}`} aria-hidden="true">
@@ -1011,10 +1016,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     </div>
                                     <span className={`text-[11px] font-black uppercase tracking-tighter transition-colors ${textClasses}`}>{cat.label}</span>
                                     <span className="sr-only">
-                                        {trafficLight === 'red' ? 'Esta categoría tiene obligaciones vencidas' : 'Categoría al día'}
+                                        {trafficLight === 'red' ? 'Esta categoría tiene obligaciones vencidas' : trafficLight === 'amber' ? 'Esta categoría tiene obligaciones pendientes' : 'Categoría al día'}
                                     </span>
                                     {isSelected && (
-                                        <div className={`absolute top-2 right-2 animate-in zoom-in duration-300 ${trafficLight === 'red' ? 'text-red-500' : trafficLight === 'green' ? 'text-emerald-500' : 'text-brand-400'}`}>
+                                        <div className={`absolute top-2 right-2 animate-in zoom-in duration-300 ${trafficLight === 'red' ? 'text-red-500' : trafficLight === 'amber' ? 'text-amber-500' : trafficLight === 'green' ? 'text-emerald-500' : 'text-brand-400'}`}>
                                             <CheckCircle2 size={14} aria-hidden="true" />
                                         </div>
                                     )}
