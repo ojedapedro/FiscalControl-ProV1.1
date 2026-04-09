@@ -589,7 +589,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 width="100%"
                 className="scrollbar-hide"
               >
-                {({ index, style }) => {
+                {({ index, style }: { index: number; style: React.CSSProperties }) => {
                   const payment = filteredPayments[index];
                   return (
                     <div style={style} className="px-4 py-2">

@@ -6,54 +6,54 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand-50: #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-200: #bae6fd;
-  --color-brand-300: #7dd3fc;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0ea5e9;
-  --color-brand-600: #0284c7;
-  --color-brand-700: #0369a1;
-  --color-brand-800: #075985;
-  --color-brand-900: #0c4a6e;
-  --color-brand-950: #082f49;
+  --color-brand-50: #f0f7f5;
+  --color-brand-100: #dbece7;
+  --color-brand-200: #bbdcd4;
+  --color-brand-300: #91c6ba;
+  --color-brand-400: #66a99c;
+  --color-brand-500: #478c80;
+  --color-brand-600: #357065;
+  --color-brand-700: #2b5952;
+  --color-brand-800: #184038;
+  --color-brand-900: #1f3b36;
+  --color-brand-950: #0f1e1c;
 }
 
 @layer base {
   body {
-    @apply bg-[#111827] text-slate-700 dark:bg-slate-950 dark:text-slate-300 antialiased transition-colors duration-300;
+    @apply bg-[#f4f6f8] text-slate-800 dark:bg-[#0f1e1c] dark:text-[#e0e0e0] antialiased transition-colors duration-300;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans font-bold tracking-tight text-slate-950 dark:text-slate-50 transition-colors duration-300;
+    @apply font-sans font-bold tracking-tight text-[#184038] dark:text-[#d4af37] transition-colors duration-300;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 transition-colors duration-300;
+    @apply bg-white/90 dark:bg-[#184038]/80 backdrop-blur-md border border-[#c0c0c0]/50 dark:border-[#d4af37]/30 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 transition-colors duration-300 text-slate-800 dark:text-slate-200;
   }
   
   .glass-card-hover {
-    @apply transition-all duration-300 hover:bg-white dark:hover:bg-slate-900/80 hover:border-slate-300/50 dark:hover:border-slate-700/50 hover:shadow-2xl hover:shadow-brand-500/10;
+    @apply transition-all duration-300 hover:bg-white dark:hover:bg-[#1f3b36]/90 hover:border-[#a9a9a9] dark:hover:border-[#d4af37]/70 hover:shadow-2xl;
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-brand-600/20 disabled:opacity-50 disabled:pointer-events-none;
+    @apply px-4 py-2 bg-[#184038] hover:bg-[#2b5952] text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-[#184038]/30 dark:bg-[#d4af37] dark:hover:bg-[#e6c151] dark:text-[#0f1e1c] dark:shadow-[#d4af37]/20 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all active:scale-95 border border-slate-200 dark:border-slate-700/50;
+    @apply px-4 py-2 bg-[#e0e0e0] dark:bg-[#1f3b36] hover:bg-[#c0c0c0] dark:hover:bg-[#2b5952] text-[#184038] dark:text-[#d4af37] font-semibold rounded-xl transition-all active:scale-95 border border-[#a9a9a9] dark:border-[#d4af37]/50;
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-950 dark:text-slate-50 outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600;
+    @apply w-full px-4 py-2.5 bg-white dark:bg-[#0f1e1c]/80 border border-[#a9a9a9] dark:border-[#d4af37]/40 rounded-xl text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-[#184038]/50 dark:focus:ring-[#d4af37]/50 focus:border-[#184038] dark:focus:border-[#d4af37] transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400;
   }
 
   .label-caps {
-    @apply text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block;
+    @apply text-[10px] font-bold text-[#184038]/80 dark:text-[#d4af37]/90 uppercase tracking-widest mb-1.5 block;
   }
 }
 
@@ -79,5 +79,5 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+  @apply bg-[#a9a9a9] dark:bg-[#d4af37]/70 rounded-full hover:bg-[#808080] dark:hover:bg-[#d4af37] transition-colors;
 }
