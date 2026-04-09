@@ -117,8 +117,8 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                  <span className="font-bold text-lg tracking-tight text-slate-950 dark:text-slate-50 leading-none">FiscalCtl</span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
+                  <span className="font-bold text-xl tracking-tight text-slate-950 dark:text-slate-50 leading-none">FiscalCtl</span>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
                 </div>
               )}
             </div>
@@ -153,8 +153,8 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex flex-col min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <span className="text-sm font-bold text-slate-950 dark:text-slate-50 truncate">{currentUser.name}</span>
-                  <span className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{currentUser.email}</span>
+                  <span className="text-base font-bold text-slate-950 dark:text-slate-50 truncate">{currentUser.name}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 truncate">{currentUser.email}</span>
                 </div>
               )}
             </div>
@@ -190,7 +190,7 @@ export const Sidebar: FC<SidebarProps> = ({
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors'} />
                 {(!isCollapsed || isMobileOpen) && (
-                  <span className="font-medium text-sm animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>
+                  <span className="font-medium text-base animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>
                 )}
                 {isActive && (!isCollapsed || isMobileOpen) && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
               </button>
@@ -232,8 +232,8 @@ export const Sidebar: FC<SidebarProps> = ({
           {(!isCollapsed || isMobileOpen) && (
             <div className="px-4 py-3 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800/50 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Rol</span>
-                <div className="text-[10px] text-brand-600 dark:text-brand-400 font-mono bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/20 truncate max-w-[100px]" title={currentRole}>
+                <span className="text-[11px] text-slate-500 uppercase font-black tracking-widest">Rol</span>
+                <div className="text-[11px] text-brand-600 dark:text-brand-400 font-mono bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/20 truncate max-w-[100px]" title={currentRole}>
                   {currentRole}
                 </div>
               </div>

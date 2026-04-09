@@ -162,7 +162,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             {/* Logo */}
             <div className="flex items-center gap-3 mb-10">
                 <img src={APP_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-full shadow-lg" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">FiscalCtl</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent tracking-tight">FiscalCtl</span>
             </div>
 
             <div className="max-w-md w-full mx-auto">
@@ -215,7 +215,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                         
                         {/* Email Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Correo Electrónico</label>
+                            <label className="text-base font-medium text-slate-700 dark:text-slate-300 ml-1">Correo Electrónico</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" />
@@ -224,7 +224,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                                     type="email" 
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-sm rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-base rounded-xl block w-full pl-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                     placeholder="usuario@fiscal.com"
                                     required
                                 />
@@ -235,7 +235,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                         {!isRecovering && (
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
+                                    <label className="text-base font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
                                 </div>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -245,7 +245,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                                         type={showPassword ? "text" : "password"} 
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-sm rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-950 dark:text-slate-50 text-base rounded-xl block w-full pl-12 pr-12 p-4 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
                                         placeholder="••••••••"
                                         required
                                     />
@@ -311,7 +311,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                                     <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
                                 </div>
                                 <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">O continuar con</span>
+                                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500 font-bold tracking-widest">O continuar con</span>
                                 </div>
                             </div>
                         )}

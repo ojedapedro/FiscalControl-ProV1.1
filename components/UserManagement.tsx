@@ -385,7 +385,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase text-xs">
+            <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase text-[11px] tracking-wider">
               <tr>
                 <th className="px-6 py-4">Usuario</th>
                 <th className="px-6 py-4">Rol</th>
@@ -416,7 +416,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-xs shrink-0 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-sm shrink-0 overflow-hidden">
                           {user.avatar ? (
                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                           ) : (
@@ -424,8 +424,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
                           )}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white">{user.name || 'Sin Nombre'}</div>
-                          <div className="text-xs text-slate-500">{user.email}</div>
+                          <div className="font-bold text-slate-900 dark:text-slate-100 text-base">{user.name || 'Sin Nombre'}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -439,7 +439,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
                         {user.storeId ? stores.find(s => s.id === user.storeId)?.name || 'Desconocida' : 'Todas (Global)'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-slate-400 text-xs">
+                    <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-500 text-[11px] font-bold tracking-tighter">
                       {user.id}
                     </td>
                     <td className="px-6 py-4">

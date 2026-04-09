@@ -1205,16 +1205,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                     {/* Store Location Info (Auto-filled) */}
                     {store && (
-                        <div className="mb-8 p-5 bg-brand-500/5 border border-brand-500/20 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-left-2">
-                            <MapPin className="text-brand-400 shrink-0 mt-0.5" size={20} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                        <div className="mb-8 p-6 bg-[#0a0c10] border border-slate-800 rounded-2xl flex items-start gap-5 animate-in fade-in slide-in-from-left-2 shadow-inner">
+                            <div className="p-3 bg-brand-500/10 rounded-xl">
+                                <MapPin className="text-brand-400 shrink-0" size={24} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                                 <div>
-                                    <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Municipio / Alcaldía</p>
-                                    <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{storeMunicipality || 'No especificado'}</p>
+                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] block mb-2">Municipio / Alcaldía</p>
+                                    <p className="text-lg font-bold text-slate-200">{storeMunicipality || 'No especificado'}</p>
                                 </div>
                                 <div>
-                                    <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest block mb-1">Dirección de Sucursal</span>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed">{storeAddress || 'No especificada'}</p>
+                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] block mb-2">Dirección de Sucursal</span>
+                                    <p className="text-sm text-slate-400 font-medium leading-relaxed">{storeAddress || 'No especificada'}</p>
                                 </div>
                             </div>
                         </div>
@@ -1223,7 +1225,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <div className="space-y-10">
                         {/* Row 1: Description */}
                         <div>
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Descripción del Pago</label>
+                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Descripción del Pago</label>
                             <div className="relative group">
                                 <input
                                     type="text"
@@ -1231,11 +1233,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     value={specificType}
                                     readOnly={(!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                     onChange={(e) => setSpecificType(e.target.value)}
-                                    className={`w-full bg-[#0a0c10] border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
+                                    className={`w-full bg-[#0a0c10] border ${errors.specificType ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(!!getTaxConfig(category) && !isManualOverride) ? 'opacity-70 cursor-not-allowed' : ''} disabled:opacity-50`}
                                 />
                                 <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} />
                             </div>
-                            {errors.specificType && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.specificType}</p>}
+                            {errors.specificType && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.specificType}</p>}
                         </div>
 
                         {/* Row 2: Financial Grid */}
@@ -1244,7 +1246,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             {/* Column 1: Amount & Equivalent */}
                             <div className="xl:col-span-3 space-y-5">
                                 <div>
-                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-700 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
                                         <input
@@ -1258,7 +1260,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 isOverBudget 
                                                     ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
                                                     : errors.amount ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'
-                                            } text-slate-200 text-sm font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all`}
+                                            } text-slate-200 text-base font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all`}
                                         />
                                         {isOverBudget && (
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 animate-pulse" title="Excede Presupuesto">
@@ -1266,7 +1268,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             </div>
                                         )}
                                     </div>
-                                    {errors.amount && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
+                                    {errors.amount && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.amount}</p>}
                                 </div>
 
                                 {effectiveExchangeRate !== undefined && (
@@ -1276,14 +1278,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                <p className="text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
-                                                <span className="text-[8px] font-black text-slate-950 bg-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Actual</span>
+                                                <p className="text-[11px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
+                                                <span className="text-[9px] font-black text-slate-950 bg-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Actual</span>
                                             </div>
                                             <div className="flex items-baseline justify-between gap-2">
-                                                <p className="text-2xl font-black text-emerald-400 tabular-nums">
+                                                <p className="text-3xl font-black text-emerald-400 tabular-nums">
                                                     $ {(parseFloat(amount || '0') / effectiveExchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </p>
-                                                <p className="text-[9px] font-bold text-slate-600 tabular-nums">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                <p className="text-[11px] font-bold text-slate-600 tabular-nums">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1292,7 +1294,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                             {/* Column 2: Due Date */}
                             <div className="xl:col-span-2">
-                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
@@ -1300,16 +1302,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         aria-label="Fecha de Vencimiento"
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDueDateChange(e.target.value)}
-                                        className={`w-full bg-[#0a0c10] border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        className={`w-full bg-[#0a0c10] border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
-                                {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
+                                {errors.dueDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
                             </div>
 
                             {/* Column 3: Days to Expire */}
                             <div className="xl:col-span-2">
-                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
                                 <div className="relative group">
                                     <input
                                         type="number"
@@ -1317,16 +1319,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         value={daysToExpire}
                                         disabled={isSubmitting}
                                         onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                        className="w-full bg-[#0a0c10] border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                        className="w-full bg-[#0a0c10] border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
                                     />
                                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
+                                <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
                             </div>
 
                             {/* Column 4: Alert */}
                             <div className="xl:col-span-2">
-                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
@@ -1334,16 +1336,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         aria-label="Alerta"
                                         disabled={isSubmitting}
                                         onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                        className={`w-full bg-[#0a0c10] border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        className={`w-full bg-[#0a0c10] border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
-                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
+                                {errors.paymentDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
                             </div>
 
                             {/* Column 5: Frequency */}
                             <div className="xl:col-span-3">
-                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
                                 <div className="relative group">
                                     <select
                                         value={frequency}
@@ -1359,7 +1361,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 setDaysToExpire('');
                                             }
                                         }}
-                                        className="w-full appearance-none bg-[#0a0c10] border border-slate-800 text-slate-200 text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                                        className="w-full appearance-none bg-[#0a0c10] border border-slate-800 text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                         {Object.entries(PaymentFrequency).map(([key, value]) => (
                                             <option key={key} value={value} className="bg-slate-900">{value}</option>
