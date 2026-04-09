@@ -223,9 +223,63 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [store]);
 
+  const handlePaymentDateChange = React.useCallback((val: string) => {
+    setPaymentDate(val);
+    if (val && dueDate) {
+      const d1 = new Date(val);
+      const d2 = new Date(dueDate);
+      const diffTime = d1.getTime() - d2.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [dueDate]);
+
   const handleDueDateChange = React.useCallback((val: string) => {
     setDueDate(val);
-  }, []);
+    if (val && paymentDate) {
+      const d1 = new Date(paymentDate);
+      const d2 = new Date(val);
+      const diffTime = d1.getTime() - d2.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysToExpire(diffDays.toString());
+    }
+  }, [paymentDate]);
+
+  // Auto-fill logic based on tax selection (Items & Amounts)
+  React.useEffect(() => {
+    const config = getTaxConfig(category);
+    const isTaxCategory = !!config;
+
+    if (isTaxCategory && config && taxGroup && taxItem) {
+      const groupData = config[taxGroup];
+      const itemData = groupData?.items?.find(i => i.code === taxItem);
+      
+      if (itemData) {
+        const newSpecificType = `${itemData.code} - ${itemData.name}`;
+        
+        if (newSpecificType !== specificType) {
+          setSpecificType(newSpecificType);
+          
+          // Only auto-fill amount if it's a NEW selection (not loading initialData)
+          // and manual override is not active
+          if (!isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
+            if (itemData.amount !== undefined && !itemData.isVariable) {
+              // Convert tax config USD amount to Bs for the input
+              setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
+              setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
+            } else if (itemData.isVariable) {
+               setAmount(''); 
+               setExpectedBudget(null); // No fixed budget for variable items
+            }
+          }
+        }
+      }
+    } else if (!isTaxCategory) {
+        setTaxGroup('');
+        setTaxItem('');
+        setExpectedBudget(null);
+    }
+  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType]);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
@@ -1257,7 +1311,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={paymentDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => setPaymentDate(e.target.value)}
+                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
                                         className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
