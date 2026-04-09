@@ -74,10 +74,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Archivos
   const [file, setFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialData?.receiptUrl || null);
-  const [file2, setFile2] = React.useState<File | null>(null);
-  const [previewUrl2, setPreviewUrl2] = React.useState<string | null>(initialData?.receiptUrl2 || null);
-  const [isFileScanning2, setIsFileScanning2] = React.useState(false);
-  const [uploadProgress2, setUploadProgress2] = React.useState(0);
 
   // --- Justification State ---
   const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
@@ -142,7 +138,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       }
 
       setPreviewUrl(initialData.receiptUrl || null);
-      setPreviewUrl2(initialData.receiptUrl2 || null);
       setIsOverBudget(initialData.isOverBudget || false);
       setDocDate(initialData.documentDate || '');
       setDocAmount(initialData.documentAmount?.toString() || '');
@@ -162,9 +157,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setTaxGroup('');
       setTaxItem('');
       setPreviewUrl(null);
-      setPreviewUrl2(null);
       setFile(null);
-      setFile2(null);
       setIsOverBudget(false);
       setDocDate('');
       setDocAmount('');
@@ -628,21 +621,31 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-        const isImage = selectedFile.type.startsWith('image/');
-        const maxSize = isImage ? 5 * 1024 * 1024 : 800 * 1024;
-        if (selectedFile.size > maxSize) {
-            setErrors(prev => ({...prev, file: `El archivo excede el límite de ${isImage ? '5MB' : '800KB'}.`}));
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!allowedTypes.includes(selectedFile.type)) {
+            setErrors(prev => ({...prev, file: "Formato no permitido. Use PDF, JPG o PNG."}));
             return;
         }
+
+        const maxSize = 10 * 1024 * 1024; // 10MB flexible limit
+        if (selectedFile.size > maxSize) {
+            setErrors(prev => ({...prev, file: `El archivo es demasiado grande (${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB). El límite es 10MB.`}));
+            return;
+        }
+
         setIsFileScanning(true);
         setUploadProgress(0);
         setFile(null); 
         setPreviewUrl(null);
         
-        // Simulate progress
-        for (let i = 0; i <= 100; i += 10) {
-            setUploadProgress(i);
-            await new Promise(resolve => setTimeout(resolve, 80));
+        // More robust simulated progress based on file size
+        const duration = Math.min(2000, Math.max(800, (selectedFile.size / 1024 / 1024) * 200));
+        const steps = 20;
+        const interval = duration / steps;
+
+        for (let i = 0; i <= 100; i += (100 / steps)) {
+            setUploadProgress(Math.min(100, Math.round(i)));
+            await new Promise(resolve => setTimeout(resolve, interval));
         }
 
         if (selectedFile.type.startsWith('image/')) {
@@ -657,40 +660,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const clearFile = (e: React.MouseEvent) => {
       e.stopPropagation(); e.preventDefault();
       setFile(null); setPreviewUrl(null);
-  };
-
-  const handleFileChange2 = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-        const isImage = selectedFile.type.startsWith('image/');
-        const maxSize = isImage ? 5 * 1024 * 1024 : 800 * 1024;
-        if (selectedFile.size > maxSize) {
-            setErrors(prev => ({...prev, file2: `El archivo excede el límite de ${isImage ? '5MB' : '800KB'}.`}));
-            return;
-        }
-        setIsFileScanning2(true);
-        setUploadProgress2(0);
-        setFile2(null); 
-        setPreviewUrl2(null);
-        
-        // Simulate progress
-        for (let i = 0; i <= 100; i += 10) {
-            setUploadProgress2(i);
-            await new Promise(resolve => setTimeout(resolve, 80));
-        }
-
-        if (selectedFile.type.startsWith('image/')) {
-            setPreviewUrl2(URL.createObjectURL(selectedFile));
-        }
-        setFile2(selectedFile);
-        setIsFileScanning2(false);
-        setErrors(prev => { const newErrs = {...prev}; delete newErrs.file2; return newErrs; });
-    }
-  };
-
-  const clearFile2 = (e: React.MouseEvent) => {
-      e.stopPropagation(); e.preventDefault();
-      setFile2(null); setPreviewUrl2(null);
   };
 
   const validate = () => {
@@ -746,7 +715,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             frequency,
             specificType,
             file,
-            file2,
             notes,
             // Extra Data
             originalBudget: expectedBudget,
@@ -1334,25 +1302,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                             </div>
 
-                            {/* Payment Date and Due Date Column */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Alertas</label>
-                                <div className="relative group mb-8">
-                                    <input
-                                        type="date"
-                                        value={paymentDate}
-                                        aria-label="Fecha de Pago"
-                                        disabled={isSubmitting}
-                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
-                                    />
-                                    <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
-                                </div>
-                                {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter mb-4">{errors.paymentDate}</p>}
-
-                                {/* Due Date moved here */}
+                            {/* Financial Details Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                {/* Fecha de vencimiento */}
                                 <div>
-                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Vencimiento</label>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha de vencimiento</label>
                                     <div className="relative group">
                                         <input
                                             type="date"
@@ -1367,19 +1321,53 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     {errors.dueDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
                                     {dueDate && frequency && frequency !== PaymentFrequency.NONE && (
                                         <p className="text-[10px] font-black text-brand-500 uppercase tracking-tighter mt-2 ml-1">
-                                            Próximo Vencimiento: {formatDate(calculateNextDueDate(dueDate, frequency))}
+                                            Próximo: {formatDate(calculateNextDueDate(dueDate, frequency))}
                                         </p>
                                     )}
+                                </div>
+
+                                {/* Dias a Vencer */}
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Dias a Vencer</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={daysToExpire}
+                                            disabled={isSubmitting}
+                                            onChange={(e) => handleDaysToExpireChange(e.target.value)}
+                                            className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                        />
+                                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mt-2 ml-1">Lapsos de vencimiento</p>
+                                </div>
+
+                                {/* Alerta */}
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Alerta</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="date"
+                                            value={paymentDate}
+                                            aria-label="Alerta"
+                                            disabled={isSubmitting}
+                                            onChange={(e) => handlePaymentDateChange(e.target.value)}
+                                            className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        />
+                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
+                                    </div>
+                                    {errors.paymentDate && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
                                 </div>
                             </div>
 
                             {/* Frequency */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Frecuencia de Pago</label>
+                            <div className="mb-4">
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Frecuencia</label>
                                 <div className="relative group">
                                     <select
                                         value={frequency}
-                                        aria-label="Frecuencia de Pago"
+                                        aria-label="Frecuencia"
                                         disabled={isSubmitting}
                                         onChange={(e) => {
                                             const newFreq = e.target.value as PaymentFrequency;
@@ -1400,23 +1388,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={18} aria-hidden="true" />
                                 </div>
-                            </div>
-
-                            {/* Days to Expire */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Días a Vencer</label>
-                                <div className="relative group">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        value={daysToExpire}
-                                        disabled={isSubmitting}
-                                        onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
-                                    />
-                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                </div>
-                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mt-2 ml-1">Lapsos de vencimiento</p>
                             </div>
                         </div>
                     </div>
@@ -1442,13 +1413,29 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              }`}>
                                  {/* Overlay de Carga de Archivo */}
                                 {isFileScanning && (
-                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
-                                        <Scan className="w-10 h-10 text-brand-600 dark:text-brand-400 animate-pulse mb-4" />
-                                        <span className="text-sm font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">Analizando Documento...</span>
-                                        <div className="w-full max-w-[240px] bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
-                                            <div className="bg-brand-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: `${uploadProgress}%` }}></div>
+                                    <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-950/95 flex flex-col items-center justify-center backdrop-blur-md p-8 animate-in fade-in duration-300">
+                                        <div className="relative mb-6">
+                                            <div className="absolute inset-0 bg-brand-500/20 rounded-full blur-xl animate-pulse"></div>
+                                            <Scan className="w-12 h-12 text-brand-500 relative animate-bounce" />
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-500 mt-2 uppercase tracking-tighter">{uploadProgress}% Procesado</span>
+                                        <span className="text-sm font-black text-brand-500 uppercase tracking-[0.2em] mb-4 text-center">
+                                            Procesando y Validando<br/>
+                                            <span className="text-[10px] text-slate-400 lowercase tracking-normal font-medium italic">Verificando integridad del archivo...</span>
+                                        </span>
+                                        <div className="w-full max-w-[260px] bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden shadow-inner relative">
+                                            <div 
+                                                className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(14,165,233,0.4)]" 
+                                                style={{ width: `${uploadProgress}%` }}
+                                            ></div>
+                                            {/* Animated glare effect */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ transform: `translateX(${uploadProgress - 100}%)` }}></div>
+                                        </div>
+                                        <div className="flex justify-between w-full max-w-[260px] mt-3">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{uploadProgress}% Completado</span>
+                                            <span className="text-[10px] font-black text-brand-500 uppercase tracking-tighter animate-pulse">
+                                                {uploadProgress < 30 ? 'Iniciando...' : uploadProgress < 70 ? 'Escaneando...' : 'Finalizando...'}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
 
@@ -1507,7 +1494,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <Upload size={32} />
                                             </div>
                                             <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">PDF, JPG, PNG (Max 5MB)</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
+                                            <p className="text-[9px] text-slate-400 font-medium uppercase tracking-widest mt-1">Límite Flexible: 10MB</p>
                                         </>
                                     )}
                                 </div>
@@ -1520,75 +1508,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 />
                              </label>
                              {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
-
-                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 mt-6 ml-1">Soporte Adicional / Certificación de Pago</label>
-                             <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
-                                 isSubmitting || isFileScanning2 ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
-                             } ${
-                                 file2 || previewUrl2 ? 'border-brand-500/50 bg-brand-500/5' : 
-                                 errors.file2 ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
-                             }`}>
-                                 {/* Overlay de Carga de Archivo */}
-                                {isFileScanning2 && (
-                                    <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-950/90 flex flex-col items-center justify-center backdrop-blur-sm p-6">
-                                        <Scan className="w-10 h-10 text-brand-600 dark:text-brand-400 animate-pulse mb-4" />
-                                        <span className="text-sm font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">Analizando...</span>
-                                        <div className="w-full max-w-[240px] bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
-                                            <div className="bg-brand-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: `${uploadProgress2}%` }}></div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex flex-col items-center justify-center w-full h-full p-4">
-                                    {file2 || previewUrl2 ? (
-                                        <div className="w-full h-full relative group/file">
-                                            {previewUrl2 ? (
-                                                <div className="w-full h-full relative p-2">
-                                                    <img
-                                                        src={previewUrl2}
-                                                        alt="Preview 2"
-                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
-                                                    />
-                                                    <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
-                                                         <button
-                                                            onClick={clearFile2}
-                                                            type="button"
-                                                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
-                                                         >
-                                                            <Trash2 size={16} />
-                                                            <span>Eliminar</span>
-                                                         </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
-                                                    <FileText size={40} className="text-red-500" />
-                                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mt-2 uppercase tracking-tight">
-                                                        {file2?.name || 'Soporte Adicional'}
-                                                    </p>
-                                                    <button onClick={clearFile2} type="button" className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase mt-4">Eliminar Adjunto</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file2 ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
-                                                <Plus size={32} />
-                                            </div>
-                                            <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Añadir Certificación de Pago</p>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">PDF, JPG, PNG (Max 5MB)</p>
-                                        </>
-                                    )}
-                                </div>
-                                <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept=".pdf,.jpg,.jpeg,.png" 
-                                    onChange={handleFileChange2} 
-                                    disabled={isSubmitting || isFileScanning2}
-                                />
-                             </label>
-                             {errors.file2 && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file2}</p>}
 
                              {/* Proposed Changes Section */}
                              <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
