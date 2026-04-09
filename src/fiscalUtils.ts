@@ -93,24 +93,29 @@ export const getCategoryTrafficLight = (
                pDate.getFullYear() === currentYear;
       });
 
-      const hasApprovedOrPending = itemPayments.some(p => 
+      const hasApprovedOrPaid = itemPayments.some(p => 
         p.status === PaymentStatus.APPROVED || 
-        p.status === PaymentStatus.PENDING || 
-        p.status === PaymentStatus.UPLOADED ||
         p.status === PaymentStatus.PAID
       );
       
+      const hasPendingOrUploaded = itemPayments.some(p => 
+        p.status === PaymentStatus.PENDING || 
+        p.status === PaymentStatus.UPLOADED
+      );
+
       const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
       const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
       if (hasRejected || hasOverdue) {
         hasRed = true;
         allGreen = false;
-      } else if (!hasApprovedOrPending) {
+      } else if (hasPendingOrUploaded) {
+        allGreen = false;
+      } else if (!hasApprovedOrPaid) {
         if (baseStatus.status === 'Vencido') {
           hasRed = true;
           allGreen = false;
-        } else {
+        } else if (baseStatus.status === 'Próximo') {
           allGreen = false;
         }
       }
@@ -119,7 +124,7 @@ export const getCategoryTrafficLight = (
 
   if (hasRed) return 'red';
   if (allGreen) return 'green';
-  return 'amber';
+  return 'amber'; // Represents Orange/Pending
 };
 
 /**

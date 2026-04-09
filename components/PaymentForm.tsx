@@ -400,7 +400,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     return Object.entries(config).map(([key, groupConfig]) => {
         let hasRed = false;
-        let hasYellow = false;
+        let hasOrange = false;
         
         const baseStatus = getTaxStatus(groupConfig.deadlineDay);
 
@@ -414,25 +414,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                        pDate.getFullYear() === currentYear;
             });
 
-            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.PAID);
+            const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+            const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
             const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
             if (hasRejected || hasOverdue) {
                 hasRed = true;
-            } else if (!hasApprovedOrPending) {
+            } else if (hasPendingOrUploaded) {
+                hasOrange = true;
+            } else if (!hasApprovedOrPaid) {
                 if (baseStatus.status === 'Vencido') {
                     hasRed = true;
                 } else if (baseStatus.status === 'Próximo') {
-                    hasYellow = true;
+                    hasOrange = true;
                 }
             }
         });
 
         if (hasRed) {
             return { key, label: groupConfig.label, color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
-        } else if (hasYellow) {
-            return { key, label: groupConfig.label, color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Próximo', icon: Clock };
+        } else if (hasOrange) {
+            return { key, label: groupConfig.label, color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Enviado', icon: Clock };
         } else {
             return { key, label: groupConfig.label, color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
         }
@@ -459,7 +462,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                pDate.getFullYear() === currentYear;
       });
 
-      const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+      const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+      const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
       const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
       const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
@@ -474,7 +478,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         };
       }
 
-      if (hasApprovedOrPending) {
+      if (hasPendingOrUploaded) {
+        return { 
+          ...item, 
+          color: 'bg-amber-500', 
+          text: 'text-amber-600', 
+          bgSoft: 'bg-amber-100', 
+          status: 'Enviado', 
+          icon: Clock 
+        };
+      }
+
+      if (hasApprovedOrPaid) {
         return { 
           ...item, 
           color: 'bg-emerald-500', 
@@ -486,13 +501,71 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       }
 
       const status = getTaxStatus(groupConfig.deadlineDay);
-      return { ...item, ...status };
+      // Map 'Próximo' to 'Enviado' (Orange) if we want to follow the user's color logic strictly
+      // but 'Próximo' is a date status, not a payment status.
+      // However, the user wants Orange for "sent to auditor".
+      // If no payment exists and it's 'Próximo', maybe it should be Amber/Orange too.
+      return { 
+        ...item, 
+        ...status,
+        status: status.status === 'Próximo' ? 'Próximo' : (status.status === 'En fecha' ? 'Al día' : status.status)
+      };
     });
   }, [category, taxGroup, payments, store]);
 
+  const allCategoryItemsStatus = React.useMemo(() => {
+    const configMap = getTaxConfig(category);
+    if (!configMap) return [];
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return Object.entries(configMap).map(([groupKey, groupConfig]) => {
+        const items = groupConfig.items.map(item => {
+            const itemPayments = payments.filter(p => {
+                const pDate = new Date(p.dueDate);
+                return p.storeId === store && 
+                       p.category === category && 
+                       p.specificType.startsWith(item.code) &&
+                       pDate.getMonth() === currentMonth &&
+                       pDate.getFullYear() === currentYear;
+            });
+
+            const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+            const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+            const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
+            const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
+
+            let statusInfo;
+            if (hasRejected || hasOverdue) {
+                statusInfo = { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
+            } else if (hasPendingOrUploaded) {
+                statusInfo = { color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Enviado', icon: Clock };
+            } else if (hasApprovedOrPaid) {
+                statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
+            } else {
+                const dateStatus = getTaxStatus(groupConfig.deadlineDay);
+                statusInfo = { 
+                    ...dateStatus, 
+                    status: dateStatus.status === 'Próximo' ? 'Próximo' : (dateStatus.status === 'En fecha' ? 'Al día' : dateStatus.status)
+                };
+            }
+
+            return { ...item, ...statusInfo };
+        });
+
+        return {
+            groupKey,
+            label: groupConfig.label,
+            items
+        };
+    });
+  }, [category, store, payments]);
+
   const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
-    if (taxStatusList.some(i => i.status === 'Próximo')) return { color: 'bg-amber-500', border: 'border-amber-200', text: 'text-amber-700', bg: 'bg-amber-50', label: 'ATENCIÓN (PRÓXIMOS)' };
+    if (taxStatusList.some(i => i.status === 'Próximo' || i.status === 'Enviado')) return { color: 'bg-amber-500', border: 'border-amber-200', text: 'text-amber-700', bg: 'bg-amber-50', label: 'ATENCIÓN (PENDIENTES / PRÓXIMOS)' };
     return { color: 'bg-emerald-500', border: 'border-emerald-200', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'TODO EN REGLA' };
   }, [taxStatusList]);
 
@@ -929,7 +1002,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             type="button"
                                             onClick={() => {
                                                 setTaxGroup(item.key);
-                                                setTaxItem(''); 
+                                                setTaxItem('');
+                                                const element = document.getElementById(`group-${item.key}`);
+                                                if (element) {
+                                                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                }
                                             }}
                                             className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left group active:scale-[0.98] ${
                                                 taxGroup === item.key 
@@ -952,69 +1029,64 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 </div>
                             </div>
 
-                            {/* Selector de Concepto Específico */}
+                            {/* Selector de Concepto Específico - Ahora muestra TODOS los conceptos agrupados */}
                             <div className="p-8 flex flex-col bg-white dark:bg-slate-900">
                                 <div className="flex items-center justify-between mb-6">
-                                    <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-1">Concepto Específico</label>
-                                    {taxGroup && (
-                                        <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">
-                                            {specificItemStatusList.length} Conceptos encontrados
-                                        </span>
-                                    )}
+                                    <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-1">Conceptos de Pago</label>
+                                    <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">
+                                        {allCategoryItemsStatus.reduce((acc, curr) => acc + curr.items.length, 0)} Conceptos totales
+                                    </span>
                                 </div>
                                 
-                                <div className="flex-1">
-                                    {!taxGroup ? (
-                                        <div className="h-full min-h-[300px] border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center text-center p-10 bg-slate-50/30 dark:bg-slate-900/30">
-                                            <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl mb-5 shadow-xl border border-slate-100 dark:border-slate-700">
-                                                <ChevronDown className="text-brand-500 rotate-90" size={32} />
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[600px] space-y-8">
+                                    {allCategoryItemsStatus.map((group) => (
+                                        <div key={group.groupKey} id={`group-${group.groupKey}`} className={`space-y-4 transition-all duration-500 ${taxGroup && taxGroup !== group.groupKey ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}>
+                                            <div className="flex items-center gap-3 px-2">
+                                                <div className="w-1 h-4 bg-brand-500 rounded-full"></div>
+                                                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">{group.label}</h4>
                                             </div>
-                                            <p className="text-base text-slate-500 dark:text-slate-400 font-black uppercase tracking-tight mb-2">
-                                                Seleccione un rubro
-                                            </p>
-                                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-[200px]">
-                                                Haga clic en un rubro a la izquierda para desplegar sus conceptos específicos
-                                            </p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {group.items.map((item) => (
+                                                    <button
+                                                        key={item.code}
+                                                        type="button"
+                                                        disabled={isSubmitting}
+                                                        onClick={() => {
+                                                            setTaxGroup(group.groupKey);
+                                                            setTaxItem(item.code);
+                                                        }}
+                                                        className={`w-full flex flex-col p-4 rounded-2xl border-2 transition-all text-left group relative active:scale-[0.98] ${
+                                                            taxItem === item.code 
+                                                            ? 'bg-brand-500/10 border-brand-500 ring-4 ring-brand-500/10 shadow-xl' 
+                                                            : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${item.bgSoft} ${item.text} flex items-center gap-1.5 border border-current/10 uppercase tracking-tighter`}>
+                                                                <item.icon size={12} />
+                                                                {item.status}
+                                                            </span>
+                                                            <span className="text-[10px] font-black font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">{item.code}</span>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className={`text-sm font-black leading-tight mb-2 uppercase tracking-tight ${taxItem === item.code ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                                {item.name}
+                                                            </span>
+                                                            {item.amount !== undefined && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs font-black text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-md">
+                                                                        ${item.amount.toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Presupuestaria</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                            {specificItemStatusList.map((item) => (
-                                                <button
-                                                    key={item.code}
-                                                    type="button"
-                                                    disabled={isSubmitting}
-                                                    onClick={() => setTaxItem(item.code)}
-                                                    className={`w-full flex flex-col p-4 rounded-2xl border-2 transition-all text-left group relative active:scale-[0.98] ${
-                                                        taxItem === item.code 
-                                                        ? 'bg-brand-500/10 border-brand-500 ring-4 ring-brand-500/10 shadow-xl' 
-                                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${item.bgSoft} ${item.text} flex items-center gap-1.5 border border-current/10 uppercase tracking-tighter`}>
-                                                            <item.icon size={12} />
-                                                            {item.status}
-                                                        </span>
-                                                        <span className="text-[10px] font-black font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">{item.code}</span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className={`text-sm font-black leading-tight mb-2 uppercase tracking-tight ${taxItem === item.code ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                            {item.name}
-                                                        </span>
-                                                        {item.amount !== undefined && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-black text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-md">
-                                                                    ${item.amount.toLocaleString()}
-                                                                </span>
-                                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Presupuestaria</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full shadow-sm ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}></div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
 
                                 <div className="mt-8 p-4 bg-brand-500/5 dark:bg-brand-500/10 rounded-2xl border border-brand-500/20 text-xs text-slate-500 dark:text-slate-300">
