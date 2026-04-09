@@ -24,340 +24,22 @@ import {
   AlertTriangle,
   Clock,
   FileWarning,
-  Users
+  Users,
+  Check,
+  Target,
+  History,
+  ShieldCheck,
+  Search,
+  ArrowRight,
+  Calendar
 } from 'lucide-react';
-import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency } from '../types';
-import { formatDate, getFrequencyDays, calculateNextDueDate } from '../src/utils';
+import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role } from '../types';
+import { formatDate, getFrequencyDays, calculateNextDueDate, formatDateTime } from '../src/utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { firestoreService } from '../services/firestoreService';
-
-// Configuración de Impuestos Municipales basada en la imagen de la Alcaldía
-const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'PATENTE': {
-    label: '1.1 PATENTE DE INDUSTRIA',
-    deadlineDay: 15, // Vence el 15
-    items: [
-      { code: '1.1.1', name: 'RENOVACION DE PATENTE', amount: 150.00 },
-      { code: '1.1.2', name: 'CODIGO 1 AL MAYOR DE PINTURA', amount: 20.00 },
-      { code: '1.1.3', name: 'CODIGO 2 AL DETAL DE PINTURA', amount: 20.00 },
-      { code: '1.1.4', name: 'CODIGO 3 AL MAYOR DE FERRETERIA', amount: 20.00 },
-      { code: '1.1.5', name: 'CODIGO 4 AL DETAL DE FERRETERIA', amount: 20.00 },
-      { code: '1.1.6', name: 'CODIGO 5 SERVICIOS OBRAS', amount: 20.00 },
-      { code: '1.1.7', name: 'PORCENTAJE DE VENTAS TOTALES', isVariable: true },
-    ]
-  },
-  'VISTO_BUENO': {
-    label: '1.2 VISTO BUENO AMBIENTAL',
-    deadlineDay: 30, // Fin de mes
-    items: [
-      { code: '1.2.1', name: 'INVEPINCA (TRAMITE)', amount: 150.00 }
-    ]
-  },
-  'IMA': {
-    label: '1.3 IMA (ASEO URBANO)',
-    deadlineDay: 25, // Vence el 25
-    items: [
-      { code: '1.3.1', name: 'INVEPINCA (TARIFA ASEO)', amount: 50.00 }
-    ]
-  },
-  'CATASTRO': {
-    label: '1.4 CEDULA CATASTRAL',
-    deadlineDay: 30,
-    items: [
-      { code: '1.4.1', name: 'INVEPINCA (CATASTRO)', amount: 150.00 }
-    ]
-  },
-  'INMOBILIARIO': {
-    label: '1.5 IMPUESTO INMOBILIARIO',
-    deadlineDay: 30,
-    items: [
-      { code: '1.5.1', name: 'INVEPINCA (INMUEBLE)', amount: 400.00 }
-    ]
-  },
-  'PUBLICIDAD': {
-    label: '1.6 PUBLICIDAD Y PROPAGANDA',
-    deadlineDay: 20, // Vence el 20
-    items: [
-      { code: '1.6.1', name: 'PUBLICIDAD SUCURSAL 1', amount: 100.00 },
-      { code: '1.6.2', name: 'PUBLICIDAD SUCURSAL 2', amount: 100.00 }
-    ]
-  },
-  'BOMBEROS': {
-    label: '1.7 CUERPO DE BOMBEROS',
-    deadlineDay: 28,
-    items: [
-      { code: '1.7.1', name: 'PLAN DE EMERGENCIA', amount: 50.00 },
-      { code: '1.7.2', name: 'PAGO DE ARANCELES PLAN', amount: 120.00 },
-      { code: '1.7.3', name: 'EXTINTORES', amount: 350.00 },
-      { code: '1.7.4', name: 'CONTRATO DE MANTENIMIENTO', amount: 100.00 },
-      { code: '1.7.5', name: 'PAGO DE ARANCELES USO CONFORME', amount: 80.00 },
-      { code: '1.7.6', name: 'USO CONFORME', amount: 0.00 },
-    ]
-  }
-};
-
-const NATIONAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'IVA': {
-    label: '2.1 IVA (IMPUESTO AL VALOR AGREGADO)',
-    deadlineDay: 15,
-    items: [
-      { code: '2.1.1', name: 'IVA MENSUAL - REGULAR', isVariable: true },
-      { code: '2.1.2', name: 'RETENCIONES DE IVA', isVariable: true },
-    ]
-  },
-  'ISLR': {
-    label: '2.2 ISLR (IMPUESTO SOBRE LA RENTA)',
-    deadlineDay: 10,
-    items: [
-      { code: '2.2.1', name: 'RETENCIONES ISLR - SERVICIOS', isVariable: true },
-      { code: '2.2.2', name: 'RETENCIONES ISLR - ALQUILERES', isVariable: true },
-      { code: '2.2.3', name: 'DECLARACION ESTIMADA ISLR', isVariable: true },
-      { code: '2.2.4', name: 'DECLARACION DEFINITIVA ANUAL', isVariable: true },
-    ]
-  },
-  'IGTF': {
-    label: '2.3 IGTF (GRANDES TRANSACCIONES)',
-    deadlineDay: 15,
-    items: [
-      { code: '2.3.1', name: 'IGTF - PAGO QUINCENAL', isVariable: true }
-    ]
-  },
-  'OTROS_NACIONALES': {
-    label: '2.4 OTROS IMPUESTOS NACIONALES',
-    deadlineDay: 30,
-    items: [
-      { code: '2.4.1', name: 'OTRO IMPUESTO NACIONAL', isVariable: true },
-    ]
-  }
-};
-
-const HUMAN_RESOURCES_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'PASIVOS_LABORALES': {
-    label: 'PASIVOS LABORALES Y CONTRIBUCIONES',
-    deadlineDay: 30,
-    items: [
-      { code: 'HR.1', name: 'CONTRIBUCION PARAFISCAL (INCES)', isVariable: true },
-      { code: 'HR.2', name: 'CONTRIBUCION PARAFISCAL (IVSS)', isVariable: true },
-      { code: 'HR.3', name: 'CONTRIBUCION PARAFISCAL (FAOV)', isVariable: true },
-      { code: 'HR.4', name: 'PAGO DE NÓMINA', isVariable: true },
-      { code: 'HR.5', name: 'PRESTACIONES SOCIALES', isVariable: true },
-      { code: 'HR.6', name: 'OTROS PASIVOS LABORALES', isVariable: true },
-    ]
-  }
-};
-
-const OBJECT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'SENCAMER_CERT': {
-    label: '2.1 CERTIFICADO DE SENCAMER (REM 36357)',
-    deadlineDay: 30,
-    items: [
-      { code: '2.1.1', name: 'CONSTANCIA DE REGISTRO', isVariable: true },
-      { code: '2.1.2', name: 'PAGO DE RENOVACION REM', isVariable: true },
-      { code: '2.1.3', name: 'CERTIFICADO REM', isVariable: true },
-    ]
-  },
-  'SENCAMER_CPE': {
-    label: '2.2 CPE SENCAMER',
-    deadlineDay: 30,
-    items: [
-      { code: '2.2.1', name: 'PAGO DE ARANCELES', isVariable: true },
-      { code: '2.2.2', name: 'CONSTANCIA DE VERIFICACION DE PRODUCTO', isVariable: true },
-      { code: '2.2.3', name: 'SOLVENCIA DEL PRODUCTO', isVariable: true },
-    ]
-  },
-  'RACDA': {
-    label: '2.3 REGISTRO DE ACTIVIDADES CAPACES DE DEGRADAR EL AMBIENTE (RACDA)',
-    deadlineDay: 30,
-    items: [
-      { code: '2.3.1', name: 'LICENCIA RACDA', isVariable: true },
-      { code: '2.3.2', name: 'PAGOS DEL PROFESIONAL PARA DECLARACION EFLUENTES', isVariable: true },
-      { code: '2.3.3', name: 'DECLARACION EFLUENTES', isVariable: true },
-      { code: '2.3.4', name: 'DISPOSICION FINAL (ANUAL) INFORME', isVariable: true },
-    ]
-  },
-  'SOLVENCIA_AMBIENTAL': {
-    label: '2.4 SOLVENCIA POLICIAL NACIONAL AMBIENTAL',
-    deadlineDay: 30,
-    items: [
-      { code: '2.4.1', name: 'ACTA DE SOLVENCIA', isVariable: true },
-    ]
-  },
-  'DISPOSICION_FINAL': {
-    label: '2.5 EMPRESA DE DISPOSICION FINAL',
-    deadlineDay: 30,
-    items: [
-      { code: '2.5.1', name: 'CONTRATO EMPRESA DISPOSICION FINAL', isVariable: true },
-      { code: '2.5.2', name: 'RETIRO DE DESECHOS', isVariable: true },
-    ]
-  },
-  'POLIZA_SEGURO': {
-    label: '2.7 POLIZA DE SEGURO FABRICA (RESPONSABILIDAD CIVIL GENERAL)',
-    deadlineDay: 30,
-    items: [
-      { code: '2.7.1', name: 'PAGO DE ARANCELES', isVariable: true },
-      { code: '2.7.2', name: 'POLIZA', isVariable: true },
-    ]
-  },
-  'SAPI': {
-    label: '2.8 SERVICIO AUTONOMO DE LA PROPIEDAD INTELECTUAL (SAPI)',
-    deadlineDay: 30,
-    items: [
-      { code: '2.8.1', name: 'SAPI (MARCA)', isVariable: true },
-      { code: '2.8.2', name: 'SAPI (LOGO)', isVariable: true },
-    ]
-  }
-};
-
-const INSTITUTIONS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'SNC': {
-    label: '3.1 SERVICIO NACIONAL DE CONTRATISTA (SNC)',
-    deadlineDay: 30,
-    items: [
-      { code: '3.1.1', name: 'EXPEDIENTE CONTABLE', isVariable: true },
-      { code: '3.1.2', name: 'PAGO DE ARANCEL', isVariable: true },
-      { code: '3.1.3', name: 'CERTIFICADO', isVariable: true },
-    ]
-  },
-  'RUPDAE': {
-    label: '3.2 RUPDAE',
-    deadlineDay: 30,
-    items: [
-      { code: '3.2.1', name: 'INSCRIPCION', isVariable: true },
-      { code: '3.2.2', name: 'ARANCEL', isVariable: true },
-    ]
-  },
-  'FONACIT': {
-    label: '3.3 FONACIT',
-    deadlineDay: 30,
-    items: [
-      { code: '3.3.1', name: 'DECLARACION', isVariable: true },
-      { code: '3.3.2', name: 'PAGO', isVariable: true },
-    ]
-  },
-  'FONA': {
-    label: '3.4 FONA',
-    deadlineDay: 30,
-    items: [
-      { code: '3.4.1', name: 'DECLARACION', isVariable: true },
-      { code: '3.4.2', name: 'PAGO', isVariable: true },
-    ]
-  },
-  'FONDO_DEPORTE': {
-    label: '3.5 FONDO DE DEPORTE',
-    deadlineDay: 30,
-    items: [
-      { code: '3.5.1', name: 'DECLARACION', isVariable: true },
-      { code: '3.5.2', name: 'PAGO', isVariable: true },
-    ]
-  },
-  'INSALUD': {
-    label: '3.6 PERMISOS SANITARIO (INSALUD)',
-    deadlineDay: 30,
-    items: [
-      { code: '3.6.1', name: 'CERTIFICADO DE FUMIGACION', isVariable: true },
-      { code: '3.6.2', name: 'CERTIFICADO DE LIMPIEZA DE TANQUES', isVariable: true },
-      { code: '3.6.3', name: 'CERTIFICADO DE DESRATIZACION', isVariable: true },
-      { code: '3.6.4', name: 'PERMISO SANITARIO', isVariable: true },
-    ]
-  }
-};
-
-const TRANSPORT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'CHOFER': {
-    label: '5.1 DOCUMENTOS DEL CHOFER',
-    deadlineDay: 30,
-    items: [
-      { code: '5.1.1', name: 'CEDULA DE IDENTIDAD', isVariable: true },
-      { code: '5.1.2', name: 'CARNET DE CIRCULACION', isVariable: true },
-      { code: '5.1.3', name: 'CERTIFICADO DE SABERES', isVariable: true },
-      { code: '5.1.4', name: 'LICENCIA DE CONDUCIR', isVariable: true },
-      { code: '5.1.5', name: 'CERTIFICADO MEDICO', isVariable: true },
-    ]
-  },
-  'VEHICULO': {
-    label: '5.2 DOCUMENTOS DEL VEHICULO',
-    deadlineDay: 30,
-    items: [
-      { code: '5.2.1', name: 'TITULO DE PROPIEDAD', isVariable: true },
-      { code: '5.2.2', name: 'CARNET DE CIRCULACION', isVariable: true },
-      { code: '5.2.3', name: 'SEGURO (RCV)', isVariable: true },
-      { code: '5.2.4', name: 'IMPUESTO TRIMESTRAL', isVariable: true },
-      { code: '5.2.5', name: 'ROTC', isVariable: true },
-      { code: '5.2.6', name: 'FLOTA VEHICULAR ROCT', isVariable: true },
-      { code: '5.2.7', name: 'RACDA TRANSPORTE', isVariable: true },
-      { code: '5.2.8', name: 'GPS', isVariable: true },
-    ]
-  },
-  'MANTENIMIENTO': {
-    label: '5.3 KILOMETRO MANTENIMIENTO',
-    deadlineDay: 30,
-    items: [
-      { code: '5.3.1', name: 'FLUIDOS', isVariable: true },
-      { code: '5.3.2', name: 'FILTROS', isVariable: true },
-      { code: '5.3.3', name: 'CAUCHOS', isVariable: true },
-      { code: '5.3.4', name: 'FRENOS', isVariable: true },
-    ]
-  }
-};
-
-const SENIAT_DECLARATIONS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'DECLARACIONES': {
-    label: '7 SENIAT DECLARACIONES Y CONTABILIDAD',
-    deadlineDay: 15,
-    items: [
-      { code: '7.1', name: 'LIBRO DE COMPRA', isVariable: true },
-      { code: '7.2.1', name: 'LIBRO DE VENTA - CODIGO 1', isVariable: true },
-      { code: '7.2.2', name: 'LIBRO DE VENTA - CODIGO 2', isVariable: true },
-      { code: '7.2.3', name: 'LIBRO DE VENTA - CODIGO 3', isVariable: true },
-      { code: '7.2.4', name: 'LIBRO DE VENTA - TOTAL', isVariable: true },
-      { code: '7.3', name: 'DECLARACION DE IVA', isVariable: true },
-      { code: '7.4', name: 'DECLARACION DE IVA RET', isVariable: true },
-      { code: '7.5', name: 'DECLARACION DE ANT ISLR', isVariable: true },
-      { code: '7.6', name: 'DECLARACION DE IGTF', isVariable: true },
-      { code: '7.7', name: 'DECLARACION DE ISLR RETENIDO', isVariable: true },
-      { code: '7.8', name: 'DECLARACION DE FONDO DE PENSIONES', isVariable: true },
-      { code: '7.9', name: 'CARPETA CONTABLE', isVariable: true },
-      { code: '7.10', name: 'HONORARIOS', isVariable: true },
-      { code: '7.11', name: 'DECLARACION DE IGP', isVariable: true },
-      { code: '7.12', name: 'DECLARACION DE ISLR', isVariable: true },
-    ]
-  }
-};
-
-const SENIAT_BOOKS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'LIBROS': {
-    label: '8 SENIAT LIBROS',
-    deadlineDay: 30,
-    items: [
-      { code: '8.1', name: 'LIBRO MAYOR', isVariable: true },
-      { code: '8.2', name: 'LIBRO DE INVENTARIO', isVariable: true },
-      { code: '8.3', name: 'LIBRO DE ACTAS', isVariable: true },
-      { code: '8.4', name: 'LIBRO DE COMPRA', isVariable: true },
-      { code: '8.5', name: 'LIBRO DE VENTA', isVariable: true },
-    ]
-  }
-};
-
-const SYSTEMS_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean }[] }> = {
-  'SISTEMAS': {
-    label: '9 SISTEMAS, MARKETING Y OFICINAS',
-    deadlineDay: 30,
-    items: [
-      { code: '9.1', name: 'SERVIDOR', isVariable: true },
-      { code: '9.2', name: 'RED', isVariable: true },
-      { code: '9.3', name: 'SOFTWARE ADMINISTRATIVO', isVariable: true },
-      { code: '9.4', name: 'SOFTWARE CONTABLE', isVariable: true },
-      { code: '9.5', name: 'PROGRAMA (GASTOS FIJOS)', isVariable: true },
-      { code: '9.6', name: 'PAGINA WEB', isVariable: true },
-      { code: '9.7', name: 'PUBLICIDAD (DISEÑADOR)', isVariable: true },
-      { code: '9.8', name: 'MARKETING (REDES SOCIALES)', isVariable: true },
-      { code: '9.9', name: 'CONTROL DE DAÑOS', isVariable: true },
-      { code: '9.10', name: 'PAPELERIA DE OFICINA EN GENERAL', isVariable: true },
-      { code: '9.11', name: 'MOBILIARIO', isVariable: true },
-    ]
-  }
-};
+import { getTaxConfig } from '../src/taxConfigurations';
+import { getTaxStatus, getCategoryTrafficLight } from '../src/fiscalUtils';
 
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
@@ -541,62 +223,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [store]);
 
-  const getTaxConfig = (cat: Category | '') => {
-    switch (cat) {
-      case Category.MUNICIPAL_TAX: return MUNICIPAL_TAX_CONFIG;
-      case Category.NATIONAL_TAX: return NATIONAL_TAX_CONFIG;
-      case Category.OBJECT: return OBJECT_TAX_CONFIG;
-      case Category.INSTITUTIONS: return INSTITUTIONS_TAX_CONFIG;
-      case Category.TRANSPORT: return TRANSPORT_TAX_CONFIG;
-      case Category.SENIAT_DECLARATIONS: return SENIAT_DECLARATIONS_TAX_CONFIG;
-      case Category.SENIAT_BOOKS: return SENIAT_BOOKS_TAX_CONFIG;
-      case Category.SYSTEMS: return SYSTEMS_TAX_CONFIG;
-      case Category.PAYROLL: return HUMAN_RESOURCES_CONFIG;
-      default: return null;
-    }
-  };
-
-  React.useEffect(() => {
-    const config = getTaxConfig(category);
-    const isTaxCategory = !!config;
-
-    if (isTaxCategory && config && taxGroup && taxItem) {
-      const groupData = config[taxGroup];
-      const itemData = groupData?.items?.find(i => i.code === taxItem);
-      
-      if (itemData) {
-        const newSpecificType = `${itemData.code} - ${itemData.name}`;
-        
-        if (newSpecificType !== specificType) {
-          setSpecificType(newSpecificType);
-          
-          // Only auto-fill amount if it's a NEW selection (not loading initialData)
-          // and manual override is not active
-          if (!isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
-            if (itemData.amount !== undefined && !itemData.isVariable) {
-              // Convert tax config USD amount to Bs for the input
-              setAmount((itemData.amount * effectiveExchangeRate).toFixed(2));
-              setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
-            } else if (itemData.isVariable) {
-               setAmount(''); 
-               setExpectedBudget(null); // No fixed budget for variable items
-            }
-          }
-        }
-      }
-    } else if (!isTaxCategory) {
-        setTaxGroup('');
-        setTaxItem('');
-        setExpectedBudget(null);
-    }
-  }, [category, taxGroup, taxItem]);
-
-  // Sync daysToExpire when paymentDate changes
-  const handlePaymentDateChange = React.useCallback((val: string) => {
-    setPaymentDate(val);
-  }, []);
-
-  // Sync paymentDate or daysToExpire when dueDate changes
   const handleDueDateChange = React.useCallback((val: string) => {
     setDueDate(val);
   }, []);
@@ -764,111 +390,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     fetchHistoricalRate();
   }, [docDate]);
 
-  // --- LOGICA SEMÁFORO FISCAL ---
-  const getTaxStatus = (deadlineDay: number) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    
-    // Obtener el último día del mes actual para ajustar si el deadlineDay es mayor (ej. Feb 28 vs 30)
-    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-    const actualDeadlineDay = Math.min(deadlineDay, lastDayOfMonth);
-    
-    const deadlineDate = new Date(year, month, actualDeadlineDay);
-    
-    // Calcular diferencia en días
-    const diffTime = deadlineDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) {
-      return { 
-        color: 'bg-red-500', 
-        text: 'text-red-600', 
-        bgSoft: 'bg-red-100', 
-        status: 'Vencido', 
-        icon: AlertCircle 
-      };
-    } else if (diffDays <= 5) {
-      return { 
-        color: 'bg-amber-500', 
-        text: 'text-amber-600', 
-        bgSoft: 'bg-amber-100', 
-        status: 'Próximo', 
-        icon: Clock 
-      };
-    } else {
-      return { 
-        color: 'bg-emerald-500', 
-        text: 'text-emerald-600', 
-        bgSoft: 'bg-emerald-100', 
-        status: 'En fecha', 
-        icon: CheckCircle2 
-      };
-    }
-  };
-
-  const getCategoryTrafficLight = React.useCallback((catId: Category, storeId: string) => {
-    if (!storeId) return 'slate';
-    
-    const config = getTaxConfig(catId);
-    if (!config) {
-        const catPayments = payments.filter(p => p.storeId === storeId && p.category === catId);
-        if (catPayments.length === 0) return 'slate';
-        const hasRed = catPayments.some(p => p.status === PaymentStatus.OVERDUE || p.status === PaymentStatus.REJECTED);
-        if (hasRed) return 'red';
-        const allGreen = catPayments.every(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
-        if (allGreen) return 'green';
-        return 'slate';
-    }
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    let hasRed = false;
-    let allGreen = true;
-    let hasItems = false;
-
-    Object.values(config).forEach(groupConfig => {
-        const status = getTaxStatus(groupConfig.deadlineDay);
-        
-        groupConfig.items.forEach(item => {
-            hasItems = true;
-            
-            const itemPayments = payments.filter(p => {
-                const pDate = new Date(p.dueDate);
-                return p.storeId === storeId && 
-                       p.category === catId && 
-                       p.specificType.startsWith(item.code) &&
-                       pDate.getMonth() === currentMonth &&
-                       pDate.getFullYear() === currentYear;
-            });
-
-            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
-            const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
-            const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
-
-            if (hasRejected || hasOverdue) {
-                hasRed = true;
-                allGreen = false;
-            } else if (!hasApprovedOrPending) {
-                if (status.status === 'Vencido') {
-                    hasRed = true;
-                    allGreen = false;
-                } else if (status.status === 'Próximo') {
-                    allGreen = false;
-                }
-            }
-        });
-    });
-
-    if (hasRed) return 'red';
-    if (hasItems && allGreen) return 'green';
-    return 'slate';
-  }, [payments]);
-
   const taxStatusList = React.useMemo(() => {
     const config = getTaxConfig(category);
     if (!config) return [];
@@ -879,7 +400,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     return Object.entries(config).map(([key, groupConfig]) => {
         let hasRed = false;
-        let allGreen = true;
         let hasYellow = false;
         
         const baseStatus = getTaxStatus(groupConfig.deadlineDay);
@@ -894,20 +414,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                        pDate.getFullYear() === currentYear;
             });
 
-            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+            const hasApprovedOrPending = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.PAID);
             const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
             if (hasRejected || hasOverdue) {
                 hasRed = true;
-                allGreen = false;
             } else if (!hasApprovedOrPending) {
                 if (baseStatus.status === 'Vencido') {
                     hasRed = true;
-                    allGreen = false;
                 } else if (baseStatus.status === 'Próximo') {
                     hasYellow = true;
-                    allGreen = false;
                 }
             }
         });
@@ -1318,7 +835,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         ].map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
-                            const trafficLight = getCategoryTrafficLight(cat.id, store);
+                            const trafficLight = getCategoryTrafficLight(cat.id, store, payments);
                             
                             let trafficClasses = '';
                             let iconClasses = '';
@@ -1336,6 +853,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     : 'border-emerald-500/50 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 hover:border-emerald-500 hover:bg-emerald-500/10';
                                 iconClasses = isSelected ? 'bg-emerald-500 text-white shadow-emerald-500/20 scale-110' : 'bg-emerald-500/20 text-emerald-500 group-hover:bg-emerald-500/30';
                                 textClasses = isSelected ? 'text-emerald-900 dark:text-emerald-100' : 'text-emerald-700 dark:text-emerald-400 group-hover:text-emerald-500';
+                            } else if (trafficLight === 'amber') {
+                                trafficClasses = isSelected 
+                                    ? 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.15)]' 
+                                    : 'border-amber-500/50 bg-amber-500/5 text-amber-700 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-500/10';
+                                iconClasses = isSelected ? 'bg-amber-500 text-white shadow-amber-500/20 scale-110' : 'bg-amber-500/20 text-amber-500 group-hover:bg-amber-500/30';
+                                textClasses = isSelected ? 'text-amber-900 dark:text-amber-100' : 'text-amber-700 dark:text-amber-400 group-hover:text-amber-500';
                             } else {
                                 trafficClasses = isSelected 
                                     ? 'border-brand-500 bg-brand-500/10 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.15)]' 
@@ -1634,7 +1157,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="date"
                                         value={paymentDate}
                                         disabled={isSubmitting}
-                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
+                                        onChange={(e) => setPaymentDate(e.target.value)}
                                         className={`w-full bg-slate-50 dark:bg-slate-950/50 border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />

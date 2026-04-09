@@ -33,7 +33,7 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
           {stores.map((store) => {
             if (store.lat && store.lng) {
               const isSelected = selectedStoreIds.includes(store.id);
-              const color = store.status === 'En Regla' ? '#22c55e' : store.status === 'En Riesgo' ? '#eab308' : '#ef4444';
+              const color = store.status === 'En Regla' ? '#10b981' : store.status === 'En Riesgo' ? '#f59e0b' : '#ef4444';
               
               return (
                 <AdvancedMarker
@@ -88,8 +88,8 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
               <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                    activeStore.status === 'En Regla' ? 'bg-green-500' : 
-                    activeStore.status === 'En Riesgo' ? 'bg-yellow-500' : 'bg-red-500'
+                    activeStore.status === 'En Regla' ? 'bg-emerald-500' : 
+                    activeStore.status === 'En Riesgo' ? 'bg-amber-500' : 'bg-red-500'
                   }`}></div>
                   <p className="font-bold text-white text-sm tracking-tight">{activeStore.name}</p>
                 </div>
@@ -103,8 +103,8 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
                   <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center">
                     <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Estado Fiscal</span>
                     <span className={`text-[11px] font-black uppercase tracking-wider ${
-                      activeStore.status === 'En Regla' ? 'text-green-400' : 
-                      activeStore.status === 'En Riesgo' ? 'text-yellow-400' : 'text-red-400'
+                      activeStore.status === 'En Regla' ? 'text-emerald-400' : 
+                      activeStore.status === 'En Riesgo' ? 'text-amber-400' : 'text-red-400'
                     }`}>
                       {activeStore.status}
                     </span>
@@ -142,11 +142,11 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
         {/* Legend */}
         <div className="flex flex-wrap justify-center gap-6 text-[11px] mt-6 bg-slate-800/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-700/30">
           <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]"></span>
+            <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"></span>
             <span className="text-slate-200 font-bold tracking-wide">Cumplimiento Total</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]"></span>
+            <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]"></span>
             <span className="text-slate-200 font-bold tracking-wide">Alerta de Plazo</span>
           </div>
           <div className="flex items-center gap-3">
@@ -202,11 +202,11 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
               <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
                 <div className="flex flex-wrap justify-center gap-8 text-xs">
                   <div className="flex items-center gap-3">
-                    <span className="w-4 h-4 rounded-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]"></span>
+                    <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]"></span>
                     <span className="text-slate-300 font-bold uppercase tracking-widest">Cumplimiento Total</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="w-4 h-4 rounded-full bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]"></span>
+                    <span className="w-4 h-4 rounded-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]"></span>
                     <span className="text-slate-300 font-bold uppercase tracking-widest">Alerta de Plazo</span>
                   </div>
                   <div className="flex items-center gap-3">

@@ -294,9 +294,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({
       } else {
           return { 
               label: 'A tiempo', 
-              colorClass: 'text-slate-600 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400',
-              borderClass: 'border-l-4 border-l-green-500',
-              textClass: 'text-slate-500 dark:text-slate-400',
+              colorClass: 'text-emerald-600 bg-emerald-100 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400',
+              borderClass: 'border-l-4 border-l-emerald-500',
+              textClass: 'text-emerald-600 dark:text-emerald-400',
               icon: <Calendar size={14} />
           };
       }

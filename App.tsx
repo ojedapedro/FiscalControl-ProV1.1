@@ -914,6 +914,7 @@ function App({}: AppProps = {}) {
             }}
             onPaymentSuccess={handlePaymentSuccess}
             currentUser={currentUser}
+            stores={stores}
             onLoadMore={loadMorePayments}
             hasMore={hasMorePayments}
             isLoadingMore={isLoading}
@@ -1106,6 +1107,8 @@ function App({}: AppProps = {}) {
             onRefresh={loadData}
             users={users}
             settings={settings}
+            currentUser={currentUser}
+            stores={stores}
           />
         );
       case 'predictive':
