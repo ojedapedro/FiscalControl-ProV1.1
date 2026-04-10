@@ -1281,11 +1281,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <p className="text-[11px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
                                                 <span className="text-[9px] font-black text-slate-950 bg-emerald-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Actual</span>
                                             </div>
-                                            <div className="flex items-baseline justify-between gap-2">
-                                                <p className="text-3xl font-black text-emerald-400 tabular-nums">
-                                                    $ {(parseFloat(amount || '0') / effectiveExchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </p>
-                                                <p className="text-[11px] font-bold text-slate-600 tabular-nums">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">$</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder="0.00"
+                                                        value={amount ? (parseFloat(amount) / effectiveExchangeRate).toFixed(2) : ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') setAmount('');
+                                                            else setAmount((parseFloat(val) * effectiveExchangeRate).toFixed(2));
+                                                        }}
+                                                        readOnly={!isManualOverride}
+                                                        className="w-full bg-transparent border-none text-3xl font-black text-emerald-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
+                                                    />
+                                                </div>
+                                                <p className="text-[11px] font-bold text-slate-600 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1523,10 +1536,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Equivalente en Bs.</p>
                                                             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                         </div>
-                                                        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                                            <p className="text-sm sm:text-base font-black text-brand-700 dark:text-brand-300 tabular-nums break-all">
-                                                                Bs. {(parseFloat(proposedAmount?.toString() || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </p>
+                                                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                                            <div className="relative flex-1 min-w-[120px]">
+                                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-700 dark:text-brand-300 font-black text-sm">Bs.</span>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    placeholder="0.00"
+                                                                    value={proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : ''}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        if (val === '') setProposedAmount(undefined);
+                                                                        else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
+                                                                    }}
+                                                                    className="w-full bg-transparent border-none text-sm sm:text-base font-black text-brand-700 dark:text-brand-300 tabular-nums pl-8 outline-none focus:ring-0 p-0"
+                                                                />
+                                                            </div>
                                                             <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                         </div>
                                                     </div>
@@ -1621,11 +1646,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
                                                          <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
                                                      </div>
-                                                     <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                                         <p className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 tabular-nums break-all">
-                                                             Bs. {(parseFloat(docAmount || '0') * effectiveExchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                         </p>
-                                                         <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                                             <div className="relative flex-1 min-w-[120px]">
+                                                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-emerald-700 dark:text-emerald-300 font-black text-sm">Bs.</span>
+                                                                  <input
+                                                                      type="number"
+                                                                      step="0.01"
+                                                                      placeholder="0.00"
+                                                                      value={docAmount ? (parseFloat(docAmount) * effectiveExchangeRate).toFixed(2) : ''}
+                                                                      onChange={(e) => {
+                                                                          const val = e.target.value;
+                                                                          if (val === '') setDocAmount('');
+                                                                          else setDocAmount((parseFloat(val) / effectiveExchangeRate).toFixed(2));
+                                                                      }}
+                                                                      className="w-full bg-transparent border-none text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 tabular-nums pl-8 outline-none focus:ring-0 p-0"
+                                                                  />
+                                                              </div>
+                                                          <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                      </div>
                                                  </div>
                                              </div>
