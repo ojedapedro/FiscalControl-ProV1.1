@@ -307,21 +307,26 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   const budgetAnalysis = React.useMemo(() => {
       if (!selectedPayment) return null;
       
-      const amount = Number(selectedPayment.amount);
-      const budget = Number(selectedPayment.originalBudget);
+      // Lógica solicitada:
+      // Presupuesto = Monto de detalle financiero (selectedPayment.amount)
+      // Pago = Monto del documento cargado (selectedPayment.documentAmount)
+      
+      const budget = Number(selectedPayment.amount);
+      const actual = Number(selectedPayment.documentAmount || selectedPayment.amount);
 
       if (!budget || isNaN(budget) || budget === 0) return null;
 
-      const excess = amount - budget;
+      const excess = actual - budget;
       const percent = (excess / budget) * 100;
       const excessBs = excess * exchangeRate;
       
       return {
           budget,
+          actual,
           excess,
           excessBs,
           percent,
-          isOver: excess > 0
+          isOver: excess > 0.01
       };
   }, [selectedPayment, exchangeRate]);
 
@@ -1104,10 +1109,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                 <div className="text-[9px] font-black text-slate-400 text-center py-2 uppercase">Desviación</div>
                                             </div>
                                             <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 font-mono text-xs">
-                                                <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${(selectedPayment.originalBudget || 0).toLocaleString()}</div>
-                                                <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${selectedPayment.amount.toLocaleString()}</div>
-                                                <div className={`text-center py-4 font-black ${budgetAnalysis && budgetAnalysis.percent > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                                    {budgetAnalysis ? `${budgetAnalysis.percent > 0 ? '+' : ''}${budgetAnalysis.percent.toFixed(1)}%` : '0%'}
+                                                <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${(selectedPayment.amount || 0).toLocaleString()}</div>
+                                                <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${(selectedPayment.documentAmount || selectedPayment.amount).toLocaleString()}</div>
+                                                <div className={`text-center py-4 font-black ${budgetAnalysis && budgetAnalysis.percent > 0.01 ? 'text-red-600' : budgetAnalysis && budgetAnalysis.percent < -0.01 ? 'text-emerald-600' : 'text-blue-600'}`}>
+                                                    {budgetAnalysis ? `${budgetAnalysis.percent > 0.01 ? '+' : ''}${budgetAnalysis.percent.toFixed(1)}%` : '0%'}
                                                 </div>
                                             </div>
                                         </div>
