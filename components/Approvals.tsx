@@ -1112,39 +1112,51 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Highlighted Deviation Card */}
-                                        {budgetAnalysis && budgetAnalysis.excess !== 0 && (
+                                        {/* Highlighted Deviation Card - FORCED VISIBILITY FOR TESTING */}
+                                        {budgetAnalysis && (
                                             <div className={`mt-3 p-4 rounded-2xl border flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
                                                 budgetAnalysis.isOver 
                                                 ? 'bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-800/50' 
-                                                : 'bg-emerald-50/50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800/50'
+                                                : budgetAnalysis.excess < 0 
+                                                  ? 'bg-emerald-50/50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800/50'
+                                                  : 'bg-blue-50/50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-800/50'
                                             }`}>
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                                            budgetAnalysis.isOver ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                                            budgetAnalysis.isOver 
+                                                            ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' 
+                                                            : budgetAnalysis.excess < 0
+                                                              ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                                              : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
                                                         }`}>
-                                                            {budgetAnalysis.isOver ? <AlertCircle size={18} /> : <TrendingUp size={18} />}
+                                                            {budgetAnalysis.isOver ? <AlertCircle size={18} /> : budgetAnalysis.excess < 0 ? <TrendingUp size={18} /> : <CheckCircle2 size={18} />}
                                                         </div>
                                                         <span className={`text-[11px] font-black uppercase tracking-widest ${
-                                                            budgetAnalysis.isOver ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'
+                                                            budgetAnalysis.isOver 
+                                                            ? 'text-red-700 dark:text-red-400' 
+                                                            : budgetAnalysis.excess < 0
+                                                              ? 'text-emerald-700 dark:text-emerald-400'
+                                                              : 'text-blue-700 dark:text-blue-400'
                                                         }`}>
-                                                            {budgetAnalysis.isOver ? 'Exceso de Presupuesto' : 'Ahorro de Presupuesto'}
+                                                            {budgetAnalysis.isOver ? 'Exceso de Presupuesto' : budgetAnalysis.excess < 0 ? 'Ahorro de Presupuesto' : 'Presupuesto Alineado'}
                                                         </span>
                                                     </div>
                                                     <div className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
                                                         budgetAnalysis.isOver 
                                                         ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300' 
-                                                        : 'bg-emerald-100 border-emerald-200 text-emerald-700 dark:bg-emerald-900/50 dark:border-emerald-700 dark:text-emerald-300'
+                                                        : budgetAnalysis.excess < 0
+                                                          ? 'bg-emerald-100 border-emerald-200 text-emerald-700 dark:bg-emerald-900/50 dark:border-emerald-700 dark:text-emerald-300'
+                                                          : 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-300'
                                                     }`}>
-                                                        {budgetAnalysis.isOver ? 'CRÍTICO' : 'OPTIMIZADO'}
+                                                        {budgetAnalysis.isOver ? 'CRÍTICO' : budgetAnalysis.excess < 0 ? 'OPTIMIZADO' : 'CORRECTO'}
                                                     </div>
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <div className="flex flex-col p-2 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Monto en $</span>
-                                                        <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                        <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : budgetAnalysis.excess < 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
                                                             {budgetAnalysis.isOver ? '+' : ''}${budgetAnalysis.excess.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                         </span>
                                                     </div>
@@ -1156,7 +1168,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     </div>
                                                     <div className="flex flex-col p-2 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Desviación</span>
-                                                        <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                        <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : budgetAnalysis.excess < 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
                                                             {budgetAnalysis.isOver ? '+' : ''}{budgetAnalysis.percent.toFixed(2)}%
                                                         </span>
                                                     </div>
