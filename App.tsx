@@ -92,6 +92,34 @@ function App({}: AppProps = {}) {
   const [lastVisibleEmployee, setLastVisibleEmployee] = useState<any>(null);
   const [hasMoreEmployees, setHasMoreEmployees] = useState(true);
 
+  // PWA Push Notification on Open
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    const hasShownPwaNotification = sessionStorage.getItem('pwa_notification_shown');
+
+    if (isStandalone && !hasShownPwaNotification) {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('¡Bienvenido a FiscalControl Pro!', {
+            body: 'Estás usando la aplicación en modo PWA.',
+            icon: APP_LOGO_URL
+          });
+          sessionStorage.setItem('pwa_notification_shown', 'true');
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification('¡Bienvenido a FiscalControl Pro!', {
+                body: 'Estás usando la aplicación en modo PWA.',
+                icon: APP_LOGO_URL
+              });
+              sessionStorage.setItem('pwa_notification_shown', 'true');
+            }
+          });
+        }
+      }
+    }
+  }, []);
+
   // PWA Install Prompt Listener
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -914,6 +942,7 @@ function App({}: AppProps = {}) {
             }}
             onPaymentSuccess={handlePaymentSuccess}
             currentUser={currentUser}
+            stores={stores}
             onLoadMore={loadMorePayments}
             hasMore={hasMorePayments}
             isLoadingMore={isLoading}
@@ -1106,6 +1135,8 @@ function App({}: AppProps = {}) {
             onRefresh={loadData}
             users={users}
             settings={settings}
+            currentUser={currentUser}
+            stores={stores}
           />
         );
       case 'predictive':
