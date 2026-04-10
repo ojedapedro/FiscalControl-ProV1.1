@@ -1292,21 +1292,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 )}
                             </div>
 
-                            {/* Column 2: Due Date */}
+                            {/* Column 2: Alert */}
                             <div className="xl:col-span-2">
-                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
-                                        value={dueDate}
-                                        aria-label="Fecha de Vencimiento"
+                                        value={paymentDate}
+                                        aria-label="Alerta"
                                         disabled={isSubmitting}
-                                        onChange={(e) => handleDueDateChange(e.target.value)}
-                                        className={`w-full bg-[#0a0c10] border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
+                                        className={`w-full bg-[#0a0c10] border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
-                                {errors.dueDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
+                                {errors.paymentDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
                             </div>
 
                             {/* Column 3: Days to Expire */}
@@ -1326,21 +1326,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
                             </div>
 
-                            {/* Column 4: Alert */}
+                            {/* Column 4: Due Date */}
                             <div className="xl:col-span-2">
-                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
+                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
                                 <div className="relative group">
                                     <input
                                         type="date"
-                                        value={paymentDate}
-                                        aria-label="Alerta"
+                                        value={dueDate}
+                                        aria-label="Fecha de Vencimiento"
                                         disabled={isSubmitting}
-                                        onChange={(e) => handlePaymentDateChange(e.target.value)}
-                                        className={`w-full bg-[#0a0c10] border ${errors.paymentDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
+                                        onChange={(e) => handleDueDateChange(e.target.value)}
+                                        className={`w-full bg-[#0a0c10] border ${errors.dueDate ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'} text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light] disabled:opacity-50`}
                                     />
                                     <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>
-                                {errors.paymentDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.paymentDate}</p>}
+                                {errors.dueDate && <p className="text-red-400 text-[11px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.dueDate}</p>}
                             </div>
 
                             {/* Column 5: Frequency */}
