@@ -136,15 +136,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       deductions: [
         { name: 'SSO (4%)', amount: Number((salarioNormal * 0.04).toFixed(2)) },
         { name: 'RPE (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) },
-        { name: 'FAOV / LPH (1%)', amount: Number((salarioIntegral * 0.01).toFixed(2)) },
-        { name: 'INCES (0.5%)', amount: Number((salarioNormal * 0.005).toFixed(2)) }
+        { name: 'FAOV / LPH (1%)', amount: Number((salarioIntegral * 0.01).toFixed(2)) }
       ],
       liabilities: [
         { name: 'SSO Patronal (9%)', amount: Number((salarioNormal * 0.09).toFixed(2)) },
         { name: 'RPE Patronal (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
         { name: 'FAOV Patronal (2%)', amount: Number((salarioIntegral * 0.02).toFixed(2)) },
         { name: 'INCES Patronal (2%)', amount: Number((salarioNormal * 0.02).toFixed(2)) },
-        { name: 'Fondo de Pensiones (9%)', amount: Number((totalPagos * 0.09).toFixed(2)) }
+        { name: 'Fondo de Pensiones (9%)', amount: Number((totalPagos * 0.09).toFixed(2)) },
+        { name: 'Provisión Prestaciones (16.66%)', amount: Number((salarioIntegral * 0.1666).toFixed(2)) },
+        { name: 'Provisión Vacaciones (8.33%)', amount: Number((salarioNormal * 0.0833).toFixed(2)) },
+        { name: 'Provisión Utilidades (8.33%)', amount: Number((salarioNormal * 0.0833).toFixed(2)) }
       ]
     };
   };
@@ -184,15 +186,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     deductions: [
       { name: 'SSO (4%)', amount: 0 }, 
       { name: 'RPE (0.5%)', amount: 0 }, 
-      { name: 'FAOV / LPH (1%)', amount: 0 }, 
-      { name: 'INCES (0.5%)', amount: 0 }
+      { name: 'FAOV / LPH (1%)', amount: 0 }
     ],
     employerLiabilities: [
       { name: 'SSO Patronal (9%)', amount: 0 }, 
       { name: 'RPE Patronal (2%)', amount: 0 }, 
       { name: 'FAOV Patronal (2%)', amount: 0 }, 
       { name: 'INCES Patronal (2%)', amount: 0 },
-      { name: 'Fondo de Pensiones (9%)', amount: 0 }
+      { name: 'Fondo de Pensiones (9%)', amount: 0 },
+      { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
+      { name: 'Provisión Vacaciones (8.33%)', amount: 0 },
+      { name: 'Provisión Utilidades (8.33%)', amount: 0 }
     ]
   });
 
@@ -227,15 +231,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     defaultDeductions: [
       { name: 'SSO (4%)', amount: 0 }, 
       { name: 'RPE (0.5%)', amount: 0 }, 
-      { name: 'FAOV / LPH (1%)', amount: 0 }, 
-      { name: 'INCES (0.5%)', amount: 0 }
+      { name: 'FAOV / LPH (1%)', amount: 0 }
     ],
     defaultEmployerLiabilities: [
       { name: 'SSO Patronal (9%)', amount: 0 }, 
       { name: 'RPE Patronal (2%)', amount: 0 }, 
       { name: 'FAOV Patronal (2%)', amount: 0 }, 
       { name: 'INCES Patronal (2%)', amount: 0 },
-      { name: 'Fondo de Pensiones (9%)', amount: 0 }
+      { name: 'Fondo de Pensiones (9%)', amount: 0 },
+      { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
+      { name: 'Provisión Vacaciones (8.33%)', amount: 0 },
+      { name: 'Provisión Utilidades (8.33%)', amount: 0 }
     ]
   });
   const [employeeIdInput, setEmployeeIdInput] = React.useState('');
@@ -1113,15 +1119,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   defaultDeductions: [
                     { name: 'SSO (4%)', amount: 0 }, 
                     { name: 'RPE (0.5%)', amount: 0 }, 
-                    { name: 'FAOV / LPH (1%)', amount: 0 }, 
-                    { name: 'INCES (0.5%)', amount: 0 }
+                    { name: 'FAOV / LPH (1%)', amount: 0 }
                   ],
                   defaultEmployerLiabilities: [
                     { name: 'SSO Patronal (9%)', amount: 0 }, 
                     { name: 'RPE Patronal (2%)', amount: 0 }, 
                     { name: 'FAOV Patronal (2%)', amount: 0 }, 
                     { name: 'INCES Patronal (2%)', amount: 0 },
-                    { name: 'Fondo de Pensiones (9%)', amount: 0 }
+                    { name: 'Fondo de Pensiones (9%)', amount: 0 },
+                    { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
+                    { name: 'Provisión Vacaciones (8.33%)', amount: 0 },
+                    { name: 'Provisión Utilidades (8.33%)', amount: 0 }
                   ],
                   ppeAssignments: []
                 });
