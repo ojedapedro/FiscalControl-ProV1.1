@@ -141,10 +141,15 @@ async function startServer() {
             />
           );
 
-          console.log(`   [Email] Enviando vía Resend a: ${entry.employeeEmail}`);
+          // Configuración de remitente y destinatario
+          const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+          // Si estamos en pruebas y no hemos verificado dominio, podemos forzar el envío a un correo específico
+          const targetEmail = process.env.RESEND_TEST_TO_EMAIL || entry.employeeEmail;
+
+          console.log(`   [Email] Enviando vía Resend a: ${targetEmail} (Original: ${entry.employeeEmail})`);
           const { data, error } = await resendClient.emails.send({
-            from: 'Nómina FiscalControl <onboarding@resend.dev>',
-            to: [entry.employeeEmail],
+            from: `Nómina FiscalControl <${fromEmail}>`,
+            to: [targetEmail],
             subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
             html: html,
           });
