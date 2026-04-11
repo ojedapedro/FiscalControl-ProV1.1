@@ -22,12 +22,15 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  Loader2
+  Loader2,
+  Building2,
+  CheckCircle2
 } from 'lucide-react';
-import { Payment, PaymentStatus, PayrollEntry, Role, User } from '../types';
+import { Payment, PaymentStatus, PayrollEntry, Role, User, Category, Store } from '../types';
 import { formatDate, formatDateTime } from '../src/utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { StripePaymentModal } from './StripePaymentModal';
+import { getStoreFiscalHealth, getCategoryTrafficLight } from '../src/fiscalUtils';
 
 interface DashboardProps {
   payments: Payment[];
@@ -36,6 +39,7 @@ interface DashboardProps {
   onEditPayment: (payment: Payment) => void;
   onPaymentSuccess: (paymentId: string) => void;
   currentUser?: User | null;
+  stores: Store[];
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -48,6 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onEditPayment,
   onPaymentSuccess,
   currentUser,
+  stores,
   onLoadMore,
   hasMore,
   isLoadingMore
@@ -59,6 +64,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
     direction: 'desc'
   });
   const { exchangeRate } = useExchangeRate();
+  const [selectedStoreId, setSelectedStoreId] = React.useState<string>(currentUser?.storeId || 'all');
+
+  const filteredByStorePayments = React.useMemo(() => {
+    if (selectedStoreId === 'all') return payments;
+    return payments.filter(p => p.storeId === selectedStoreId);
+  }, [payments, selectedStoreId]);
+
+  const fiscalHealth = React.useMemo(() => {
+    if (selectedStoreId === 'all') return 'slate';
+    return getStoreFiscalHealth(selectedStoreId, payments);
+  }, [selectedStoreId, payments]);
 
   const handleDownloadFiscalCategoryPDF = () => {
     const w = window as any;
@@ -159,11 +175,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Calcular totales reales basados en el estado de los pagos
-  const totalDue = payments
+  const totalDue = filteredByStorePayments
     .filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status))
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const totalOverdue = payments
+  const totalOverdue = filteredByStorePayments
     .filter(p => p.status === PaymentStatus.OVERDUE)
     .reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -272,26 +288,85 @@ export const Dashboard: React.FC<DashboardProps> = ({
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-950 dark:text-slate-50">Gestión de Pagos (Actualizado)</h1>
+          <h1 className="text-3xl font-bold text-slate-950 dark:text-slate-50">Gestión de Pagos</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">Gestione, cargue y realice seguimiento de obligaciones fiscales.</p>
         </div>
-        <div className="flex gap-4 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap gap-4 w-full md:w-auto justify-end items-center">
+            {currentUser?.role === Role.ADMIN && (
+              <div className="relative group">
+                <select
+                  value={selectedStoreId}
+                  onChange={(e) => setSelectedStoreId(e.target.value)}
+                  className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block py-2 pl-10 pr-10 transition-all outline-none cursor-pointer"
+                >
+                  <option value="all">Todas las Tiendas</option>
+                  {stores.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+              </div>
+            )}
+
             <button 
               onClick={handleDownloadFiscalCategoryPDF}
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 shadow-sm border border-white/20"
             >
               <Download size={16} />
-              <span>Generar Reporte PDF</span>
-            </button>
-            <button className="p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm relative transition-all active:scale-90">
-                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
-                <span className="text-xl">🔔</span>
+              <span>Reporte PDF</span>
             </button>
             <div className="w-10 h-10 bg-orange-200 dark:bg-orange-900/50 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm">
-                JD
+                {currentUser?.name?.substring(0, 2).toUpperCase() || 'JD'}
             </div>
         </div>
       </header>
+
+      {/* Fiscal Health Banner */}
+      {selectedStoreId !== 'all' && (
+        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 ${
+          fiscalHealth === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400' :
+          fiscalHealth === 'green' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
+          fiscalHealth === 'amber' ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400' :
+          'bg-slate-500/10 border-slate-500/20 text-slate-700 dark:text-slate-400'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${
+              fiscalHealth === 'red' ? 'bg-red-500 text-white' :
+              fiscalHealth === 'green' ? 'bg-emerald-500 text-white' :
+              fiscalHealth === 'amber' ? 'bg-amber-500 text-white' :
+              'bg-slate-500 text-white'
+            }`}>
+              {fiscalHealth === 'red' ? <AlertCircle size={24} /> :
+               fiscalHealth === 'green' ? <CheckCircle2 size={24} /> :
+               fiscalHealth === 'amber' ? <Clock size={24} /> :
+               <Activity size={24} />}
+            </div>
+            <div>
+              <h3 className="font-black uppercase tracking-widest text-sm">
+                Estado Fiscal: {
+                  fiscalHealth === 'red' ? 'Acciones Requeridas' :
+                  fiscalHealth === 'green' ? 'Todo en Regla' :
+                  fiscalHealth === 'amber' ? 'Atención Pendiente' :
+                  'Sin Datos'
+                }
+              </h3>
+              <p className="text-xs font-medium opacity-80">
+                {stores.find(s => s.id === selectedStoreId)?.name || 'Tienda Seleccionada'}
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full animate-pulse ${
+              fiscalHealth === 'red' ? 'bg-red-500' :
+              fiscalHealth === 'green' ? 'bg-emerald-500' :
+              fiscalHealth === 'amber' ? 'bg-amber-500' :
+              'bg-slate-500'
+            }`}></div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">Monitoreo en Tiempo Real</span>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -628,12 +703,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="col-span-2 flex flex-col items-end gap-0.5 w-full sm:w-auto">
                             <span className="font-bold text-sm text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             <div className="flex items-center gap-2">
-                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                                  payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                  payment.status === PaymentStatus.APPROVED ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                  payment.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                  payment.status === PaymentStatus.REJECTED ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
+                                  payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                  payment.status === PaymentStatus.APPROVED || payment.status === PaymentStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                  payment.status === PaymentStatus.OVERDUE || payment.status === PaymentStatus.REJECTED ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400'
                               }`}>
                                   {payment.status === PaymentStatus.REJECTED ? 'Devuelto' : payment.status}
                               </span>

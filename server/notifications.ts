@@ -13,7 +13,14 @@ const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+16415353606'
 const adminNumbers = (process.env.ADMIN_WHATSAPP_NUMBERS || '').split(',').filter(n => n.trim());
 const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER;
 
-const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
+let client: twilio.Twilio | null = null;
+if (accountSid && authToken) {
+  try {
+    client = twilio(accountSid, authToken);
+  } catch (error: any) {
+    console.warn('⚠️ Error al inicializar Twilio (verifica tus credenciales):', error.message);
+  }
+}
 
 export async function checkAndSendNotifications() {
   if (!client) {
