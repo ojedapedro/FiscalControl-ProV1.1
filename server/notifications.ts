@@ -1,10 +1,10 @@
 import twilio from 'twilio';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase for server-side
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
