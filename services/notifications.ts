@@ -13,7 +13,14 @@ const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+16415353606'
 const adminNumbers = (process.env.ADMIN_WHATSAPP_NUMBERS || '').split(',').filter(n => n.trim());
 const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER;
 
-const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
+let client: twilio.Twilio | null = null;
+if (accountSid && authToken) {
+  try {
+    client = twilio(accountSid, authToken);
+  } catch (error: any) {
+    console.warn('⚠️ Error al inicializar Twilio (verifica tus credenciales):', error.message);
+  }
+}
 
 export async function checkAndSendNotifications() {
   if (!client) {
@@ -22,7 +29,7 @@ export async function checkAndSendNotifications() {
   }
 
   console.log('🔍 [Notifications] Iniciando escaneo de pagos para notificaciones...');
-
+  
   try {
     const paymentsRef = collection(db, 'payments');
     const snapshot = await getDocs(paymentsRef);
@@ -38,11 +45,11 @@ export async function checkAndSendNotifications() {
       if (data.status === 'PAID' || data.status === 'REJECTED') return;
 
       const dueDate = new Date(data.dueDate);
-
+      
       // Overdue
       if (dueDate < now) {
         overduePayments.push({ id: doc.id, ...data });
-      }
+      } 
       // Upcoming (exactly 3 days before or within 3 days)
       else if (dueDate <= threeDaysFromNow) {
         upcomingPayments.push({ id: doc.id, ...data });
