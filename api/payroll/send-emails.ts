@@ -1,14 +1,14 @@
+import { Resend } from 'resend';
+import React from 'react';
+import { render } from '@react-email/render';
+import { PayrollEmailTemplate } from '../../components/PayrollEmailTemplate';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { Resend } = await import('resend');
-    const React = await import('react');
-    const { render } = await import('@react-email/render');
-    const { PayrollEmailTemplate } = await import('../../components/PayrollEmailTemplate');
-
     const { entries } = req.body;
     
     if (!entries || !Array.isArray(entries)) {
@@ -16,6 +16,8 @@ export default async function handler(req: any, res: any) {
     }
 
     const key = process.env.RESEND_API_KEY;
+    console.log('🔑 [send-emails] RESEND_API_KEY configurada:', !!key);
+    
     if (!key) {
       return res.status(500).json({ error: 'Resend no está configurado en el servidor.' });
     }
@@ -61,8 +63,11 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    res.json({ success: true, results });
+    res.status(200).json({ success: true, results });
   } catch (err: any) {
-    res.status(500).json({ error: 'Error fatal en el servidor', details: err.message, stack: err.stack });
+    console.error('💥 Error fatal en send-emails:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error fatal en el servidor', details: err?.message || String(err), stack: err?.stack });
+    }
   }
 }
