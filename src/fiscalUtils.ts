@@ -69,19 +69,14 @@ export const getCategoryTrafficLight = (
 
   const configMap = getTaxConfig(category);
   if (!configMap) return 'slate';
-
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
   
   let hasRed = false;
   let hasAmber = false;
-  let allGreen = true;
-  let hasItems = false;
+  let hasPayments = false;
+  let allItemsGreen = true;
 
   Object.values(configMap).forEach(groupConfig => {
     groupConfig.items.forEach(item => {
-      hasItems = true;
-      
       // Buscar pagos para este concepto específico
       const itemPayments = payments.filter(p => 
         p.storeId === storeId && 
@@ -89,44 +84,37 @@ export const getCategoryTrafficLight = (
         p.specificType.startsWith(item.code)
       );
 
-      let itemStatus: TrafficLightStatus = 'slate';
-
       if (itemPayments.length > 0) {
+        hasPayments = true;
         // Evaluar basado en pagos existentes
         const hasRejectedOrOverdue = itemPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
         const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
         const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
         
-        if (hasRejectedOrOverdue) itemStatus = 'red';
-        else if (hasPendingOrUploaded) itemStatus = 'amber';
-        else if (hasApprovedOrPaid) itemStatus = 'green';
+        if (hasRejectedOrOverdue) {
+          hasRed = true;
+          allItemsGreen = false;
+        } else if (hasPendingOrUploaded) {
+          hasAmber = true;
+          allItemsGreen = false;
+        } else if (!hasApprovedOrPaid) {
+          // Si tiene pagos pero ninguno es aprobado/pagado
+          allItemsGreen = false;
+        }
       } else {
-        // Evaluar basado en fecha límite si no hay pagos
-        const dateStatus = getTaxStatus(groupConfig.deadlineDay);
-        if (dateStatus.status === 'Vencido') itemStatus = 'red';
-        else if (dateStatus.status === 'Próximo') itemStatus = 'amber';
-        else itemStatus = 'slate'; // Cambiado de 'green' a 'slate'
-      }
-
-      // Agregar a la lógica de prioridad
-      if (itemStatus === 'red') {
-        hasRed = true;
-        allGreen = false;
-      } else if (itemStatus === 'amber') {
-        hasAmber = true;
-        allGreen = false;
-      } else if (itemStatus === 'slate') {
-        allGreen = false;
+        // Si no hay pagos para este concepto, no puede ser verde
+        allItemsGreen = false;
       }
     });
   });
 
-  if (!hasItems) return 'slate';
+  if (!hasPayments) return 'slate';
   if (hasRed) return 'red';
   if (hasAmber) return 'amber';
-  if (allGreen) return 'green';
+  if (allItemsGreen) return 'green';
   
-  return 'slate';
+  // Si tiene pagos pero no es todo verde y no es rojo/naranja, es naranja
+  return 'amber';
 };
 
 /**
