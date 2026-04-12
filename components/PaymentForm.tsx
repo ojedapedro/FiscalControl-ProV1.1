@@ -56,6 +56,11 @@ interface PaymentFormProps {
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser, stores }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || currentUser?.storeId || '');
+  
+  const filteredPayments = React.useMemo(() => {
+      return payments.filter(p => p.storeId === store);
+  }, [payments, store]);
+
   const [storeAddress, setStoreAddress] = React.useState('');
   const [storeMunicipality, setStoreMunicipality] = React.useState('');
   const [category, setCategory] = React.useState<Category | ''>(initialData?.category || '');
@@ -511,10 +516,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const currentYear = now.getFullYear();
 
     return groupConfig.items.map(item => {
-      const itemPayments = payments.filter(p => {
+      const itemPayments = filteredPayments.filter(p => {
         const pDate = new Date(p.dueDate);
-        return p.storeId === store && 
-               p.category === category && 
+        return p.category === category && 
                p.specificType.startsWith(item.code) &&
                pDate.getMonth() === currentMonth &&
                pDate.getFullYear() === currentYear;
@@ -581,10 +585,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     return Object.entries(configMap).map(([groupKey, groupConfig]) => {
         const items = groupConfig.items.map(item => {
-            const itemPayments = payments.filter(p => {
+            const itemPayments = filteredPayments.filter(p => {
                 const pDate = new Date(p.dueDate);
-                return p.storeId === store && 
-                       p.category === category && 
+                return p.category === category && 
                        p.specificType.startsWith(item.code) &&
                        pDate.getMonth() === currentMonth &&
                        pDate.getFullYear() === currentYear;
@@ -947,7 +950,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         ].map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
-                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, payments);
+                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments);
                             const trafficLight = rawTrafficLight;
                             
                             let trafficClasses = '';

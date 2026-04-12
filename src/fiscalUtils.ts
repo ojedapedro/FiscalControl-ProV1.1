@@ -46,6 +46,19 @@ export const getTaxStatus = (deadlineDay: number) => {
 
 /**
  * Determina el estado del semáforo para una categoría fiscal específica en una tienda.
+ * Reglas:
+ * 1. Si hay al menos un pago en Rojo -> Rojo.
+ * 2. Si no hay Rojos, pero hay al menos un pago en Naranja -> Naranja.
+ * 3. Solo si todos los pagos son Verdes -> Verde.
+ * 4. Si no hay pagos -> Gris (Slate).
+ */
+/**
+ * Determina el estado del semáforo para una categoría fiscal específica en una tienda.
+ * Reglas:
+ * 1. Si hay al menos un concepto en Rojo -> Rojo.
+ * 2. Si no hay Rojos, pero hay al menos un concepto en Naranja -> Naranja.
+ * 3. Solo si todos los conceptos son Verdes -> Verde.
+ * 4. Si no hay conceptos -> Gris (Slate).
  */
 export const getCategoryTrafficLight = (
   category: Category, 
@@ -54,25 +67,66 @@ export const getCategoryTrafficLight = (
 ): TrafficLightStatus => {
   if (!storeId) return 'slate';
 
+  const configMap = getTaxConfig(category);
+  if (!configMap) return 'slate';
+
   const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
-  // Evaluamos los pagos directos de la categoría para la tienda seleccionada en el mes actual
-  const categoryPayments = payments.filter(p => 
-    p.storeId === storeId && 
-    p.category === category &&
-    new Date(p.dueDate).getMonth() === currentMonth &&
-    new Date(p.dueDate).getFullYear() === currentYear
-  );
-
-  if (categoryPayments.length === 0) return 'slate';
+  now.setHours(0, 0, 0, 0);
   
-  const hasRed = categoryPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
+  let hasRed = false;
+  let hasAmber = false;
+  let allGreen = true;
+  let hasItems = false;
+
+  Object.values(configMap).forEach(groupConfig => {
+    groupConfig.items.forEach(item => {
+      hasItems = true;
+      
+      // Buscar pagos para este concepto específico
+      const itemPayments = payments.filter(p => 
+        p.storeId === storeId && 
+        p.category === category && 
+        p.specificType.startsWith(item.code)
+      );
+
+      let itemStatus: TrafficLightStatus = 'slate';
+
+      if (itemPayments.length > 0) {
+        // Evaluar basado en pagos existentes
+        const hasRejectedOrOverdue = itemPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
+        const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+        const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+        
+        if (hasRejectedOrOverdue) itemStatus = 'red';
+        else if (hasPendingOrUploaded) itemStatus = 'amber';
+        else if (hasApprovedOrPaid) itemStatus = 'green';
+      } else {
+        // Evaluar basado en fecha límite si no hay pagos
+        const dateStatus = getTaxStatus(groupConfig.deadlineDay);
+        if (dateStatus.status === 'Vencido') itemStatus = 'red';
+        else if (dateStatus.status === 'Próximo') itemStatus = 'amber';
+        else itemStatus = 'slate'; // Cambiado de 'green' a 'slate'
+      }
+
+      // Agregar a la lógica de prioridad
+      if (itemStatus === 'red') {
+        hasRed = true;
+        allGreen = false;
+      } else if (itemStatus === 'amber') {
+        hasAmber = true;
+        allGreen = false;
+      } else if (itemStatus === 'slate') {
+        allGreen = false;
+      }
+    });
+  });
+
+  if (!hasItems) return 'slate';
   if (hasRed) return 'red';
+  if (hasAmber) return 'amber';
+  if (allGreen) return 'green';
   
-  const allApproved = categoryPayments.every(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
-  return allApproved ? 'green' : 'amber';
+  return 'slate';
 };
 
 /**

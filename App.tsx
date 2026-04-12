@@ -1270,6 +1270,64 @@ function App({}: AppProps = {}) {
                </div>
             </div>
 
+            {/* Configuración Financiera */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+               <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
+                   <DollarSign size={20} /> Configuración Financiera
+               </h3>
+               <div className="max-w-xs">
+                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
+                   <div className="flex gap-2">
+                       <div className="relative flex-1">
+                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
+                           <input 
+                               type="number" 
+                               step="0.01"
+                               value={exchangeRateInput}
+                               onChange={(e) => {
+                                   const val = Number(e.target.value);
+                                   setExchangeRateInput(val);
+                                   setExchangeRate(val);
+                                   localStorage.setItem('fiscal_exchange_rate', val.toString());
+                               }}
+                               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
+                           />
+                       </div>
+                       <button 
+                           onClick={async () => {
+                               setIsLoading(true);
+                               try {
+                                   const currentSettings = await firestoreService.getSettings() || {
+                                       whatsappEnabled: false,
+                                       whatsappPhone: '',
+                                       whatsappGatewayUrl: '',
+                                       daysBeforeWarning: 5,
+                                       daysBeforeCritical: 2,
+                                       emailEnabled: false,
+                                       exchangeRate: 1
+                                   };
+                                   await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
+                                   await firestoreService.saveExchangeRate(exchangeRateInput);
+                                   setExchangeRate(exchangeRateInput);
+                                   localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
+                                   setNotification('✅ Tasa de cambio guardada y actualizada');
+                               } catch (e) {
+                                   setNotification('❌ Error actualizando tasa');
+                               } finally {
+                                   setIsLoading(false);
+                               }
+                           }}
+                           className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                       >
+                           Actualizar
+                       </button>
+                   </div>
+                   <p className="text-[10px] text-slate-500 mt-2 italic">
+                       Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
+                   </p>
+               </div>
+            </div>
+
             {/* Gestión de Tiendas (Solo Super Usuario y Presidencia) */}
             {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT) && (
               <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -1305,63 +1363,6 @@ function App({}: AppProps = {}) {
             )}
 
             <div className="grid gap-6">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                   <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
-                       <DollarSign size={20} /> Configuración Financiera
-                   </h3>
-                   <div className="max-w-xs">
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tasa de Cambio ($ / Bs.)</label>
-                       <div className="flex gap-2">
-                           <div className="relative flex-1">
-                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Bs.</span>
-                               <input 
-                                   type="number" 
-                                   step="0.01"
-                                   value={exchangeRateInput}
-                                   onChange={(e) => {
-                                       const val = Number(e.target.value);
-                                       setExchangeRateInput(val);
-                                       setExchangeRate(val);
-                                       localStorage.setItem('fiscal_exchange_rate', val.toString());
-                                   }}
-                                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
-                               />
-                           </div>
-                           <button 
-                               onClick={async () => {
-                                   setIsLoading(true);
-                                   try {
-                                       const currentSettings = await firestoreService.getSettings() || {
-                                           whatsappEnabled: false,
-                                           whatsappPhone: '',
-                                           whatsappGatewayUrl: '',
-                                           daysBeforeWarning: 5,
-                                           daysBeforeCritical: 2,
-                                           emailEnabled: false,
-                                           exchangeRate: 1
-                                       };
-                                       await firestoreService.saveSettings({ ...currentSettings, exchangeRate: exchangeRateInput });
-                                       await firestoreService.saveExchangeRate(exchangeRateInput);
-                                       setExchangeRate(exchangeRateInput);
-                                       localStorage.setItem('fiscal_exchange_rate', exchangeRateInput.toString());
-                                       setNotification('✅ Tasa de cambio guardada y actualizada');
-                                   } catch (e) {
-                                       setNotification('❌ Error actualizando tasa');
-                                   } finally {
-                                       setIsLoading(false);
-                                   }
-                               }}
-                               className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                           >
-                               Actualizar
-                           </button>
-                       </div>
-                       <p className="text-[10px] text-slate-500 mt-2 italic">
-                           Esta tasa se utiliza para mostrar los montos equivalentes en Bolívares en todo el sistema.
-                       </p>
-                   </div>
-                </div>
-
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>
                    <div className="flex justify-between items-center">

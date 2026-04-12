@@ -213,6 +213,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Filtrado de la lista para visualización
   const filteredPayments = React.useMemo(() => {
     let result = payments.filter(payment => {
+      if (selectedStoreId !== 'all' && payment.storeId !== selectedStoreId) return false;
       if (filter === 'all') return true;
       if (filter === 'pending') return payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED;
       if (filter === 'overdue') return payment.status === PaymentStatus.OVERDUE;
