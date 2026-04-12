@@ -1411,7 +1411,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     <select
                                         value={frequency}
                                         aria-label="Frecuencia"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride)}
                                         onChange={(e) => {
                                             const newFreq = e.target.value as PaymentFrequency;
                                             setFrequency(newFreq);
