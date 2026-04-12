@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role } from '../types';
+import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role, Store } from '../types';
 import { formatDate } from '../src/utils';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -31,6 +31,7 @@ interface CalendarViewProps {
   onDeleteBudget: (id: string) => Promise<void>;
   onUpdatePayment?: (id: string) => Promise<void>;
   currentUser: User | null;
+  stores: Store[];
 }
 
 // Definición de Obligación Estatutaria (Basada en el cuadro)
@@ -110,13 +111,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onAddBudget, 
   onDeleteBudget,
   onUpdatePayment,
-  currentUser 
+  currentUser,
+  stores
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'fiscal' | 'payroll'>('fiscal');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(currentUser?.storeId || (stores.length > 0 ? stores[0].id : 'all'));
   
-  // Estado para Presupuestos Manuales (Eliminado: Usando props)
+  // Filtrar presupuestos por tienda seleccionada
+  const filteredBudgets = useMemo(() => {
+    if (selectedStoreId === 'all') return budgets;
+    return budgets.filter(b => b.storeId === selectedStoreId);
+  }, [budgets, selectedStoreId]);
+
+  // Filtrar pagos por tienda seleccionada
+  const filteredPayments = useMemo(() => {
+    if (selectedStoreId === 'all') return payments;
+    return payments.filter(p => p.storeId === selectedStoreId);
+  }, [payments, selectedStoreId]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isAnnualAssistantOpen, setIsAnnualAssistantOpen] = useState(false);
   
@@ -258,12 +271,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const localDateString = `${year}-${month}-${day}`;
 
-    const real = payments.filter(p => p.dueDate === localDateString);
+    const real = filteredPayments.filter(p => p.dueDate === localDateString);
     const statutory = getDeadlinesForDate(selectedDate);
-    const dayBudgets = budgets.filter(b => b.date === localDateString);
+    const dayBudgets = filteredBudgets.filter(b => b.date === localDateString);
 
     setDayEvents({ realPayments: real, deadlines: statutory, budgets: dayBudgets });
-  }, [selectedDate, payments, budgets]);
+  }, [selectedDate, filteredPayments, filteredBudgets]);
 
   // Cálculo de resumen mensual para comparación de presupuesto
   const monthlyComparison = React.useMemo(() => {
@@ -271,7 +284,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const month = currentDate.getMonth();
     
     // Filtrar pagos ejecutados (aprobados o pagados) del mes actual
-    const executedPayments = payments.filter(p => {
+    const executedPayments = filteredPayments.filter(p => {
       const pDate = new Date(p.paymentDate || p.dueDate);
       return pDate.getFullYear() === year && 
              pDate.getMonth() === month && 
@@ -279,7 +292,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     });
 
     // Filtrar presupuestos del mes actual
-    const monthBudgets = budgets.filter(b => {
+    const monthBudgets = filteredBudgets.filter(b => {
       const bDate = new Date(b.date);
       return bDate.getFullYear() === year && bDate.getMonth() === month;
     });
@@ -302,7 +315,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         isOver: spent > budget && budget > 0
       };
     }).filter(item => item.spent > 0 || item.budget > 0);
-  }, [currentDate, payments, budgets]);
+  }, [currentDate, filteredPayments, filteredBudgets]);
 
   // Manejo de creación de presupuesto
   const handleAddBudget = async (e: React.FormEvent) => {
@@ -316,6 +329,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const entry: BudgetEntry = {
         id: `BUD-${Math.random().toString(36).substr(2, 9)}`,
+        storeId: selectedStoreId,
         date: dateStr,
         title: newBudget.title,
         amount: parseFloat(newBudget.amount),
@@ -339,6 +353,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const dateStr = `${annualBudgetForm.year}-${String(i + 1).padStart(2, '0')}-01`;
         entries.push({
           id: `BUD-ANNUAL-${Math.random().toString(36).substr(2, 9)}`,
+          storeId: selectedStoreId,
           date: dateStr,
           title: `Presupuesto Anual: ${months[i]}`,
           amount: annualBudgetForm.amounts[i],
@@ -387,9 +402,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const isToday = new Date().toDateString() === currentDayDate.toDateString();
       
       // Buscar datos
-      const dayPayments = payments.filter(p => p.dueDate === dayString);
+      const dayPayments = filteredPayments.filter(p => p.dueDate === dayString);
       const dayDeadlines = getDeadlinesForDate(currentDayDate);
-      const dayBudgets = budgets.filter(b => b.date === dayString);
+      const dayBudgets = filteredBudgets.filter(b => b.date === dayString);
       
       const hasOverdue = dayPayments.some(p => p.status === PaymentStatus.OVERDUE);
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
@@ -489,6 +504,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
+      <div className="absolute top-4 right-4 z-20">
+        <select
+          value={selectedStoreId}
+          onChange={(e) => setSelectedStoreId(e.target.value)}
+          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500"
+        >
+          <option value="all">Todas las Tiendas</option>
+          {stores.map(store => (
+            <option key={store.id} value={store.id}>{store.name}</option>
+          ))}
+        </select>
+      </div>
       
       {/* Modal Asistente Anual */}
       <AnimatePresence>

@@ -235,6 +235,7 @@ export interface Employee {
 
 export interface BudgetEntry {
   id: string;
+  storeId: string; // Tienda asociada
   date: string; // YYYY-MM-DD
   title: string;
   amount: number;

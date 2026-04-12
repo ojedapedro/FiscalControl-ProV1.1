@@ -1159,6 +1159,7 @@ function App({}: AppProps = {}) {
           onDeleteBudget={handleDeleteBudget} 
           onUpdatePayment={handlePaymentSuccess}
           currentUser={currentUser} 
+          stores={stores}
         />;
       case 'payroll':
         return (
