@@ -54,77 +54,25 @@ export const getCategoryTrafficLight = (
 ): TrafficLightStatus => {
   if (!storeId) return 'slate';
 
-  const config = getTaxConfig(category);
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  if (!config) {
-    // Para categorías sin configuración específica, evaluamos los pagos directos
-    const categoryPayments = payments.filter(p => 
-      p.storeId === storeId && 
-      p.category === category &&
-      new Date(p.dueDate).getMonth() === currentMonth &&
-      new Date(p.dueDate).getFullYear() === currentYear
-    );
+  // Evaluamos los pagos directos de la categoría para la tienda seleccionada en el mes actual
+  const categoryPayments = payments.filter(p => 
+    p.storeId === storeId && 
+    p.category === category &&
+    new Date(p.dueDate).getMonth() === currentMonth &&
+    new Date(p.dueDate).getFullYear() === currentYear
+  );
 
-    if (categoryPayments.length === 0) return 'slate';
-    
-    const hasRed = categoryPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
-    if (hasRed) return 'red';
-    
-    const allApproved = categoryPayments.every(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
-    return allApproved ? 'green' : 'amber';
-  }
-
-  let hasRed = false;
-  let allGreen = true;
-
-  Object.values(config).forEach(groupConfig => {
-    const baseStatus = getTaxStatus(groupConfig.deadlineDay);
-
-    groupConfig.items.forEach(item => {
-      const itemPayments = payments.filter(p => {
-        const pDate = new Date(p.dueDate);
-        return p.storeId === storeId && 
-               p.category === category && 
-               p.specificType.startsWith(item.code) &&
-               pDate.getMonth() === currentMonth &&
-               pDate.getFullYear() === currentYear;
-      });
-
-      const hasApprovedOrPaid = itemPayments.some(p => 
-        p.status === PaymentStatus.APPROVED || 
-        p.status === PaymentStatus.PAID
-      );
-      
-      const hasPendingOrUploaded = itemPayments.some(p => 
-        p.status === PaymentStatus.PENDING || 
-        p.status === PaymentStatus.UPLOADED
-      );
-
-      const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
-      const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
-
-      if (hasRejected || hasOverdue) {
-        hasRed = true;
-        allGreen = false;
-      } else if (hasPendingOrUploaded) {
-        allGreen = false;
-      } else if (!hasApprovedOrPaid) {
-        if (baseStatus.status === 'Vencido') {
-          hasRed = true;
-          allGreen = false;
-        } else if (baseStatus.status === 'Próximo') {
-          allGreen = false;
-        }
-      }
-    });
-  });
-
+  if (categoryPayments.length === 0) return 'slate';
+  
+  const hasRed = categoryPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
   if (hasRed) return 'red';
-  if (allGreen) return 'green';
-  return 'amber'; // Represents Orange/Pending
+  
+  const allApproved = categoryPayments.every(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+  return allApproved ? 'green' : 'amber';
 };
 
 /**

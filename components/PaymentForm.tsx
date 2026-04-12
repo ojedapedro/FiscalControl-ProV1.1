@@ -271,6 +271,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                setAmount(''); 
                setExpectedBudget(null); // No fixed budget for variable items
             }
+            
+            if (itemData.frequency) {
+              setFrequency(itemData.frequency);
+            }
           }
         }
       }
@@ -1124,14 +1128,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             <span className={`text-sm font-black leading-tight mb-2 uppercase tracking-tight ${taxItem === item.code ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'}`}>
                                                                 {item.name}
                                                             </span>
-                                                            {item.amount !== undefined && (
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs font-black text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-md">
-                                                                        ${item.amount.toLocaleString()}
-                                                                    </span>
-                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Presupuestaria</span>
-                                                                </div>
-                                                            )}
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {item.amount !== undefined && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-black text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-md">
+                                                                            ${item.amount.toLocaleString()}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Presupuestaria</span>
+                                                                    </div>
+                                                                )}
+                                                                {item.frequency && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                                                                            {item.frequency}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Frecuencia</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             
                                                             {/* Desglose de Pagos Existentes */}
                                                             {item.payments && item.payments.length > 0 && (

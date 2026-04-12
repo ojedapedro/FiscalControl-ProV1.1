@@ -53,6 +53,7 @@ export const getFrequencyDays = (frequency: string): number => {
     case 'Anual': return 365;
     case 'Semestral': return 180;
     case 'Cuatrimestral': return 120;
+    case 'Trimestral': return 90;
     case 'Mensual': return 30;
     case 'Quincenal': return 15;
     case 'Semanal': return 7;
@@ -82,6 +83,9 @@ export const calculateNextDueDate = (currentDate: string, frequency: string): st
       break;
     case 'Cuatrimestral':
       date.setMonth(date.getMonth() + 4);
+      break;
+    case 'Trimestral':
+      date.setMonth(date.getMonth() + 3);
       break;
     case 'Mensual':
       date.setMonth(date.getMonth() + 1);

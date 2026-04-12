@@ -82,6 +82,7 @@ function App({}: AppProps = {}) {
     const dismissed = localStorage.getItem('pwa_banner_dismissed');
     return dismissed !== 'true';
   });
+  const [hasShownPaymentAlert, setHasShownPaymentAlert] = useState(false);
 
   // --- PAGINATION STATE ---
   const PAGE_SIZE = 20;
@@ -196,6 +197,61 @@ function App({}: AppProps = {}) {
       loadData();
     }
   }, [isAuthenticated, currentUser]);
+
+  useEffect(() => {
+    if (payments.length > 0 && settings && !hasShownPaymentAlert && currentUser) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let overdueCount = 0;
+      let nearingCount = 0;
+
+      const isGlobalUser = currentUser.role === Role.SUPER_ADMIN || 
+                           currentUser.role === Role.PRESIDENT ||
+                           currentUser.role === Role.AUDITOR;
+      
+      const relevantPayments = isGlobalUser ? payments : payments.filter(p => p.storeId === currentUser.storeId);
+
+      relevantPayments.forEach(p => {
+        if (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE) {
+          const dueDate = new Date(p.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          
+          const diffTime = dueDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            overdueCount++;
+          } else if (diffDays <= (settings.daysBeforeWarning || 3)) {
+            nearingCount++;
+          }
+        }
+      });
+
+      if (overdueCount > 0 || nearingCount > 0) {
+        let msgParts = [];
+        if (overdueCount > 0) msgParts.push(`${overdueCount} vencido(s)`);
+        if (nearingCount > 0) msgParts.push(`${nearingCount} próximo(s) a vencer`);
+        
+        setNotification(`⚠️ Atención: Tienes ${msgParts.join(' y ')}.`);
+        
+        if (pushPermission === 'granted' && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            if (registration && registration.showNotification) {
+              registration.showNotification('Alertas de Pagos', {
+                body: `Tienes ${msgParts.join(' y ')}.`,
+                icon: APP_LOGO_URL
+              });
+            }
+          }).catch(err => console.error('Error showing push notification:', err));
+        }
+        
+        setHasShownPaymentAlert(true);
+      } else if (relevantPayments.length > 0) {
+        setHasShownPaymentAlert(true);
+      }
+    }
+  }, [payments, settings, hasShownPaymentAlert, currentUser, pushPermission]);
 
   // Abrir formulario automáticamente al entrar en Categoría Fiscal
   // Eliminado: El formulario ahora está embebido permanentemente en la vista 'payments'

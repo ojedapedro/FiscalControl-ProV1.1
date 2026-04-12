@@ -35,6 +35,7 @@ export enum PaymentFrequency {
   ANNUAL = 'Anual',
   SEMIANNUAL = 'Semestral',
   QUADRIMESTER = 'Cuatrimestral',
+  TRIMESTRAL = 'Trimestral',
   MONTHLY = 'Mensual',
   BIWEEKLY = 'Quincenal',
   WEEKLY = 'Semanal',
