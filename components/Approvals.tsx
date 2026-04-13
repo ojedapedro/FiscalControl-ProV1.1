@@ -64,6 +64,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   const [sortOption, setSortOption] = React.useState<SortOption>('urgency');
   const [isImageFullscreen, setIsImageFullscreen] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { exchangeRate } = useExchangeRate();
   
   // --- Checklist State ---
@@ -72,7 +73,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({
     stampLegible: false,
     storeConceptMatch: false,
     datesApproved: false,
-    documentDateApproved: false,
     proposedDatesApproved: false,
     amountsApproved: false,
     proposedAmountApproved: false,
@@ -81,11 +81,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({
 
   const isChecklistComplete = Object.values(checklist).every(val => val === true);
 
-  // --- Estados para el Modal de Confirmación de Fecha ---
-  const [showApprovalModal, setShowApprovalModal] = React.useState(false);
-  const [confirmationDate, setConfirmationDate] = React.useState('');
-  const [updateBudget, setUpdateBudget] = React.useState(false);
-  const [confirmationBudget, setConfirmationBudget] = React.useState<number | ''>('');
   const [approvedPaymentId, setApprovedPaymentId] = React.useState<string | null>(null);
   const [isExporting, setIsExporting] = React.useState(false);
 
@@ -161,17 +156,24 @@ export const Approvals: React.FC<ApprovalsProps> = ({
     setIsRejecting(false);
     setIsImageFullscreen(false);
     setImageError(false);
-    setShowApprovalModal(false); 
     
     if (selectedPayment && selectedPayment.checklist) {
-      setChecklist(selectedPayment.checklist);
+      setChecklist({
+        receiptValid: selectedPayment.checklist.receiptValid || false,
+        stampLegible: selectedPayment.checklist.stampLegible || false,
+        storeConceptMatch: selectedPayment.checklist.storeConceptMatch || false,
+        datesApproved: selectedPayment.checklist.datesApproved || false,
+        proposedDatesApproved: selectedPayment.checklist.proposedDatesApproved || false,
+        amountsApproved: selectedPayment.checklist.amountsApproved || false,
+        proposedAmountApproved: selectedPayment.checklist.proposedAmountApproved || false,
+        observationsApproved: selectedPayment.checklist.observationsApproved || false
+      });
     } else {
       setChecklist({
         receiptValid: false,
         stampLegible: false,
         storeConceptMatch: false,
         datesApproved: false,
-        documentDateApproved: false,
         proposedDatesApproved: false,
         amountsApproved: false,
         proposedAmountApproved: false,
@@ -188,43 +190,33 @@ export const Approvals: React.FC<ApprovalsProps> = ({
     if (!isRejecting) {
         setIsRejecting(true);
     } else {
-        if (selectedId && rejectionNote.trim()) {
+        if (selectedId && rejectionNote.trim() && !isSubmitting) {
+            setIsSubmitting(true);
             onReject(
                 selectedId, 
                 rejectionNote, 
-                showApprovalModal ? confirmationDate : undefined,
-                showApprovalModal && updateBudget ? Number(confirmationBudget) : undefined,
+                undefined,
+                undefined,
                 checklist
             );
             setSelectedId(null);
-            setShowApprovalModal(false);
             setIsRejecting(false);
             setRejectionNote('');
+            setIsSubmitting(false);
         }
     }
   };
 
-  const handleInitialApproveClick = () => {
-      if (selectedPayment) {
-          setConfirmationDate(selectedPayment.dueDate);
-          setUpdateBudget(false);
-          setConfirmationBudget(selectedPayment.originalBudget || '');
-          setShowApprovalModal(true);
-      }
-  };
-
-  const handleConfirmApproval = () => {
-      if (selectedId && selectedPayment && confirmationDate) {
-          const dateToSend = confirmationDate !== selectedPayment.dueDate ? confirmationDate : undefined;
-          const budgetToSend = updateBudget && confirmationBudget !== '' ? Number(confirmationBudget) : undefined;
-          
+  const handleApproveClick = () => {
+      if (selectedId && selectedPayment && !isSubmitting) {
+          setIsSubmitting(true);
           setApprovedPaymentId(selectedId);
-          setShowApprovalModal(false);
           
           setTimeout(() => {
-              onApprove(selectedId, dateToSend, budgetToSend);
+              onApprove(selectedId, undefined, undefined);
               setSelectedId(null);
               setApprovedPaymentId(null);
+              setIsSubmitting(false);
           }, 1500);
       }
   };
@@ -302,8 +294,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({
       }
   };
 
-  const isDateModified = selectedPayment && confirmationDate !== selectedPayment.dueDate;
-
   const budgetAnalysis = React.useMemo(() => {
       if (!selectedPayment) return null;
       
@@ -333,178 +323,6 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
       
-      {/* --- MODAL DE CONFIRMACIÓN DE FECHA --- */}
-      {showApprovalModal && selectedPayment && (
-          <div className="fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800/60 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
-                  {/* Header */}
-                  <div className="p-8 pb-6 border-b border-slate-100 dark:border-slate-800/50 relative">
-                      <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm border border-blue-100/50 dark:border-blue-800/30">
-                              <ShieldCheck size={28} strokeWidth={1.5} />
-                          </div>
-                          <div>
-                              <h3 className="text-xl font-bold text-slate-950 dark:text-slate-50 tracking-tight">
-                                  Confirmar Aprobación
-                              </h3>
-                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                                  Validación final de parámetros de pago.
-                              </p>
-                          </div>
-                      </div>
-                  </div>
-                  
-                  <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                      {/* Payment Summary */}
-                      <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                          <div className="flex justify-between items-start">
-                              <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">{selectedPayment.storeName}</p>
-                                  <h4 className="text-base font-bold text-slate-950 dark:text-slate-50 leading-tight">{selectedPayment.specificType}</h4>
-                              </div>
-                              <div className="text-right">
-                                  <p className="text-xl font-black text-slate-950 dark:text-slate-50 font-mono tracking-tighter">${selectedPayment.amount.toLocaleString()}</p>
-                                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">REF: {selectedPayment.id.slice(-8).toUpperCase()}</p>
-                              </div>
-                          </div>
-                      </div>
-
-                      {/* Date Section */}
-                      <div className="space-y-4">
-                          <div className="flex items-center justify-between px-1">
-                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                  <Calendar size={14} className="text-blue-500" />
-                                  Vencimiento Autorizado
-                              </label>
-                              {isDateModified && (
-                                  <span className="text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-800/50">
-                                      Modificado
-                                  </span>
-                              )}
-                          </div>
-                          
-                          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                              <div className="p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 text-center shadow-sm">
-                                  <p className="text-[9px] text-slate-400 font-bold uppercase mb-1.5 tracking-wider">Actual</p>
-                                  <span className="font-mono text-xs text-slate-400 line-through decoration-slate-300">
-                                      {formatDate(selectedPayment.dueDate)}
-                                  </span>
-                              </div>
-                              <ArrowRight className="text-slate-300" size={18} />
-                              <div className={`p-4 rounded-xl border-2 text-center transition-all shadow-sm ${
-                                  isDateModified 
-                                  ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20' 
-                                  : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/50'
-                              }`}>
-                                  <p className="text-[9px] text-blue-600 dark:text-blue-400 font-bold uppercase mb-1.5 tracking-wider">Propuesto</p>
-                                  <span className={`font-mono text-sm font-bold ${isDateModified ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}`}>
-                                      {confirmationDate ? formatDate(confirmationDate) : '---'}
-                                  </span>
-                              </div>
-                          </div>
-
-                          <div className="relative">
-                              <input 
-                                  type="date" 
-                                  value={confirmationDate}
-                                  onChange={(e) => setConfirmationDate(e.target.value)}
-                                  className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm shadow-sm"
-                              />
-                              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                          </div>
-                      </div>
-
-                      {/* Budget Section */}
-                      <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50 space-y-5">
-                          <button 
-                              onClick={() => setUpdateBudget(!updateBudget)}
-                              className={`w-full p-5 rounded-2xl border transition-all flex items-center justify-between group ${
-                                  updateBudget 
-                                  ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/10 shadow-sm' 
-                                  : 'border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 hover:border-slate-200 dark:hover:border-slate-700'
-                              }`}
-                          >
-                              <div className="flex items-center gap-4">
-                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                                      updateBudget ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700'
-                                  }`}>
-                                      <Target size={22} strokeWidth={1.5} />
-                                  </div>
-                                  <div className="text-left">
-                                      <p className="text-sm font-bold text-slate-900 dark:text-white">Ajustar Presupuesto</p>
-                                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Modificar monto original esperado.</p>
-                                  </div>
-                              </div>
-                              <div className={`w-11 h-6 rounded-full relative transition-colors ${updateBudget ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
-                                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${updateBudget ? 'left-6' : 'left-1'}`}></div>
-                              </div>
-                          </button>
-                          
-                          {updateBudget && (
-                              <div className="animate-in slide-in-from-top-2 duration-300 space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                          <p className="text-[9px] text-slate-400 font-bold uppercase mb-1.5 tracking-wider">Actual</p>
-                                          <span className="font-mono text-sm font-bold text-slate-500 dark:text-slate-400">${selectedPayment.originalBudget?.toLocaleString() || '0'}</span>
-                                      </div>
-                                      <div className="relative">
-                                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-black">$</span>
-                                          <input 
-                                              type="number" 
-                                              value={confirmationBudget}
-                                              onChange={(e) => setConfirmationBudget(e.target.value ? Number(e.target.value) : '')}
-                                              placeholder="0.00"
-                                              className="w-full pl-8 p-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 outline-none transition-all font-mono font-bold focus:border-blue-600 text-sm shadow-lg shadow-blue-500/10"
-                                          />
-                                      </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 px-1">
-                                      <RefreshCw size={12} className="text-blue-500 animate-spin-slow" />
-                                      <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-tight">
-                                          El presupuesto original será actualizado permanentemente.
-                                      </p>
-                                  </div>
-                              </div>
-                          )}
-                      </div>
-                  </div>
-
-                  {/* Footer Actions */}
-                  <div className="p-8 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-4 bg-white dark:bg-slate-900">
-                      <div className="flex gap-4">
-                        <button 
-                            onClick={() => setShowApprovalModal(false)}
-                            className="flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all text-sm uppercase tracking-widest"
-                        >
-                            Cancelar
-                        </button>
-                        <button 
-                            onClick={handleConfirmApproval}
-                            disabled={!confirmationDate}
-                            className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                        >
-                            <CheckCircle2 size={20} />
-                            {isDateModified ? 'Confirmar y Aprobar' : 'Aprobar Pago'}
-                        </button>
-                      </div>
-                      
-                      <button 
-                          onClick={() => {
-                              setShowApprovalModal(false);
-                              setIsRejecting(true);
-                              // Scroll to rejection area if needed, but it will show up in the main panel
-                          }}
-                          className="w-full py-4 border-2 border-red-500/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center justify-center gap-2"
-                      >
-                          <XCircle size={16} />
-                          Devolver para Corrección
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
-
-
       {/* LEFT PANEL: List & Filters */}
       <div className={`w-full lg:w-[400px] xl:w-[450px] flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${selectedId ? 'hidden lg:flex' : 'flex'}`}>
         
@@ -930,7 +748,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                 <div className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Protocolo de Validación</div>
                                             </div>
                                             <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800/50">
-                                                {Object.values(checklist).filter(Boolean).length} / 9
+                                                {Object.values(checklist).filter(Boolean).length} / 8
                                             </div>
                                         </div>
                                         <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -1264,8 +1082,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                         
                                         <div className="flex-1 w-full space-y-2">
                                             <button 
-                                                onClick={handleInitialApproveClick}
-                                                disabled={!isChecklistComplete}
+                                                onClick={handleApproveClick}
+                                                disabled={!isChecklistComplete || isSubmitting}
                                                 className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest transition-all text-sm flex items-center justify-center gap-3 shadow-2xl ${
                                                     isChecklistComplete 
                                                     ? 'bg-blue-600 text-white shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0' 
@@ -1276,7 +1094,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                 Validar y Aprobar
                                             </button>
                                             <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-tighter">
-                                                Requiere la validación de los 8 puntos del protocolo de auditoría.
+                                                {isChecklistComplete 
+                                                    ? 'Protocolo validado. Listo para aprobar.' 
+                                                    : 'Requiere la validación de los 8 puntos del protocolo de auditoría.'}
                                             </p>
                                         </div>
                                     </div>

@@ -61,6 +61,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       return payments.filter(p => p.storeId === store);
   }, [payments, store]);
 
+  const handleStoreChange = (storeId: string) => {
+    setStore(storeId);
+    setCategory('');
+    setTaxGroup('');
+    setTaxItem('');
+    setAmount('');
+    setExpectedBudget(null);
+    setDueDate('');
+    setSpecificType('');
+    setErrors({});
+  };
+
   const [storeAddress, setStoreAddress] = React.useState('');
   const [storeMunicipality, setStoreMunicipality] = React.useState('');
   const [category, setCategory] = React.useState<Category | ''>(initialData?.category || '');
@@ -822,13 +834,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                   
                   {initialData.checklist && (
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {Object.entries(initialData.checklist).map(([key, value]) => {
+                      {Object.entries(initialData.checklist).filter(([key]) => key !== 'documentDateApproved').map(([key, value]) => {
                         const labels: Record<string, string> = {
                           receiptValid: 'Comprobante Válido',
                           stampLegible: 'Sello Legible',
                           storeConceptMatch: 'Tienda y Concepto',
                           datesApproved: 'Fechas de Vencimiento',
-                          documentDateApproved: 'Fecha de Documento',
                           proposedDatesApproved: 'Fechas Propuestas',
                           amountsApproved: 'Montos y Presupuesto',
                           proposedAmountApproved: 'Monto Autorizado',
@@ -887,7 +898,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         <div className="relative group">
                             <select 
                                 value={store}
-                                onChange={(e) => setStore(e.target.value)}
+                                onChange={(e) => handleStoreChange(e.target.value)}
                                 disabled={isSubmitting || !!currentUser?.storeId}
                                 className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer`}
                             >
