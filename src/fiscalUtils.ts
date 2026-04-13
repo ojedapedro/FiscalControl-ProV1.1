@@ -46,19 +46,12 @@ export const getTaxStatus = (deadlineDay: number) => {
 
 /**
  * Determina el estado del semáforo para una categoría fiscal específica en una tienda.
- * Reglas:
- * 1. Si hay al menos un pago en Rojo -> Rojo.
- * 2. Si no hay Rojos, pero hay al menos un pago en Naranja -> Naranja.
- * 3. Solo si todos los pagos son Verdes -> Verde.
- * 4. Si no hay pagos -> Gris (Slate).
- */
-/**
- * Determina el estado del semáforo para una categoría fiscal específica en una tienda.
- * Reglas:
- * 1. Si hay al menos un concepto en Rojo -> Rojo.
- * 2. Si no hay Rojos, pero hay al menos un concepto en Naranja -> Naranja.
- * 3. Solo si todos los conceptos son Verdes -> Verde.
- * 4. Si no hay conceptos -> Gris (Slate).
+ * Reglas actualizadas:
+ * 1. El semáforo es activado por el concepto de pago (desglose).
+ * 2. Si hay Rojo, Naranja y Verde -> Prevalece el Rojo.
+ * 3. Si hay Naranja y Verde -> Prevalece el Naranja (por vencerse o enviado al auditor).
+ * 4. Si TODOS los conceptos están en Verde -> Verde (única condición para verde).
+ * 5. Gris -> Únicamente si no hay movimientos Y no hay obligaciones vencidas/próximas.
  */
 export const getCategoryTrafficLight = (
   category: Category, 
@@ -72,12 +65,16 @@ export const getCategoryTrafficLight = (
   
   let hasRed = false;
   let hasAmber = false;
-  let hasPayments = false;
-  let allItemsGreen = true;
+  let hasMovements = false;
+  let allConceptsGreen = true;
 
+  // Iterar por todos los grupos y conceptos definidos en la configuración fiscal
   Object.values(configMap).forEach(groupConfig => {
+    // Obtener el estado del calendario para este grupo
+    const calendarStatus = getTaxStatus(groupConfig.deadlineDay);
+    
     groupConfig.items.forEach(item => {
-      // Buscar pagos para este concepto específico
+      // Buscar movimientos (pagos) para este concepto específico
       const itemPayments = payments.filter(p => 
         p.storeId === storeId && 
         p.category === category && 
@@ -85,36 +82,62 @@ export const getCategoryTrafficLight = (
       );
 
       if (itemPayments.length > 0) {
-        hasPayments = true;
-        // Evaluar basado en pagos existentes
-        const hasRejectedOrOverdue = itemPayments.some(p => p.status === PaymentStatus.REJECTED || p.status === PaymentStatus.OVERDUE);
-        const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
-        const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+        hasMovements = true;
         
-        if (hasRejectedOrOverdue) {
+        const itemHasRed = itemPayments.some(p => 
+          p.status === PaymentStatus.REJECTED || 
+          p.status === PaymentStatus.OVERDUE
+        );
+        
+        const itemHasAmber = itemPayments.some(p => 
+          p.status === PaymentStatus.PENDING || 
+          p.status === PaymentStatus.UPLOADED
+        );
+        
+        const itemHasGreen = itemPayments.some(p => 
+          p.status === PaymentStatus.APPROVED || 
+          p.status === PaymentStatus.PAID
+        );
+
+        if (itemHasRed) {
           hasRed = true;
-          allItemsGreen = false;
-        } else if (hasPendingOrUploaded) {
+          allConceptsGreen = false;
+        } else if (itemHasAmber) {
           hasAmber = true;
-          allItemsGreen = false;
-        } else if (!hasApprovedOrPaid) {
-          // Si tiene pagos pero ninguno es aprobado/pagado
-          allItemsGreen = false;
+          allConceptsGreen = false;
+        } else if (!itemHasGreen) {
+          // Si tiene pagos pero ninguno es verde (ej. todos en otros estados)
+          allConceptsGreen = false;
         }
       } else {
-        // Si no hay pagos para este concepto, no puede ser verde
-        allItemsGreen = false;
+        // Si NO hay movimientos para este concepto, revisamos el calendario
+        if (calendarStatus.status === 'Vencido') {
+          hasRed = true;
+          allConceptsGreen = false;
+        } else if (calendarStatus.status === 'Próximo') {
+          hasAmber = true;
+          allConceptsGreen = false;
+        } else {
+          // Está "En fecha" pero no se ha pagado aún
+          allConceptsGreen = false;
+        }
       }
     });
   });
 
-  if (!hasPayments) return 'slate';
+  // 1. Rojo prevalece sobre todo
   if (hasRed) return 'red';
+
+  // 2. Naranja prevalece sobre verde (o si hay conceptos pendientes de pago)
   if (hasAmber) return 'amber';
-  if (allItemsGreen) return 'green';
-  
-  // Si tiene pagos pero no es todo verde y no es rojo/naranja, es naranja
-  return 'amber';
+
+  // 3. Verde: Única condición es que TODOS los conceptos estén pagados/aprobados
+  if (allConceptsGreen) return 'green';
+
+  // 4. Gris: Solo si no hay movimientos Y no hay alertas de calendario
+  // Si llegamos aquí y no hay movimientos, es gris. 
+  // Si hay movimientos pero no es verde ni rojo ni naranja (caso raro), lo dejamos en naranja por precaución.
+  return hasMovements ? 'amber' : 'slate';
 };
 
 /**
