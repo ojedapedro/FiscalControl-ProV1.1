@@ -60,6 +60,9 @@ export interface User {
   avatar?: string;
   password?: string; // Solo para simulación local
   storeId?: string; // Para Administradores y Auditores asignados a una tienda
+  allowedCategories?: Category[];
+  allowedTaxGroups?: string[];
+  allowedTaxItems?: string[];
 }
 
 export interface Store {
@@ -120,7 +123,6 @@ export interface Payment {
     stampLegible: boolean;
     storeConceptMatch: boolean;
     datesApproved: boolean;
-    documentDateApproved: boolean;
     proposedDatesApproved: boolean;
     amountsApproved: boolean;
     proposedAmountApproved: boolean;

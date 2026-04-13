@@ -473,7 +473,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    return Object.entries(config).map(([key, groupConfig]) => {
+    const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
+    const hasAllowedTaxGroups = currentUser?.allowedTaxGroups && currentUser.allowedTaxGroups.length > 0;
+
+    return Object.entries(config)
+      .filter(([key]) => {
+        if (isGlobalUser || !hasAllowedTaxGroups) return true;
+        return currentUser.allowedTaxGroups?.includes(key);
+      })
+      .map(([key, groupConfig]) => {
         let hasRed = false;
         let hasOrange = false;
         
@@ -515,7 +523,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             return { key, label: groupConfig.label, color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
         }
     });
-  }, [category, store, payments]);
+  }, [category, store, payments, currentUser]);
 
   const specificItemStatusList = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -527,8 +535,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    return groupConfig.items.map(item => {
-      const itemPayments = filteredPayments.filter(p => {
+    const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
+    const hasAllowedTaxItems = currentUser?.allowedTaxItems && currentUser.allowedTaxItems.length > 0;
+
+    return groupConfig.items
+      .filter(item => {
+        if (isGlobalUser || !hasAllowedTaxItems) return true;
+        return currentUser.allowedTaxItems?.includes(item.code);
+      })
+      .map(item => {
+        const itemPayments = filteredPayments.filter(p => {
         const pDate = new Date(p.dueDate);
         return p.category === category && 
                p.specificType.startsWith(item.code) &&
@@ -585,7 +601,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         status: status.status === 'Próximo' ? 'Próximo' : (status.status === 'En fecha' ? 'Al día' : status.status)
       };
     });
-  }, [category, taxGroup, payments, store]);
+  }, [category, taxGroup, payments, store, currentUser]);
 
   const allCategoryItemsStatus = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -595,8 +611,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    return Object.entries(configMap).map(([groupKey, groupConfig]) => {
-        const items = groupConfig.items.map(item => {
+    const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
+    const hasAllowedTaxGroups = currentUser?.allowedTaxGroups && currentUser.allowedTaxGroups.length > 0;
+    const hasAllowedTaxItems = currentUser?.allowedTaxItems && currentUser.allowedTaxItems.length > 0;
+
+    return Object.entries(configMap)
+      .filter(([key]) => {
+        if (isGlobalUser || !hasAllowedTaxGroups) return true;
+        return currentUser.allowedTaxGroups?.includes(key);
+      })
+      .map(([groupKey, groupConfig]) => {
+        const items = groupConfig.items
+          .filter(item => {
+            if (isGlobalUser || !hasAllowedTaxItems) return true;
+            return currentUser.allowedTaxItems?.includes(item.code);
+          })
+          .map(item => {
             const itemPayments = filteredPayments.filter(p => {
                 const pDate = new Date(p.dueDate);
                 return p.category === category && 
@@ -633,8 +663,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             label: groupConfig.label,
             items
         };
-    });
-  }, [category, store, payments]);
+    }).filter(group => group.items.length > 0);
+  }, [category, store, payments, currentUser]);
 
   const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
@@ -958,7 +988,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             { id: Category.UTILITY, label: 'Servicio', icon: Zap },
                             { id: Category.INVENTORY, label: 'Inventario', icon: Calculator },
                             { id: Category.OTHER, label: 'Otros', icon: Plus },
-                        ].map((cat) => {
+                        ].filter(cat => {
+                            const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
+                            if (isGlobalUser || !currentUser?.allowedCategories || currentUser.allowedCategories.length === 0) return true;
+                            return currentUser.allowedCategories.includes(cat.id);
+                        }).map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
                             const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments);

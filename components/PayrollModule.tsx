@@ -2085,7 +2085,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={payrollFormData.storeId}
                       onChange={(e) => setPayrollFormData({ ...payrollFormData, storeId: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      disabled={!!currentUser?.storeId}
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       <option value="">Seleccionar tienda...</option>
                       {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (
@@ -2644,7 +2645,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.storeId}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
-                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      disabled={!!currentUser?.storeId}
+                      className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       <option value="">Seleccionar tienda...</option>
                       {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (

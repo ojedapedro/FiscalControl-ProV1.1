@@ -26,6 +26,7 @@ import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { calculateNextDueDate } from './src/utils';
+import { getTaxConfig } from './src/taxConfigurations';
 
 interface AppProps {}
 
@@ -969,9 +970,42 @@ function App({}: AppProps = {}) {
   const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
   const userStoreId = isGlobalUser ? null : currentUser?.storeId;
   
-  const filteredPayments = userStoreId ? payments.filter(p => p.storeId === userStoreId) : payments;
+  const filteredPayments = payments.filter(p => {
+    // Filter by store
+    if (userStoreId && p.storeId !== userStoreId) return false;
+    
+    // Filter by fiscal permissions if not a global user
+    if (!isGlobalUser) {
+      const hasAllowedCategories = currentUser?.allowedCategories && currentUser.allowedCategories.length > 0;
+      const hasAllowedTaxGroups = currentUser?.allowedTaxGroups && currentUser.allowedTaxGroups.length > 0;
+      const hasAllowedTaxItems = currentUser?.allowedTaxItems && currentUser.allowedTaxItems.length > 0;
+
+      if (hasAllowedCategories && !currentUser.allowedCategories.includes(p.category)) return false;
+      
+      const itemCode = p.specificType.split(' - ')[0];
+
+      if (hasAllowedTaxGroups) {
+        const config = getTaxConfig(p.category);
+        if (config) {
+          const groupKey = Object.entries(config).find(([_, group]) => 
+            group.items.some(item => item.code === itemCode)
+          )?.[0];
+          
+          if (groupKey && !currentUser.allowedTaxGroups.includes(groupKey)) return false;
+        }
+      }
+      
+      if (hasAllowedTaxItems) {
+        if (!currentUser.allowedTaxItems.includes(itemCode)) return false;
+      }
+    }
+    
+    return true;
+  });
   const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
   const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
+  const filteredBudgets = userStoreId ? budgets.filter(b => b.storeId === userStoreId) : budgets;
+  const filteredStores = userStoreId ? stores.filter(s => s.id === userStoreId) : stores;
 
   const renderContent = () => {
     if (!isAuthenticated) return null;
@@ -998,7 +1032,7 @@ function App({}: AppProps = {}) {
             }}
             onPaymentSuccess={handlePaymentSuccess}
             currentUser={currentUser}
-            stores={stores}
+            stores={filteredStores}
             onLoadMore={loadMorePayments}
             hasMore={hasMorePayments}
             isLoadingMore={isLoading}
@@ -1040,7 +1074,7 @@ function App({}: AppProps = {}) {
               }} 
               isEmbedded={true}
               currentUser={currentUser}
-              stores={stores}
+              stores={filteredStores}
             />
             
             {/* Modal for Rejected Payments */}
@@ -1092,7 +1126,7 @@ function App({}: AppProps = {}) {
                           onCancel={() => setEditingPayment(null)}
                           isEmbedded={true}
                           currentUser={currentUser}
-                          stores={stores}
+                          stores={filteredStores}
                         />
                       </div>
                     ) : (
@@ -1145,21 +1179,21 @@ function App({}: AppProps = {}) {
           />
         );
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={budgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={stores} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={filteredBudgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={filteredStores} />;
       case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={stores} />;
+        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
       case 'network':
-        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} stores={stores} />;
+        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} stores={filteredStores} />;
       case 'calendar':
         return <CalendarView 
           payments={filteredPayments} 
           payrollEntries={filteredPayrollEntries} 
-          budgets={budgets} 
+          budgets={filteredBudgets} 
           onAddBudget={handleAddBudget} 
           onDeleteBudget={handleDeleteBudget} 
           onUpdatePayment={handlePaymentSuccess}
           currentUser={currentUser} 
-          stores={stores}
+          stores={filteredStores}
         />;
       case 'payroll':
         return (
@@ -1178,11 +1212,11 @@ function App({}: AppProps = {}) {
             hasMorePayroll={hasMorePayroll}
             onLoadMoreEmployees={loadMoreEmployees}
             hasMoreEmployees={hasMoreEmployees}
-            stores={stores}
+            stores={filteredStores}
           />
         );
       case 'evaluation':
-        return <EvaluationModule payments={payments} />;
+        return <EvaluationModule payments={filteredPayments} />;
       case 'notifications':
         return (
           <NotificationsView 
@@ -1193,11 +1227,11 @@ function App({}: AppProps = {}) {
             users={users}
             settings={settings}
             currentUser={currentUser}
-            stores={stores}
+            stores={filteredStores}
           />
         );
       case 'predictive':
-        return <PredictiveDashboard payments={payments} />;
+        return <PredictiveDashboard payments={filteredPayments} />;
       case 'settings':
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
@@ -1333,7 +1367,7 @@ function App({}: AppProps = {}) {
             {(currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT) && (
               <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                 <StoreManagement 
-                  stores={stores}
+                  stores={filteredStores}
                   users={users}
                   onAddStore={handleAddStore}
                   onUpdateStore={handleUpdateStore}
@@ -1358,7 +1392,7 @@ function App({}: AppProps = {}) {
             {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN) && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-700 bg-slate-800/50">
-                   <UserManagement currentUser={currentUser} stores={stores} />
+                   <UserManagement currentUser={currentUser} stores={filteredStores} />
                 </div>
               </div>
             )}
@@ -1544,7 +1578,7 @@ function App({}: AppProps = {}) {
                           setEditingPayment(null);
                         }} 
                         currentUser={currentUser}
-                        stores={stores}
+                        stores={filteredStores}
                       />
                   </div>
                </div>

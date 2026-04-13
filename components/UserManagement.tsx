@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { User, Role, Store as StoreType } from '../types';
+import { User, Role, Store as StoreType, Category } from '../types';
 import { firestoreService } from '../services/firestoreService';
+import { getTaxConfig } from '../src/taxConfigurations';
 import { ConfirmationModal } from './ConfirmationModal';
 import { 
   UserPlus, 
@@ -23,6 +24,14 @@ interface UserManagementProps {
   stores: StoreType[];
 }
 
+import { initializeApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import firebaseConfig from '../firebase-applet-config.json';
+
+// Initialize a secondary app to create users without signing out the current admin
+const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
+const secondaryAuth = getAuth(secondaryApp);
+
 export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, stores }) => {
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -42,14 +51,28 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
   });
   
   // Form State
-  const [newUser, setNewUser] = React.useState({
+  const [newUser, setNewUser] = React.useState<{
+    name: string;
+    email: string;
+    phone: string;
+    password?: string;
+    role: Role;
+    storeId: string;
+    avatar: string;
+    allowedCategories: Category[];
+    allowedTaxGroups: string[];
+    allowedTaxItems: string[];
+  }>({
     name: '',
     email: '',
     phone: '',
     password: '',
     role: Role.ADMIN,
     storeId: currentUser?.storeId || '',
-    avatar: ''
+    avatar: '',
+    allowedCategories: [],
+    allowedTaxGroups: [],
+    allowedTaxItems: []
   });
   
   const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -100,7 +123,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
     setIsLoading(true);
     try {
       const data = await firestoreService.getUsers();
-      setUsers(data);
+      if (currentUser?.storeId && currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.PRESIDENT) {
+        setUsers(data.filter(u => u.storeId === currentUser.storeId));
+      } else {
+        setUsers(data);
+      }
     } catch (e) {
       console.error("Error cargando usuarios", e);
     } finally {
@@ -117,7 +144,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       password: user.password || '',
       role: user.role,
       storeId: user.storeId || '',
-      avatar: user.avatar || ''
+      avatar: user.avatar || '',
+      allowedCategories: user.allowedCategories || [],
+      allowedTaxGroups: user.allowedTaxGroups || [],
+      allowedTaxItems: user.allowedTaxItems || []
     });
     setShowForm(true);
   };
@@ -161,6 +191,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       if (editingUserId) {
         res = await firestoreService.updateUser(userToSave);
       } else {
+        // Create user in Auth first using secondary app
+        if (newUser.password) {
+          try {
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUser.email, newUser.password);
+            userToSave.id = userCredential.user.uid;
+            // Sign out the secondary app immediately
+            await secondaryAuth.signOut();
+          } catch (authError: any) {
+            console.error('Error creating user in Auth:', authError);
+            if (authError.code === 'auth/email-already-in-use') {
+              throw new Error('El correo electrónico ya está en uso.');
+            } else if (authError.code === 'auth/weak-password') {
+              throw new Error('La contraseña debe tener al menos 6 caracteres.');
+            } else {
+              throw new Error('Error al crear el usuario en autenticación.');
+            }
+          }
+        }
         res = await firestoreService.createUser(userToSave);
       }
 
@@ -175,12 +223,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
         
         setShowForm(false);
         setEditingUserId(null);
-        setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '' });
+        setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
       } else {
         setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
-    } catch (e) {
-      setMessage({ type: 'error', text: 'Error de conexión' });
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Error de conexión' });
     } finally {
       setIsCreating(false);
       setTimeout(() => setMessage(null), 3000);
@@ -220,7 +268,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
             setShowForm(!showForm);
             if (showForm) {
               setEditingUserId(null);
-              setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '' });
+              setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
             }
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95"
@@ -346,26 +394,117 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
               </div>
             </div>
 
-            {(newUser.role === Role.ADMIN || newUser.role === Role.AUDITOR) && (
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tienda Asignada</label>
-                <div className="relative">
-                  <select 
-                    required
-                    value={newUser.storeId || ''}
-                    onChange={e => setNewUser({...newUser, storeId: e.target.value})}
-                    className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                  >
-                    <option value="" disabled>Seleccione una tienda...</option>
-                    {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
-                      <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
-                    ))}
-                  </select>
-                  <StoreIcon className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Este usuario solo tendrá acceso a los datos de la tienda seleccionada.</p>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tienda Asignada</label>
+              <div className="relative">
+                <select 
+                  required
+                  value={newUser.storeId || ''}
+                  onChange={e => setNewUser({...newUser, storeId: e.target.value})}
+                  disabled={!!currentUser?.storeId}
+                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  <option value="" disabled>Seleccione una tienda...</option>
+                  {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
+                    <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
+                  ))}
+                </select>
+                <StoreIcon className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
               </div>
-            )}
+              <p className="text-xs text-slate-500 mt-1">Este usuario solo tendrá acceso a los datos de la tienda seleccionada.</p>
+            </div>
+
+            <div className="md:col-span-2 mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+              <label className="block text-sm font-bold text-slate-900 dark:text-white mb-4">Permisos de Registro de Pagos</label>
+              <p className="text-xs text-slate-500 mb-4">Seleccione las categorías, desgloses y conceptos que este usuario podrá registrar. Si no selecciona ninguno, tendrá acceso a todos por defecto.</p>
+              
+              <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                {Object.values(Category).map(category => {
+                  const configMap = getTaxConfig(category);
+                  const isCategorySelected = newUser.allowedCategories.includes(category);
+                  
+                  return (
+                    <div key={category} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-3 flex items-center gap-3">
+                        <input 
+                          type="checkbox"
+                          checked={isCategorySelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewUser(prev => ({ ...prev, allowedCategories: [...prev.allowedCategories, category] }));
+                            } else {
+                              setNewUser(prev => ({ 
+                                ...prev, 
+                                allowedCategories: prev.allowedCategories.filter(c => c !== category),
+                                // Also remove children if category is unchecked
+                                allowedTaxGroups: prev.allowedTaxGroups.filter(g => !configMap || !Object.keys(configMap).includes(g)),
+                                allowedTaxItems: prev.allowedTaxItems.filter(i => !configMap || !Object.values(configMap).some(group => group.items.some(item => item.code === i)))
+                              }));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">{category}</span>
+                      </div>
+                      
+                      {isCategorySelected && configMap && (
+                        <div className="p-3 bg-white dark:bg-slate-900 space-y-3">
+                          {Object.entries(configMap).map(([groupKey, groupConfig]) => {
+                            const isGroupSelected = newUser.allowedTaxGroups.includes(groupKey);
+                            
+                            return (
+                              <div key={groupKey} className="ml-6 border-l-2 border-slate-100 dark:border-slate-800 pl-4 space-y-2">
+                                <div className="flex items-center gap-3">
+                                  <input 
+                                    type="checkbox"
+                                    checked={isGroupSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setNewUser(prev => ({ ...prev, allowedTaxGroups: [...prev.allowedTaxGroups, groupKey] }));
+                                      } else {
+                                        setNewUser(prev => ({ 
+                                          ...prev, 
+                                          allowedTaxGroups: prev.allowedTaxGroups.filter(g => g !== groupKey),
+                                          allowedTaxItems: prev.allowedTaxItems.filter(i => !groupConfig.items.some(item => item.code === i))
+                                        }));
+                                      }
+                                    }}
+                                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="font-semibold text-xs text-slate-700 dark:text-slate-300">{groupConfig.label}</span>
+                                </div>
+                                
+                                {isGroupSelected && (
+                                  <div className="ml-6 space-y-1.5 mt-2">
+                                    {groupConfig.items.map(item => (
+                                      <div key={item.code} className="flex items-center gap-3">
+                                        <input 
+                                          type="checkbox"
+                                          checked={newUser.allowedTaxItems.includes(item.code)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setNewUser(prev => ({ ...prev, allowedTaxItems: [...prev.allowedTaxItems, item.code] }));
+                                            } else {
+                                              setNewUser(prev => ({ ...prev, allowedTaxItems: prev.allowedTaxItems.filter(i => i !== item.code) }));
+                                            }
+                                          }}
+                                          className="w-3 h-3 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-[11px] text-slate-600 dark:text-slate-400">{item.code} - {item.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="md:col-span-2 pt-2">
               <button 

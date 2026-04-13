@@ -408,6 +408,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       
       const hasOverdue = dayPayments.some(p => p.status === PaymentStatus.OVERDUE);
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
+      const hasActivity = dayPayments.length > 0 || dayDeadlines.length > 0 || dayBudgets.length > 0;
 
       // Datos de Nómina
       const isPayrollDay = day === 15 || day === lastDay;
@@ -421,7 +422,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           key={day}
           onClick={() => setSelectedDate(currentDayDate)}
           className={`relative h-24 sm:h-28 border-b border-r border-slate-100 dark:border-slate-800 p-2 transition-all cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 flex flex-col justify-between ${
-            isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-slate-900'
+            isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : (hasActivity ? 'bg-white dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800')
           }`}
         >
           <div className="flex justify-between items-start">
@@ -508,10 +509,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <select
           value={selectedStoreId}
           onChange={(e) => setSelectedStoreId(e.target.value)}
-          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500"
+          disabled={!!currentUser?.storeId}
+          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          <option value="all">Todas las Tiendas</option>
-          {stores.map(store => (
+          {!currentUser?.storeId && <option value="all">Todas las Tiendas</option>}
+          {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
             <option key={store.id} value={store.id}>{store.name}</option>
           ))}
         </select>
