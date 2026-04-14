@@ -741,8 +741,8 @@ function App({}: AppProps = {}) {
             }
         }
 
-        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.originalBudget) {
-            notes.push(`Presupuesto: ${paymentToUpdate.originalBudget || 'N/A'} ➔ ${newBudgetAmount}`);
+        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.amount) {
+            notes.push(`Monto: ${paymentToUpdate.amount || 'N/A'} ➔ ${newBudgetAmount}`);
         }
 
         if (notes.length > 0) {
@@ -762,13 +762,13 @@ function App({}: AppProps = {}) {
             status: PaymentStatus.APPROVED,
             dueDate: newDueDate || paymentToUpdate.dueDate,
             daysToExpire: newDaysToExpire,
-            originalBudget: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.originalBudget,
+            amount: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.amount,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
             checklist: checklist || paymentToUpdate.checklist
         };
 
-        if (newBudgetAmount !== undefined) {
-            updatedPayment.isOverBudget = paymentToUpdate.amount > newBudgetAmount;
+        if (updatedPayment.originalBudget !== undefined) {
+            updatedPayment.isOverBudget = updatedPayment.amount > updatedPayment.originalBudget;
         }
 
         try {
@@ -786,6 +786,16 @@ function App({}: AppProps = {}) {
             setTimeout(() => setNotification(null), 3000);
         }
       }
+  };
+
+  const handleUpdatePayment = async (updatedPayment: Payment) => {
+    try {
+      await firestoreService.updatePayment(updatedPayment);
+      setPayments(prev => prev.map(p => p.id === updatedPayment.id ? updatedPayment : p));
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      setNotification('Error al actualizar el pago');
+    }
   };
 
   const handleApproveAll = async () => {
@@ -1172,6 +1182,7 @@ function App({}: AppProps = {}) {
             payments={filteredPayments} 
             onApprove={handleApprove} 
             onReject={handleReject} 
+            onUpdatePayment={handleUpdatePayment}
             currentUser={currentUser} 
             onApproveAll={handleApproveAll}
             onLoadMore={loadMorePayments}

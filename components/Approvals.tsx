@@ -40,6 +40,7 @@ interface ApprovalsProps {
   payments: Payment[];
   onApprove: (id: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => void;
   onReject: (id: string, reason: string, newDueDate?: string, newBudgetAmount?: number, checklist?: Payment['checklist']) => void;
+  onUpdatePayment?: (payment: Payment) => void;
   currentUser?: User;
   onApproveAll: () => void;
   onLoadMore?: () => Promise<void>;
@@ -52,6 +53,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   payments, 
   onApprove, 
   onReject, 
+  onUpdatePayment,
   currentUser, 
   onApproveAll,
   onLoadMore,
@@ -183,7 +185,67 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   }, [selectedId, selectedPayment]);
 
   const handleCheckItem = (item: keyof typeof checklist) => {
-    setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
+    const newValue = !checklist[item];
+    const newChecklist = { ...checklist, [item]: newValue };
+    setChecklist(newChecklist);
+
+    if (selectedPayment && onUpdatePayment) {
+        let updatedPayment = { ...selectedPayment, checklist: newChecklist };
+        let changed = false;
+
+        if (item === 'proposedDatesApproved') {
+            if (newValue && selectedPayment.proposedDueDate) {
+                updatedPayment.previousDueDate = selectedPayment.dueDate;
+                updatedPayment.dueDate = selectedPayment.proposedDueDate;
+                
+                // Recalcular daysToExpire
+                if (updatedPayment.paymentDate) {
+                    const d1 = new Date(updatedPayment.paymentDate);
+                    const d2 = new Date(updatedPayment.dueDate);
+                    const diffTime = d2.getTime() - d1.getTime();
+                    updatedPayment.daysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+                changed = true;
+            } else if (!newValue && selectedPayment.previousDueDate) {
+                updatedPayment.dueDate = selectedPayment.previousDueDate;
+                updatedPayment.previousDueDate = undefined;
+
+                // Recalcular daysToExpire
+                if (updatedPayment.paymentDate) {
+                    const d1 = new Date(updatedPayment.paymentDate);
+                    const d2 = new Date(updatedPayment.dueDate);
+                    const diffTime = d2.getTime() - d1.getTime();
+                    updatedPayment.daysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+                changed = true;
+            }
+        }
+
+        if (item === 'proposedAmountApproved') {
+            if (newValue && selectedPayment.proposedAmount !== undefined) {
+                updatedPayment.previousAmount = selectedPayment.amount;
+                updatedPayment.amount = selectedPayment.proposedAmount;
+                
+                // Actualizar isOverBudget
+                if (updatedPayment.originalBudget !== undefined) {
+                    updatedPayment.isOverBudget = updatedPayment.amount > updatedPayment.originalBudget;
+                }
+                changed = true;
+            } else if (!newValue && selectedPayment.previousAmount !== undefined) {
+                updatedPayment.amount = selectedPayment.previousAmount;
+                updatedPayment.previousAmount = undefined;
+
+                // Actualizar isOverBudget
+                if (updatedPayment.originalBudget !== undefined) {
+                    updatedPayment.isOverBudget = updatedPayment.amount > updatedPayment.originalBudget;
+                }
+                changed = true;
+            }
+        }
+
+        // Siempre actualizamos el checklist en la DB para persistir el estado de la revisión
+        onUpdatePayment(updatedPayment);
+    }
   };
 
   const handleRejectClick = () => {
@@ -857,7 +919,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                         {/* TABLE 3: PROPUESTA DE EXTENSION */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Propuesta de Extensión</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Propuesta de Nueva Fecha</div>
                                                 <button 
                                                     onClick={() => handleCheckItem('proposedDatesApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
@@ -913,7 +975,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                         {/* TABLE 2: ANALISIS PRESUPUESTARIO */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Análisis Presupuestario</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Desviacion de presupuesto</div>
                                                 <button 
                                                     onClick={() => handleCheckItem('amountsApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${

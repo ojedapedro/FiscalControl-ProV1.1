@@ -117,6 +117,10 @@ export interface Payment {
   proposedFrequency?: PaymentFrequency;
   proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   proposedJustification?: string;
+  
+  // Campos para reversión de propuestas
+  previousAmount?: number;
+  previousDueDate?: string;
 
   // Checklist de Auditoría
   checklist?: {
