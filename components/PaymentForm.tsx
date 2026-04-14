@@ -105,6 +105,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [proposedPaymentDate, setProposedPaymentDate] = React.useState<string | undefined>(initialData?.proposedPaymentDate);
   const [proposedDueDate, setProposedDueDate] = React.useState<string | undefined>(initialData?.proposedDueDate);
   const [proposedDaysToExpire, setProposedDaysToExpire] = React.useState<number | undefined>(initialData?.proposedDaysToExpire);
+  const [proposedFrequency, setProposedFrequency] = React.useState<PaymentFrequency>(initialData?.proposedFrequency || PaymentFrequency.NONE);
   const [proposedJustification, setProposedJustification] = React.useState('');
 
 
@@ -161,6 +162,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
       setPreviewUrl(initialData.receiptUrl || null);
       setIsOverBudget(initialData.isOverBudget || false);
+      
+      // Initialize proposed fields
+      setProposedAmount(initialData.proposedAmount);
+      setProposedPaymentDate(initialData.proposedPaymentDate);
+      setProposedDueDate(initialData.proposedDueDate);
+      setProposedDaysToExpire(initialData.proposedDaysToExpire);
+      setProposedFrequency(initialData.proposedFrequency || PaymentFrequency.NONE);
+      setProposedJustification(initialData.proposedJustification || '');
+
       setDocDate(initialData.documentDate || '');
       setDocAmount(initialData.documentAmount?.toString() || '');
       setDocName(initialData.documentName || '');
@@ -219,6 +229,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setDocAmount('');
     setDocName('');
     setNotes('');
+    
+    // Reset proposed fields
+    setProposedAmount(undefined);
+    setProposedPaymentDate(undefined);
+    setProposedDueDate(undefined);
+    setProposedDaysToExpire(undefined);
+    setProposedFrequency(PaymentFrequency.NONE);
+    setProposedJustification('');
+
     setErrors({});
     setIsManualOverride(false);
   };
@@ -784,6 +803,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             proposedPaymentDate,
             proposedDueDate,
             proposedDaysToExpire,
+            proposedFrequency,
             proposedJustification,
             proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
         });
@@ -1601,96 +1621,153 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                              {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
 
                              {/* Proposed Changes Section */}
-                             <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-6 relative overflow-hidden group/prop">
-                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/prop:opacity-20 transition-opacity">
-                                    <RefreshCw size={40} className="text-brand-500" />
+                             <div className="mt-8 p-8 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] space-y-8 relative overflow-hidden group/prop shadow-inner">
+                                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/prop:opacity-10 transition-opacity">
+                                    <RefreshCw size={60} className="text-brand-500" />
                                 </div>
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
-                                        <RefreshCw size={18} />
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-brand-500/20 rounded-xl text-brand-400 shadow-lg shadow-brand-500/10">
+                                            <RefreshCw size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Propuesta de Pago</h3>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-0.5">Sugerencia de cambios para revisión del auditor</p>
+                                        </div>
                                     </div>
-                                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Propuesta</h3>
                                 </div>
                                 
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nuevo Monto ($)</label>
-                                               <input
-                                                type="number"
-                                                value={proposedAmount || ''}
-                                                onChange={(e) => {
-                                                    setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
-                                                    setProposedAmountBsInput(null);
-                                                }}
-                                                placeholder="0.00"
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
-                                             />
-                                             {effectiveExchangeRate !== undefined && (
-                                                <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800/50 border border-brand-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-200 dark:hover:bg-slate-800/80 overflow-hidden shadow-inner">
-                                                    <div className="p-2 bg-brand-500/20 text-brand-600 dark:text-brand-400 rounded-lg shrink-0">
-                                                        <Calculator size={16} />
+                                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                                    {/* Column 1: Proposed Amount & Equivalent */}
+                                    <div className="xl:col-span-3 space-y-5">
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="0.00"
+                                                    value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setProposedAmountBsInput(val);
+                                                        if (val === '') setProposedAmount(undefined);
+                                                        else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
+                                                    }}
+                                                    onBlur={() => setProposedAmountBsInput(null)}
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {effectiveExchangeRate !== undefined && (
+                                            <div className="p-4 bg-brand-500/[0.03] border border-brand-500/20 rounded-2xl flex items-center gap-4 group/conv transition-all hover:bg-brand-500/[0.06] overflow-hidden relative shadow-inner">
+                                                <div className="p-2 bg-brand-500/10 text-brand-500/80 rounded-xl shrink-0">
+                                                    <DollarSign size={18} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                        <p className="text-[11px] font-black text-brand-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
+                                                        <span className="text-[9px] font-black text-slate-950 bg-brand-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Propuesto</span>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                            <p className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Equivalente en Bs.</p>
-                                                            <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 font-black text-xl">$</span>
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                placeholder="0.00"
+                                                                value={proposedAmount || ''}
+                                                                onChange={(e) => {
+                                                                    setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
+                                                                    setProposedAmountBsInput(null);
+                                                                }}
+                                                                className="w-full bg-transparent border-none text-3xl font-black text-brand-600 dark:text-brand-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
+                                                            />
                                                         </div>
-                                                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                                                            <div className="relative flex-1 min-w-[120px]">
-                                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-700 dark:text-brand-300 font-black text-sm">Bs.</span>
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    placeholder="0.00"
-                                                                    value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
-                                                                    onChange={(e) => {
-                                                                        const val = e.target.value;
-                                                                        setProposedAmountBsInput(val);
-                                                                        if (val === '') setProposedAmount(undefined);
-                                                                        else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
-                                                                    }}
-                                                                    onBlur={() => setProposedAmountBsInput(null)}
-                                                                    className="w-full bg-transparent border-none text-sm sm:text-base font-black text-brand-700 dark:text-brand-300 tabular-nums pl-8 outline-none focus:ring-0 p-0"
-                                                                />
-                                                            </div>
-                                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
-                                                        </div>
+                                                        <p className="text-[11px] font-bold text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nueva Fecha Pago</label>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Column 2: Proposed Alert */}
+                                    <div className="xl:col-span-2">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
+                                        <div className="relative group">
                                             <input
                                                 type="date"
                                                 value={proposedPaymentDate || ''}
                                                 onChange={(e) => handleProposedPaymentDateChange(e.target.value)}
-                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
                                             />
+                                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nuevos Días a Vencer</label>
+                                    </div>
+
+                                    {/* Column 3: Proposed Days to Expire */}
+                                    <div className="xl:col-span-2">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
+                                        <div className="relative group">
                                             <input
                                                 type="number"
                                                 placeholder="0"
                                                 value={proposedDaysToExpire ?? ''}
                                                 onChange={(e) => handleProposedDaysToExpireChange(e.target.value)}
-                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
                                             />
+                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nueva Fecha Venc.</label>
+                                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
+                                    </div>
+
+                                    {/* Column 4: Proposed Due Date */}
+                                    <div className="xl:col-span-2">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
+                                        <div className="relative group">
                                             <input
                                                 type="date"
                                                 value={proposedDueDate || ''}
                                                 onChange={(e) => handleProposedDueDateChange(e.target.value)}
-                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
                                             />
+                                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
                                         </div>
                                     </div>
 
+                                    {/* Column 5: Proposed Frequency */}
+                                    <div className="xl:col-span-3">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
+                                        <div className="relative group">
+                                            <select
+                                                value={proposedFrequency}
+                                                onChange={(e) => {
+                                                    const newFreq = e.target.value as PaymentFrequency;
+                                                    setProposedFrequency(newFreq);
+                                                    if (newFreq !== PaymentFrequency.NONE) {
+                                                        const days = getFrequencyDays(newFreq);
+                                                        setProposedDaysToExpire(days);
+                                                        if (proposedDueDate) {
+                                                            const d = new Date(proposedDueDate);
+                                                            d.setDate(d.getDate() + days);
+                                                            setProposedPaymentDate(d.toISOString().split('T')[0]);
+                                                        }
+                                                    } else {
+                                                        setProposedDaysToExpire(undefined);
+                                                    }
+                                                }}
+                                                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none cursor-pointer"
+                                            >
+                                                {Object.entries(PaymentFrequency).map(([key, value]) => (
+                                                    <option key={key} value={value} className="bg-slate-900">{value}</option>
+                                                ))}
+                                            </select>
+                                            <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={18} />
+                                        </div>
+                                    </div>
                                 </div>
                              </div>
                         </div>

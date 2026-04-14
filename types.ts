@@ -114,6 +114,7 @@ export interface Payment {
   proposedPaymentDate?: string;
   proposedDueDate?: string;
   proposedDaysToExpire?: number;
+  proposedFrequency?: PaymentFrequency;
   proposedStatus?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   proposedJustification?: string;
 

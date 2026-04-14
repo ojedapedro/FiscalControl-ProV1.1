@@ -1029,10 +1029,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* HISTORIAL DE AUDITORIA */}
+                                        {/* HISTORIAL DE CAMBIOS (TRAZABILIDAD) */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trazabilidad de Auditoría</div>
+                                                <div className="flex items-center gap-2">
+                                                    <History size={14} className="text-slate-400" />
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Historial de Cambios</div>
+                                                </div>
                                                 <button 
                                                     onClick={() => handleDownloadAuditPDF(selectedPayment)}
                                                     disabled={isExporting}
@@ -1042,19 +1045,57 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     {isExporting ? 'Exportando...' : 'Exportar PDF'}
                                                 </button>
                                             </div>
-                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[120px] shadow-sm space-y-3">
-                                                {selectedPayment.history?.slice(-3).map((log, idx) => (
-                                                    <div key={idx} className="flex items-start gap-3 border-b border-slate-50 dark:border-slate-800 pb-2 last:border-0 last:pb-0">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-                                                        <div className="flex-1">
-                                                            <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase leading-none">{log.action}</p>
-                                                            <div className="flex justify-between items-center mt-1">
-                                                                <span className="text-[9px] font-bold text-slate-400">{log.actorName} • {log.role}</span>
-                                                                <span className="text-[9px] font-mono text-slate-400">{formatDateTime(log.date)}</span>
+                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[150px] max-h-[400px] overflow-y-auto shadow-sm space-y-4 custom-scrollbar">
+                                                {selectedPayment.history && selectedPayment.history.length > 0 ? (
+                                                    [...selectedPayment.history].reverse().map((log, idx) => (
+                                                        <div key={idx} className="flex items-start gap-4 border-b border-slate-50 dark:border-slate-800 pb-4 last:border-0 last:pb-0 group/log">
+                                                            <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 border-2 border-white dark:border-slate-900 shadow-sm ${
+                                                                log.action === 'CREACION' ? 'bg-blue-500' :
+                                                                log.action === 'APROBACION' || log.action === 'APROBACION_MASIVA' ? 'bg-emerald-500' :
+                                                                log.action === 'RECHAZO' ? 'bg-red-500' :
+                                                                'bg-amber-500'
+                                                            }`}></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex justify-between items-start gap-2">
+                                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                                                        {log.action === 'CREACION' ? 'Creación de Pago' :
+                                                                         log.action === 'APROBACION' ? 'Pago Aprobado' :
+                                                                         log.action === 'RECHAZO' ? 'Pago Devuelto/Rechazado' :
+                                                                         log.action === 'ACTUALIZACION' ? 'Actualización de Datos' :
+                                                                         log.action === 'CORRECCION' ? 'Corrección Enviada' :
+                                                                         log.action}
+                                                                    </p>
+                                                                    <span className="text-[9px] font-mono font-bold text-slate-400 whitespace-nowrap bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                                                        {formatDateTime(log.date)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                                                        <UserIcon size={10} />
+                                                                        <span>{log.actorName}</span>
+                                                                    </div>
+                                                                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter bg-slate-100 dark:bg-slate-800 px-1.5 rounded">
+                                                                        {log.role}
+                                                                    </span>
+                                                                </div>
+                                                                {log.note && (
+                                                                    <div className="mt-2.5 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-700/50 relative overflow-hidden">
+                                                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 dark:bg-slate-700"></div>
+                                                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 italic leading-relaxed pl-1">
+                                                                            {log.note}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                                                        <History size={32} strokeWidth={1} className="mb-3 opacity-10" />
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sin Trazabilidad</p>
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
                                         </div>
                                     </div>
