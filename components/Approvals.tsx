@@ -884,14 +884,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* TABLE 4: MONTO DE LA PROPUESTA */}
+                                        {/* OBSERVACIONES (Notas del Pago) */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monto de la Propuesta</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Notas del Pago</div>
                                                 <button 
-                                                    onClick={() => handleCheckItem('proposedAmountApproved')}
+                                                    onClick={() => handleCheckItem('observationsApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
-                                                        checklist.proposedAmountApproved 
+                                                        checklist.observationsApproved 
                                                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
                                                         : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                                     }`}
@@ -900,10 +900,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     <span className="text-[9px] font-black uppercase">Validar</span>
                                                 </button>
                                             </div>
-                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4 h-[68px]">
-                                                <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
-                                                    ${(selectedPayment.proposedAmount ?? selectedPayment.amount).toLocaleString()}
-                                                </div>
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[120px] shadow-inner">
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 italic leading-relaxed">
+                                                    {selectedPayment.notes || "Sin observaciones registradas por el administrador."}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -942,14 +942,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* OBSERVACIONES */}
+                                        {/* TABLE 4: MONTO DE LA PROPUESTA */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Notas del Pago</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monto de la Propuesta</div>
                                                 <button 
-                                                    onClick={() => handleCheckItem('observationsApproved')}
+                                                    onClick={() => handleCheckItem('proposedAmountApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
-                                                        checklist.observationsApproved 
+                                                        checklist.proposedAmountApproved 
                                                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
                                                         : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                                     }`}
@@ -958,10 +958,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     <span className="text-[9px] font-black uppercase">Validar</span>
                                                 </button>
                                             </div>
-                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[120px] shadow-inner">
-                                                <p className="text-xs text-slate-600 dark:text-slate-400 italic leading-relaxed">
-                                                    {selectedPayment.notes || "Sin observaciones registradas por el administrador."}
-                                                </p>
+                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4 h-[68px]">
+                                                <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
+                                                    ${(selectedPayment.proposedAmount ?? selectedPayment.amount).toLocaleString()}
+                                                </div>
                                             </div>
                                         </div>
 
