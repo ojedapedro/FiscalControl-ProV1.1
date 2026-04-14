@@ -5,12 +5,12 @@
   "description": "Sistema de gestión y auditoría fiscal para redes de tiendas.",
   "icons": [
     {
-      "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg",
+      "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png",
       "type": "image/jpeg",
       "sizes": "192x192"
     },
     {
-      "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg",
+      "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png",
       "type": "image/jpeg",
       "sizes": "512x512"
     }
@@ -35,12 +35,12 @@
     {
       "name": "Cargar Pago",
       "url": "/?action=new_payment",
-      "icons": [{ "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png", "sizes": "192x192" }]
     },
     {
       "name": "Auditoría",
       "url": "/?action=approvals",
-      "icons": [{ "src": "https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg", "sizes": "192x192" }]
+      "icons": [{ "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png", "sizes": "192x192" }]
     }
   ],
   "start_url": "/",

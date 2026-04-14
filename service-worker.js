@@ -127,8 +127,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body,
-    icon: 'https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg',
-    badge: 'https://i.ibb.co/GvxRWGWB/Pix-Verse-Image-Effect-prompt-crea-una-imagen-p.jpg',
+    icon: 'https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png',
+    badge: 'https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png',
     vibrate: [100, 50, 100],
     data: {
       url: '/'

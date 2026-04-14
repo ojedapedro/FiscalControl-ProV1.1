@@ -91,16 +91,18 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             {/* Floating Elements Container */}
             <div className="relative z-10 w-[400px] h-[500px]">
                 
-                {/* Main 3D Character Illustration */}
-                <img 
-                    src="https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg?w=740&t=st=1708450000~exp=1708450600~hmac=a1b2c3d4" 
-                    alt="3D Character" 
-                    className="w-full h-full object-contain drop-shadow-2xl animate-in fade-in zoom-in duration-700"
-                    style={{ mixBlendMode: 'normal' }} 
-                />
+                {/* Main Logo Illustration */}
+                <div className="w-full h-full bg-white rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.1)] border-8 border-white/10 animate-in fade-in zoom-in duration-700">
+                    <img 
+                        src={APP_LOGO_URL} 
+                        alt="FiscalCtl Logo" 
+                        className="w-full h-full object-contain p-8"
+                        style={{ mixBlendMode: 'normal' }} 
+                    />
+                </div>
                 
                 {/* Floating Card: Profit */}
-                <div className="absolute top-10 -left-12 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-40 animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="absolute top-4 -left-20 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-40 animate-bounce z-20" style={{ animationDuration: '3s' }}>
                     <div className="flex justify-between items-start mb-2">
                         <div className="text-xs text-slate-300 dark:text-slate-400">Presupuesto</div>
                         <span className="text-[10px] bg-green-500/20 text-green-400 dark:text-green-300 px-1.5 py-0.5 rounded">+12%</span>
@@ -112,7 +114,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {/* Floating Card: Orders */}
-                <div className="absolute bottom-20 -right-8 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-44 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+                <div className="absolute -bottom-6 -right-20 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-44 animate-bounce z-20" style={{ animationDuration: '4s', animationDelay: '1s' }}>
                      <div className="flex justify-between items-start mb-2">
                         <div className="text-xs text-slate-300 dark:text-slate-400">Pagos Auditados</div>
                         <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded">Esta semana</span>
