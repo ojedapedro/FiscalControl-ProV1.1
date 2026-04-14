@@ -439,6 +439,36 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                       </div>
                   </div>
 
+                  {/* Email Configuration (Resend) */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                          <div className="p-3 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                              <Send size={24} />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-slate-900 dark:text-white">Integración de Correo (Resend)</h3>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Envío de alertas y recibos de nómina vía Email</p>
+                          </div>
+                          <div className="ml-auto">
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={config.emailEnabled}
+                                    onChange={(e) => setConfig({...config, emailEnabled: e.target.checked})} 
+                                  />
+                                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-500"></div>
+                              </label>
+                          </div>
+                      </div>
+
+                      <div className={`space-y-4 transition-all ${config.emailEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                              * El servicio utiliza <strong>Resend</strong> configurado en el servidor. Asegúrese de que las variables de entorno <code>RESEND_API_KEY</code> y <code>RESEND_FROM_EMAIL</code> estén configuradas en el panel de control.
+                          </p>
+                      </div>
+                  </div>
+
                   {/* Frequency Settings */}
                   <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                        <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">

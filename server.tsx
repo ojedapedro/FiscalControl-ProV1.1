@@ -13,13 +13,14 @@ import { checkAndSendNotifications } from './server/notifications';
 import pingHandler from './api/ping.ts';
 import createPaymentIntentHandler from './api/create-payment-intent.ts';
 import sendEmailsHandler from './api/payroll/send-emails.ts';
+import sendEmailHandler from './api/notifications/send-email.ts';
 import whatsappCheckHandler from './api/notifications/whatsapp/check.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  console.log('🚀 [Server] Iniciando servidor Express...');
+  console.log(`🚀 [Server] Iniciando servidor Express... (${new Date().toISOString()})`);
   const app = express();
   const PORT = 3000;
 
@@ -40,6 +41,7 @@ async function startServer() {
   app.all('/api/ping', pingHandler);
   app.all('/api/create-payment-intent', createPaymentIntentHandler);
   app.all('/api/payroll/send-emails', sendEmailsHandler);
+  app.all('/api/notifications/send-email', sendEmailHandler);
   app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
 
   // Global Error Handler

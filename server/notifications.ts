@@ -14,11 +14,20 @@ const adminNumbers = (process.env.ADMIN_WHATSAPP_NUMBERS || '').split(',').filte
 const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER;
 
 let client: twilio.Twilio | null = null;
-if (accountSid && authToken) {
+
+// Validación básica antes de intentar inicializar para evitar errores de validación del SDK
+if (accountSid && authToken && accountSid.startsWith('AC')) {
   try {
     client = twilio(accountSid, authToken);
   } catch (error: any) {
     console.warn('⚠️ Error al inicializar Twilio (verifica tus credenciales):', error.message);
+  }
+} else if (accountSid || authToken) {
+  // Si hay algo configurado pero es inválido, informamos de manera más amigable
+  if (accountSid && !accountSid.startsWith('AC')) {
+    console.warn('⚠️ Twilio no inicializado: El Account SID debe comenzar con "AC".');
+  } else {
+    console.warn('⚠️ Twilio no inicializado: Faltan credenciales (SID o Token).');
   }
 }
 

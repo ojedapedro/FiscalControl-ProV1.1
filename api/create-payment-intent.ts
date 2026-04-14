@@ -10,7 +10,7 @@ export default async function handler(req: any, res: any) {
     
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) {
-      return res.status(500).json({ error: 'Stripe no está configurado en el servidor.' });
+      return res.status(500).json({ error: 'Stripe no está configurado en el servidor (v2).' });
     }
     const stripeClient = new Stripe(key);
 

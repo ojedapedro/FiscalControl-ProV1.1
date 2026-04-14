@@ -1397,6 +1397,60 @@ function App({}: AppProps = {}) {
               </div>
             )}
 
+            {/* Configuración de Notificaciones */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+               <h3 className="font-bold mb-4 flex items-center gap-2 text-indigo-400">
+                   <BellRing size={20} /> Canales de Notificación
+               </h3>
+               <div className="space-y-4">
+                   <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                       <div>
+                           <h4 className="font-bold text-sm">Notificaciones por Correo</h4>
+                           <p className="text-xs text-slate-500">Activar envío de alertas y recibos vía Email (Resend)</p>
+                       </div>
+                       <label className="relative inline-flex items-center cursor-pointer">
+                           <input 
+                             type="checkbox" 
+                             className="sr-only peer"
+                             checked={settings?.emailEnabled || false}
+                             onChange={async (e) => {
+                                 const isChecked = e.target.checked;
+                                 if (settings) {
+                                     const updated = { ...settings, emailEnabled: isChecked };
+                                     setSettings(updated);
+                                     await firestoreService.saveSettings(updated);
+                                 }
+                             }} 
+                           />
+                           <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                       </label>
+                   </div>
+
+                   <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                       <div>
+                           <h4 className="font-bold text-sm">Notificaciones por WhatsApp</h4>
+                           <p className="text-xs text-slate-500">Activar envío de alertas vía WhatsApp</p>
+                       </div>
+                       <label className="relative inline-flex items-center cursor-pointer">
+                           <input 
+                             type="checkbox" 
+                             className="sr-only peer"
+                             checked={settings?.whatsappEnabled || false}
+                             onChange={async (e) => {
+                                 const isChecked = e.target.checked;
+                                 if (settings) {
+                                     const updated = { ...settings, whatsappEnabled: isChecked };
+                                     setSettings(updated);
+                                     await firestoreService.saveSettings(updated);
+                                 }
+                             }} 
+                           />
+                           <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-green-600"></div>
+                       </label>
+                   </div>
+               </div>
+            </div>
+
             <div className="grid gap-6">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                    <h3 className="font-bold mb-4 flex items-center gap-2"><BellRing size={20} /> Permisos Locales</h3>

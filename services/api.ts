@@ -38,13 +38,10 @@ export const api = {
   },
 
   sendEmail: async (to: string, subject: string, body: string) => {
-    if (isMockMode()) {
-      console.log(`[MOCK EMAIL] To: ${to}, Subject: ${subject}`);
-      return { status: 'success', message: 'Email simulado enviado' };
-    }
     try {
-      const response = await fetch(`${API_URL}?action=sendEmail`, {
+      const response = await fetch('/api/notifications/send-email', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, subject, body })
       });
       return await response.json();
