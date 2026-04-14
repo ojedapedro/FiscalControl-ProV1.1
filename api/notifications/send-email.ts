@@ -13,7 +13,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const key = process.env.RESEND_API_KEY;
-    console.log('🔍 [send-email] Verificando RESEND_API_KEY:', key ? `Presente (Empieza por ${key.substring(0, 3)}...)` : 'AUSENTE');
+    console.log('🔍 [send-email-v2] Verificando RESEND_API_KEY:', key ? `Presente (Empieza por ${key.substring(0, 3)}...)` : 'AUSENTE');
     
     if (!key) {
       console.warn('⚠️ RESEND_API_KEY no configurada. Simulando envío de correo (Modo Demo).');
@@ -30,21 +30,21 @@ export default async function handler(req: any, res: any) {
     const targetEmail = process.env.RESEND_TEST_TO_EMAIL || to;
 
     const { data, error } = await resendClient.emails.send({
-      from: `FiscalControl <${fromEmail}>`,
+      from: `Forza 22 <${fromEmail}>`,
       to: [targetEmail],
       subject: subject,
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.6;">
           <div style="max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
             <div style="background-color: #0ea5e9; padding: 20px; text-align: center; color: white;">
-              <h1 style="margin: 0; font-size: 24px;">FiscalControl Pro</h1>
+              <h1 style="margin: 0; font-size: 24px;">Forza 22</h1>
             </div>
             <div style="padding: 30px;">
               <h2 style="color: #0ea5e9; margin-top: 0;">${subject}</h2>
               <div style="white-space: pre-wrap; font-size: 16px;">${body}</div>
               <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
                 Este es un correo automático, por favor no responda a este mensaje.
-                <br>© ${new Date().getFullYear()} FiscalControl Pro
+                <br>© ${new Date().getFullYear()} Forza 22
               </div>
             </div>
           </div>

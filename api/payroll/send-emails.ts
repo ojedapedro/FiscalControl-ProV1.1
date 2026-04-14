@@ -53,7 +53,7 @@ export default async function handler(req: any, res: any) {
         const targetEmail = process.env.RESEND_TEST_TO_EMAIL || entry.employeeEmail;
 
         const { data, error } = await resendClient.emails.send({
-          from: `Nómina FiscalControl <${fromEmail}>`,
+          from: `Nómina Forza 22 <${fromEmail}>`,
           to: [targetEmail],
           subject: `Recibo de Pago - ${entry.month} - ${entry.employeeName}`,
           html: html,

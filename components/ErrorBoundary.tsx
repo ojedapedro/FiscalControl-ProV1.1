@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
             
             <div className="bg-slate-50 dark:bg-slate-800/30 p-4 border-t border-slate-200 dark:border-slate-800 text-center">
               <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-                FiscalCtl Pro &bull; Sistema de Control Fiscal
+                Forza 22 &bull; Sistema de Control Fiscal
               </p>
             </div>
           </div>

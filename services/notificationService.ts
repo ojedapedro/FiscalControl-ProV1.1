@@ -49,7 +49,7 @@ export const notificationService = {
         await api.sendWhatsApp(user.phone, message);
       }
       if (settings.emailEnabled && user.email) {
-        await api.sendEmail(user.email, 'Nuevo Pago Registrado - FiscalCtl', message.replace(/\*/g, ''));
+        await api.sendEmail(user.email, 'Nuevo Pago Registrado - Forza 22', message.replace(/\*/g, ''));
       }
     }
   },
@@ -72,7 +72,7 @@ export const notificationService = {
       await api.sendWhatsApp(creator.phone, message);
     }
     if (settings.emailEnabled && creator.email) {
-      await api.sendEmail(creator.email, 'Pago Aprobado - FiscalCtl', message.replace(/\*/g, ''));
+      await api.sendEmail(creator.email, 'Pago Aprobado - Forza 22', message.replace(/\*/g, ''));
     }
   },
 
@@ -95,7 +95,7 @@ export const notificationService = {
       await api.sendWhatsApp(creator.phone, message);
     }
     if (settings.emailEnabled && creator.email) {
-      await api.sendEmail(creator.email, 'Pago Devuelto - FiscalCtl', message.replace(/\*/g, ''));
+      await api.sendEmail(creator.email, 'Pago Devuelto - Forza 22', message.replace(/\*/g, ''));
     }
   },
 
@@ -139,7 +139,7 @@ export const notificationService = {
         await api.sendWhatsApp(user.phone, message);
       }
       if (settings.emailEnabled && user.email) {
-        await api.sendEmail(user.email, 'Recordatorio de Pago - FiscalCtl', message.replace(/\*/g, ''));
+        await api.sendEmail(user.email, 'Recordatorio de Pago - Forza 22', message.replace(/\*/g, ''));
       }
     }
   }

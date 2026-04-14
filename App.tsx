@@ -102,7 +102,7 @@ function App({}: AppProps = {}) {
     if (isStandalone && !hasShownPwaNotification) {
       if ('Notification' in window) {
         if (Notification.permission === 'granted') {
-          new Notification('¡Bienvenido a FiscalControl Pro!', {
+          new Notification('¡Bienvenido a Forza 22!', {
             body: 'Estás usando la aplicación en modo PWA.',
             icon: APP_LOGO_URL
           });
@@ -110,7 +110,7 @@ function App({}: AppProps = {}) {
         } else if (Notification.permission !== 'denied') {
           Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
-              new Notification('¡Bienvenido a FiscalControl Pro!', {
+              new Notification('¡Bienvenido a Forza 22!', {
                 body: 'Estás usando la aplicación en modo PWA.',
                 icon: APP_LOGO_URL
               });
@@ -573,7 +573,7 @@ function App({}: AppProps = {}) {
       setPushPermission(permission);
       if (permission === 'granted') {
         new Notification("¡Notificaciones Activadas!", {
-          body: "Ahora recibirás alertas importantes de FiscalCtl Pro.",
+          body: "Ahora recibirás alertas importantes de Forza 22.",
           icon: APP_LOGO_URL
         });
       }
@@ -1538,7 +1538,7 @@ function App({}: AppProps = {}) {
                         <Download size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold">Instala FiscalCtl Pro</p>
+                        <p className="text-sm font-bold">Instala Forza 22</p>
                         <p className="text-[10px] opacity-80">Accede más rápido y recibe notificaciones en tiempo real.</p>
                       </div>
                     </div>
@@ -1594,7 +1594,7 @@ function App({}: AppProps = {}) {
                   >
                       <Menu size={24} />
                   </button>
-                  <span className="font-bold text-lg text-slate-900 dark:text-white">FiscalCtl</span>
+                  <span className="font-bold text-lg text-slate-900 dark:text-white">Forza 22</span>
                </div>
                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
                    <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />

@@ -264,11 +264,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
     if (newAlertsCount > 0) {
       if (newAlertsCount === 1 && lastAlert) {
-        new Notification('FiscalControl Pro', {
+        new Notification('Forza 22', {
           body: `${(lastAlert as AlertItem).storeName}: ${(lastAlert as AlertItem).title} - ${(lastAlert as AlertItem).timeLabel}`
         });
       } else {
-        new Notification('FiscalControl Pro', {
+        new Notification('Forza 22', {
           body: `Tienes ${newAlertsCount} nuevas alertas de pagos.`
         });
       }
@@ -310,7 +310,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
     setIsTesting(true);
     try {
       if (config.pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('FiscalControl Pro', {
+        new Notification('Forza 22', {
           body: 'Esta es una notificación de prueba.',
         });
       }

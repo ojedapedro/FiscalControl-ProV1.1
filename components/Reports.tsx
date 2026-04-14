@@ -543,7 +543,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text(`FiscalCtl Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+            doc.text(`Forza 22 Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
         }
 
         doc.save(`Bitacora_Auditoria_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -614,7 +614,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text(`FiscalCtl Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+            doc.text(`Forza 22 Audit - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
         }
 
         doc.save(`Actividad_Auditores_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -792,7 +792,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text(`FiscalCtl - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+            doc.text(`Forza 22 - Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
         }
 
         doc.save(`Reporte_Fiscal_${new Date().toISOString().split('T')[0]}.pdf`);

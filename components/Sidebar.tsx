@@ -104,9 +104,9 @@ export const Sidebar: FC<SidebarProps> = ({
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xl shadow-brand-500/20 bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10">
                 {!imgError ? (
-                  <img 
+                    <img 
                     src={APP_LOGO_URL} 
-                    alt="FiscalCtl Logo" 
+                    alt="Forza 22 Logo" 
                     className="w-full h-full object-cover" 
                     onError={() => setImgError(true)}
                     referrerPolicy="no-referrer"
@@ -117,7 +117,7 @@ export const Sidebar: FC<SidebarProps> = ({
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                  <span className="font-bold text-xl tracking-tight text-slate-950 dark:text-slate-50 leading-none">FiscalCtl</span>
+                  <span className="font-bold text-xl tracking-tight text-slate-950 dark:text-slate-50 leading-none">Forza 22</span>
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
                 </div>
               )}

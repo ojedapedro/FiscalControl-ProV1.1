@@ -717,7 +717,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     
     currentDoc.setFontSize(12);
     currentDoc.setTextColor(100);
-    currentDoc.text('FiscalControl Pro - Gestión de Nómina', 105, 28, { align: 'center' });
+    currentDoc.text('Forza 22 - Gestión de Nómina', 105, 28, { align: 'center' });
     
     // Employee Info
     currentDoc.setDrawColor(200);
@@ -885,7 +885,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     
     doc.setFontSize(12);
     doc.setTextColor(100);
-    doc.text('FiscalControl Pro - Gestión de Nómina', 105, 28, { align: 'center' });
+    doc.text('Forza 22 - Gestión de Nómina', 105, 28, { align: 'center' });
     
     // Employee Info
     doc.setDrawColor(200);

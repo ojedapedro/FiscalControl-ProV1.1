@@ -92,10 +92,10 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             <div className="relative z-10 w-[400px] h-[500px]">
                 
                 {/* Main Logo Illustration */}
-                <div className="w-full h-full bg-white rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.1)] border-8 border-white/10 animate-in fade-in zoom-in duration-700">
+                <div className="w-full h-full bg-white rounded-[5rem] overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.1)] border-8 border-white/10 animate-in fade-in zoom-in duration-700">
                     <img 
                         src={APP_LOGO_URL} 
-                        alt="FiscalCtl Logo" 
+                        alt="Forza 22 Logo" 
                         className="w-full h-full object-contain p-8"
                         style={{ mixBlendMode: 'normal' }} 
                     />
@@ -114,7 +114,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {/* Floating Card: Orders */}
-                <div className="absolute -bottom-6 -right-20 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-44 animate-bounce z-20" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+                <div className="absolute -bottom-20 -right-20 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-slate-700/50 p-4 rounded-2xl shadow-xl w-44 animate-bounce z-20" style={{ animationDuration: '4s', animationDelay: '1s' }}>
                      <div className="flex justify-between items-start mb-2">
                         <div className="text-xs text-slate-300 dark:text-slate-400">Pagos Auditados</div>
                         <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded">Esta semana</span>
@@ -164,7 +164,7 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             {/* Logo */}
             <div className="flex items-center gap-3 mb-10">
                 <img src={APP_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-full shadow-lg" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent tracking-tight">FiscalCtl</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent tracking-tight">Forza 22</span>
             </div>
 
             <div className="max-w-md w-full mx-auto">

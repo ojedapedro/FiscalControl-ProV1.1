@@ -70,7 +70,7 @@ export async function checkAndSendNotifications() {
       return { success: true, message: 'No notifications needed' };
     }
 
-    let message = '*🔔 Notificación de FiscalControl Pro*\n\n';
+    let message = '*🔔 Notificación de Forza 22*\n\n';
 
     if (overduePayments.length > 0) {
       message += '*⚠️ PAGOS VENCIDOS:*\n';

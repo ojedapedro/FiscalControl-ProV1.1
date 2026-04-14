@@ -239,7 +239,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
             
         win.document.write(`
             <html>
-                <head><title>Visor de Documento - FiscalCtl</title></head>
+                <head><title>Visor de Documento - Forza 22</title></head>
                 <body style="margin:0; background-color:#1e293b; height:100vh; display:flex;">
                     ${content}
                 </body>
@@ -884,14 +884,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* OBSERVACIONES */}
+                                        {/* TABLE 4: MONTO DE LA PROPUESTA */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Notas del Pago</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monto de la Propuesta</div>
                                                 <button 
-                                                    onClick={() => handleCheckItem('observationsApproved')}
+                                                    onClick={() => handleCheckItem('proposedAmountApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
-                                                        checklist.observationsApproved 
+                                                        checklist.proposedAmountApproved 
                                                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
                                                         : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                                     }`}
@@ -900,10 +900,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     <span className="text-[9px] font-black uppercase">Validar</span>
                                                 </button>
                                             </div>
-                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[120px] shadow-inner">
-                                                <p className="text-xs text-slate-600 dark:text-slate-400 italic leading-relaxed">
-                                                    {selectedPayment.notes || "Sin observaciones registradas por el administrador."}
-                                                </p>
+                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4 h-[68px]">
+                                                <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
+                                                    ${(selectedPayment.proposedAmount ?? selectedPayment.amount).toLocaleString()}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -940,80 +940,16 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     </div>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Highlighted Deviation Card - FORCED VISIBILITY FOR TESTING */}
-                                            {budgetAnalysis && (
-                                                <div className={`mt-3 p-4 rounded-2xl border flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-                                                    budgetAnalysis.isOver 
-                                                    ? 'bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-800/50' 
-                                                    : budgetAnalysis.excess < 0 
-                                                      ? 'bg-emerald-50/50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800/50'
-                                                      : 'bg-blue-50/50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-800/50'
-                                                }`}>
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                                                budgetAnalysis.isOver 
-                                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' 
-                                                                : budgetAnalysis.excess < 0
-                                                                  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-                                                                  : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                                                            }`}>
-                                                                {budgetAnalysis.isOver ? <AlertCircle size={18} /> : budgetAnalysis.excess < 0 ? <TrendingUp size={18} /> : <CheckCircle2 size={18} />}
-                                                            </div>
-                                                            <span className={`text-[11px] font-black uppercase tracking-widest ${
-                                                                budgetAnalysis.isOver 
-                                                                ? 'text-red-700 dark:text-red-400' 
-                                                                : budgetAnalysis.excess < 0
-                                                                  ? 'text-emerald-700 dark:text-emerald-400'
-                                                                  : 'text-blue-700 dark:text-blue-400'
-                                                            }`}>
-                                                                {budgetAnalysis.isOver ? 'Exceso de Presupuesto' : budgetAnalysis.excess < 0 ? 'Ahorro de Presupuesto' : 'Presupuesto Alineado'}
-                                                            </span>
-                                                        </div>
-                                                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                                                            budgetAnalysis.isOver 
-                                                            ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300' 
-                                                            : budgetAnalysis.excess < 0
-                                                              ? 'bg-emerald-100 border-emerald-200 text-emerald-700 dark:bg-emerald-900/50 dark:border-emerald-700 dark:text-emerald-300'
-                                                              : 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-300'
-                                                        }`}>
-                                                            {budgetAnalysis.isOver ? 'CRÍTICO' : budgetAnalysis.excess < 0 ? 'OPTIMIZADO' : 'CORRECTO'}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        <div className="flex flex-col p-2 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Monto en $</span>
-                                                            <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : budgetAnalysis.excess < 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                                                                {budgetAnalysis.isOver ? '+' : ''}${budgetAnalysis.excess.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex flex-col p-2 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Monto en Bs</span>
-                                                            <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : 'text-emerald-600'}`}>
-                                                                {budgetAnalysis.isOver ? '+' : ''}Bs. {budgetAnalysis.excessBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex flex-col p-2 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Desviación</span>
-                                                            <span className={`text-sm font-black font-mono ${budgetAnalysis.isOver ? 'text-red-600' : budgetAnalysis.excess < 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                                                                {budgetAnalysis.isOver ? '+' : ''}{budgetAnalysis.percent.toFixed(2)}%
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
                                         </div>
 
-                                        {/* TABLE 4: MONTO DE LA PROPUESTA */}
+                                        {/* OBSERVACIONES */}
                                         <div className="flex flex-col">
                                             <div className="flex items-center justify-between mb-2 px-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monto de la Propuesta</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Notas del Pago</div>
                                                 <button 
-                                                    onClick={() => handleCheckItem('proposedAmountApproved')}
+                                                    onClick={() => handleCheckItem('observationsApproved')}
                                                     className={`flex items-center gap-2 px-2 py-1 rounded-lg border transition-all ${
-                                                        checklist.proposedAmountApproved 
+                                                        checklist.observationsApproved 
                                                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
                                                         : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                                                     }`}
@@ -1022,10 +958,10 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     <span className="text-[9px] font-black uppercase">Validar</span>
                                                 </button>
                                             </div>
-                                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4 h-[68px]">
-                                                <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
-                                                    ${(selectedPayment.proposedAmount ?? selectedPayment.amount).toLocaleString()}
-                                                </div>
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-h-[120px] shadow-inner">
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 italic leading-relaxed">
+                                                    {selectedPayment.notes || "Sin observaciones registradas por el administrador."}
+                                                </p>
                                             </div>
                                         </div>
 

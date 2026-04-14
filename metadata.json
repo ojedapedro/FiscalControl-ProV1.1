@@ -1,5 +1,5 @@
 {
-  "name": "FiscalControl Pro",
+  "name": "Forza 22",
   "description": "Un sistema integral de control fiscal y gestión de pagos para redes de tiendas minoristas. Cuenta con acceso basado en roles para Administradores (carga), Auditores (aprobación) y Presidencia (reportes).",
   "requestFramePermissions": []
 }
