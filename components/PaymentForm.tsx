@@ -1079,8 +1079,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            <div className="lg:col-span-12 space-y-10">
+        <div className="space-y-10">
+            <div className="space-y-10">
                 {/* Dynamic Tax Section with Traffic Light */}
                 {!!getTaxConfig(category) && (
                     <section className={`rounded-3xl border-2 transition-all duration-500 animate-in slide-in-from-top-4 overflow-hidden shadow-2xl ${globalStatus.bg} ${globalStatus.border}`}>
@@ -1511,386 +1511,359 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         Soportes y Notas
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        {/* File Upload */}
-                        <div className="space-y-6">
-                             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo Principal</label>
-                             <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
-                                 isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
-                             } ${
-                                 file || previewUrl ? 'border-emerald-500/50 bg-emerald-500/5' : 
-                                 initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/50 bg-red-500/5 hover:border-red-500' :
-                                 errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
-                             }`}>
-                                 {/* Overlay de Carga de Archivo */}
-                                {isFileScanning && (
-                                    <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-950/95 flex flex-col items-center justify-center backdrop-blur-md p-8 animate-in fade-in duration-300">
-                                        <div className="relative mb-6">
-                                            <div className="absolute inset-0 bg-brand-500/20 rounded-full blur-xl animate-pulse"></div>
-                                            <Scan className="w-12 h-12 text-brand-500 relative animate-bounce" />
-                                        </div>
-                                        <span className="text-sm font-black text-brand-500 uppercase tracking-[0.2em] mb-4 text-center">
-                                            Procesando y Validando<br/>
-                                            <span className="text-[10px] text-slate-400 lowercase tracking-normal font-medium italic">Verificando integridad del archivo...</span>
-                                        </span>
-                                        <div className="w-full max-w-[260px] bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden shadow-inner relative">
-                                            <div 
-                                                className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(14,165,233,0.4)]" 
-                                                style={{ width: `${uploadProgress}%` }}
-                                            ></div>
-                                            {/* Animated glare effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ transform: `translateX(${uploadProgress - 100}%)` }}></div>
-                                        </div>
-                                        <div className="flex justify-between w-full max-w-[260px] mt-3">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{uploadProgress}% Completado</span>
-                                            <span className="text-[10px] font-black text-brand-500 uppercase tracking-tighter animate-pulse">
-                                                {uploadProgress < 30 ? 'Iniciando...' : uploadProgress < 70 ? 'Escaneando...' : 'Finalizando...'}
+                    <div className="space-y-10">
+                        {/* Row 1: File Upload & Support Details */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            {/* File Upload */}
+                            <div className="space-y-6">
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo Principal</label>
+                                <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
+                                    isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
+                                } ${
+                                    file || previewUrl ? 'border-emerald-500/50 bg-emerald-500/5' : 
+                                    initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/50 bg-red-500/5 hover:border-red-500' :
+                                    errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
+                                }`}>
+                                    {/* Overlay de Carga de Archivo */}
+                                    {isFileScanning && (
+                                        <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-950/95 flex flex-col items-center justify-center backdrop-blur-md p-8 animate-in fade-in duration-300">
+                                            <div className="relative mb-6">
+                                                <div className="absolute inset-0 bg-brand-500/20 rounded-full blur-xl animate-pulse"></div>
+                                                <Scan className="w-12 h-12 text-brand-500 relative animate-bounce" />
+                                            </div>
+                                            <span className="text-sm font-black text-brand-500 uppercase tracking-[0.2em] mb-4 text-center">
+                                                Procesando y Validando<br/>
+                                                <span className="text-[10px] text-slate-400 lowercase tracking-normal font-medium italic">Verificando integridad del archivo...</span>
                                             </span>
+                                            <div className="w-full max-w-[260px] bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden shadow-inner relative">
+                                                <div 
+                                                    className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(14,165,233,0.4)]" 
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                ></div>
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ transform: `translateX(${uploadProgress - 100}%)` }}></div>
+                                            </div>
+                                            <div className="flex justify-between w-full max-w-[260px] mt-3">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{uploadProgress}% Completado</span>
+                                                <span className="text-[10px] font-black text-brand-500 uppercase tracking-tighter animate-pulse">
+                                                    {uploadProgress < 30 ? 'Iniciando...' : uploadProgress < 70 ? 'Escaneando...' : 'Finalizando...'}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                <div className="flex flex-col items-center justify-center w-full h-full p-4">
-                                    {file || previewUrl ? (
-                                        <div className="w-full h-full relative group/file">
-                                            {previewUrl ? (
-                                                // Image Preview
-                                                <div className="w-full h-full relative p-2">
-                                                    <img
-                                                        src={previewUrl}
-                                                        alt="Preview"
-                                                        className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
-                                                    />
-                                                    <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
-                                                         <button
+                                    <div className="flex flex-col items-center justify-center w-full h-full p-4">
+                                        {file || previewUrl ? (
+                                            <div className="w-full h-full relative group/file">
+                                                {previewUrl ? (
+                                                    <div className="w-full h-full relative p-2">
+                                                        <img
+                                                            src={previewUrl}
+                                                            alt="Preview"
+                                                            className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
+                                                        />
+                                                        <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+                                                            <button
+                                                                onClick={clearFile}
+                                                                type="button"
+                                                                className="bg-red-500 hover:bg-red-600 text-slate-900 dark:text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                                <span>Eliminar</span>
+                                                            </button>
+                                                        </div>
+                                                        <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg z-10 pointer-events-none animate-in zoom-in duration-300">
+                                                            <CheckCircle2 size={18} />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                                        <div className="bg-red-500/20 p-5 rounded-2xl mb-4 ring-4 ring-red-500/5 group-hover/file:scale-110 transition-transform duration-300">
+                                                            <FileText size={40} className="text-red-500 dark:text-red-400" />
+                                                        </div>
+                                                        <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
+                                                            {file?.name || 'Documento Adjunto'}
+                                                        </p>
+                                                        {file && (
+                                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
+                                                                {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                            </p>
+                                                        )}
+                                                        <button
                                                             onClick={clearFile}
                                                             type="button"
-                                                            className="bg-red-500 hover:bg-red-600 text-slate-900 dark:text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
-                                                         >
-                                                            <Trash2 size={16} />
-                                                            <span>Eliminar</span>
-                                                         </button>
+                                                            className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-all"
+                                                        >
+                                                            <Trash2 size={14} /> Eliminar Adjunto
+                                                        </button>
                                                     </div>
-                                                    <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg z-10 pointer-events-none animate-in zoom-in duration-300">
-                                                        <CheckCircle2 size={18} />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                // PDF/File Preview
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
-                                                    <div className="bg-red-500/20 p-5 rounded-2xl mb-4 ring-4 ring-red-500/5 group-hover/file:scale-110 transition-transform duration-300">
-                                                        <FileText size={40} className="text-red-500 dark:text-red-400" />
-                                                    </div>
-                                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
-                                                        {file?.name || 'Documento Adjunto'}
-                                                    </p>
-                                                    {file && (
-                                                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
-                                                          {(file.size / (1024 * 1024)).toFixed(2)} MB
-                                                      </p>
-                                                    )}
-                                                    <button
-                                                        onClick={clearFile}
-                                                        type="button"
-                                                        className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-all"
-                                                    >
-                                                        <Trash2 size={14} /> Eliminar Adjunto
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
-                                                <Upload size={32} />
+                                                )}
                                             </div>
-                                            <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
-                                            <p className="text-[9px] text-slate-400 font-medium uppercase tracking-widest mt-1">Límite Flexible: 10MB</p>
-                                        </>
-                                    )}
-                                </div>
-                                <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept=".pdf,.jpg,.jpeg,.png" 
-                                    onChange={handleFileChange} 
-                                    disabled={isSubmitting || isFileScanning}
-                                />
-                             </label>
-                             {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
+                                        ) : (
+                                            <>
+                                                <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                                                    <Upload size={32} />
+                                                </div>
+                                                <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
+                                                <p className="text-[9px] text-slate-400 font-medium uppercase tracking-widest mt-1">Límite Flexible: 10MB</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept=".pdf,.jpg,.jpeg,.png" 
+                                        onChange={handleFileChange} 
+                                        disabled={isSubmitting || isFileScanning}
+                                    />
+                                </label>
+                                {errors.file && <p className="text-red-400 text-[10px] font-black uppercase mt-2 ml-1 tracking-tighter">{errors.file}</p>}
+                            </div>
 
-                             {/* Proposed Changes Section */}
-                             <div className="mt-8 p-8 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] space-y-8 relative overflow-hidden group/prop shadow-inner">
-                                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/prop:opacity-10 transition-opacity">
-                                    <RefreshCw size={60} className="text-brand-500" />
-                                </div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-brand-500/20 rounded-xl text-brand-400 shadow-lg shadow-brand-500/10">
-                                            <RefreshCw size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Propuesta de Pago</h3>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-0.5">Sugerencia de cambios para revisión del auditor</p>
+                            {/* Support Details */}
+                            <div className="flex flex-col space-y-6">
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Detalles del Documento</label>
+                                <div className="grid grid-cols-1 gap-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nombre del Documento</label>
+                                        <div className="relative group">
+                                            <input
+                                                type="text"
+                                                value={docName}
+                                                onChange={(e) => setDocName(e.target.value)}
+                                                placeholder="Ej: Factura #123"
+                                                className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
+                                            />
+                                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                                    {/* Column 1: Proposed Amount & Equivalent */}
-                                    <div className="xl:col-span-3 space-y-5">
+                                    <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Fecha Doc.</label>
                                             <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
+                                                <input
+                                                    type="date"
+                                                    value={docDate}
+                                                    onChange={(e) => setDocDate(e.target.value)}
+                                                    className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
+                                                />
+                                                <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Monto Doc. ($)</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
-                                                    placeholder="0.00"
-                                                    value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
+                                                    value={docAmount}
                                                     onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        setProposedAmountBsInput(val);
-                                                        if (val === '') setProposedAmount(undefined);
-                                                        else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
+                                                        setDocAmount(e.target.value);
+                                                        setDocAmountBsInput(null);
                                                     }}
-                                                    onBlur={() => setProposedAmountBsInput(null)}
-                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all"
+                                                    placeholder="0.00"
+                                                    className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
                                                 />
                                             </div>
                                         </div>
-
-                                        {effectiveExchangeRate !== undefined && (
-                                            <div className="p-4 bg-brand-500/[0.03] border border-brand-500/20 rounded-2xl flex items-center gap-4 group/conv transition-all hover:bg-brand-500/[0.06] overflow-hidden relative shadow-inner">
-                                                <div className="p-2 bg-brand-500/10 text-brand-500/80 rounded-xl shrink-0">
-                                                    <DollarSign size={18} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                        <p className="text-[11px] font-black text-brand-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
-                                                        <span className="text-[9px] font-black text-slate-950 bg-brand-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Propuesto</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <div className="relative flex-1">
-                                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 font-black text-xl">$</span>
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                placeholder="0.00"
-                                                                value={proposedAmount || ''}
-                                                                onChange={(e) => {
-                                                                    setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
-                                                                    setProposedAmountBsInput(null);
-                                                                }}
-                                                                className="w-full bg-transparent border-none text-3xl font-black text-brand-600 dark:text-brand-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
-                                                            />
-                                                        </div>
-                                                        <p className="text-[11px] font-bold text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Column 2: Proposed Alert */}
-                                    <div className="xl:col-span-2">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
-                                        <div className="relative group">
-                                            <input
-                                                type="date"
-                                                value={proposedPaymentDate || ''}
-                                                onChange={(e) => handleProposedPaymentDateChange(e.target.value)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
-                                            />
-                                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                        </div>
-                                    </div>
-
-                                    {/* Column 3: Proposed Days to Expire */}
-                                    <div className="xl:col-span-2">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
-                                        <div className="relative group">
-                                            <input
-                                                type="number"
-                                                placeholder="0"
-                                                value={proposedDaysToExpire ?? ''}
-                                                onChange={(e) => handleProposedDaysToExpireChange(e.target.value)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
-                                            />
-                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                        </div>
-                                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
-                                    </div>
-
-                                    {/* Column 4: Proposed Due Date */}
-                                    <div className="xl:col-span-2">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
-                                        <div className="relative group">
-                                            <input
-                                                type="date"
-                                                value={proposedDueDate || ''}
-                                                onChange={(e) => handleProposedDueDateChange(e.target.value)}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
-                                            />
-                                            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                        </div>
-                                    </div>
-
-                                    {/* Column 5: Proposed Frequency */}
-                                    <div className="xl:col-span-3">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
-                                        <div className="relative group">
-                                            <select
-                                                value={proposedFrequency}
-                                                onChange={(e) => {
-                                                    const newFreq = e.target.value as PaymentFrequency;
-                                                    setProposedFrequency(newFreq);
-                                                    if (newFreq !== PaymentFrequency.NONE) {
-                                                        const days = getFrequencyDays(newFreq);
-                                                        setProposedDaysToExpire(days);
-                                                        if (proposedDueDate) {
-                                                            const d = new Date(proposedDueDate);
-                                                            d.setDate(d.getDate() + days);
-                                                            setProposedPaymentDate(d.toISOString().split('T')[0]);
-                                                        }
-                                                    } else {
-                                                        setProposedDaysToExpire(undefined);
-                                                    }
-                                                }}
-                                                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none cursor-pointer"
-                                            >
-                                                {Object.entries(PaymentFrequency).map(([key, value]) => (
-                                                    <option key={key} value={value} className="bg-slate-900">{value}</option>
-                                                ))}
-                                            </select>
-                                            <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={18} />
-                                        </div>
                                     </div>
                                 </div>
-                             </div>
+                            </div>
                         </div>
 
-                        {/* Notes and Support Details */}
-                        <div className="flex flex-col space-y-8">
-                             {/* Campos adicionales del soporte */}
-                             <div className="grid grid-cols-1 gap-6">
-                                 <div>
-                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Nombre del Documento</label>
-                                     <div className="relative group">
-                                         <input
-                                             type="text"
-                                             value={docName}
-                                             onChange={(e) => setDocName(e.target.value)}
-                                             placeholder="Ej: Factura #123"
-                                             className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all"
-                                         />
-                                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                     </div>
-                                 </div>
-                                 <div className="grid grid-cols-2 gap-6">
-                                     <div>
-                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Fecha Doc.</label>
-                                         <div className="relative group">
-                                             <input
-                                                 type="date"
-                                                 value={docDate}
-                                                 onChange={(e) => setDocDate(e.target.value)}
-                                                 className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-bold rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all dark:[color-scheme:dark] [color-scheme:light]"
-                                             />
-                                             <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
-                                         </div>
-                                     </div>
-                                     <div>
-                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Monto Doc. ($)</label>
-                                         <div className="relative group">
-                                             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
-                                             <input
-                                                 type="number"
-                                                 value={docAmount}
-                                                 onChange={(e) => {
-                                                     setDocAmount(e.target.value);
-                                                     setDocAmountBsInput(null);
-                                                 }}
-                                                 placeholder="0.00"
-                                                 className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
-                                             />
-                                         </div>
-                                         {effectiveExchangeRate !== undefined && (
-                                             <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800/50 border border-emerald-500/30 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-slate-200 dark:hover:bg-slate-800/80 overflow-hidden shadow-inner">
-                                                 <div className="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
-                                                     <Calculator size={16} />
-                                                 </div>
-                                                 <div className="flex-1 min-w-0">
-                                                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1">
-                                                         <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Equivalente en Bs.</p>
-                                                         <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase shrink-0 bg-white dark:bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{docExchangeRate ? 'Histórica' : 'Actual'}</p>
-                                                     </div>
-                                                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                                                             <div className="relative flex-1 min-w-[120px]">
-                                                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-emerald-700 dark:text-emerald-300 font-black text-sm">Bs.</span>
-                                                                  <input
-                                                                      type="number"
-                                                                      step="0.01"
-                                                                      placeholder="0.00"
-                                                                      value={docAmountBsInput !== null ? docAmountBsInput : (docAmount ? (parseFloat(docAmount) * effectiveExchangeRate).toFixed(2) : '')}
-                                                                      onChange={(e) => {
-                                                                          const val = e.target.value;
-                                                                          setDocAmountBsInput(val);
-                                                                          if (val === '') setDocAmount('');
-                                                                          else setDocAmount((parseFloat(val) / effectiveExchangeRate).toFixed(2));
-                                                                      }}
-                                                                      onBlur={() => setDocAmountBsInput(null)}
-                                                                      className="w-full bg-transparent border-none text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 tabular-nums pl-8 outline-none focus:ring-0 p-0"
-                                                                  />
-                                                              </div>
-                                                          <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                         )}
-                                     </div>
-                                 </div>
-                             </div>
+                        {/* Row 2: Propuesta de Pago */}
+                        <div className="p-8 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] space-y-8 relative overflow-hidden group/prop shadow-inner">
+                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/prop:opacity-10 transition-opacity">
+                                <RefreshCw size={60} className="text-brand-500" />
+                            </div>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-brand-500/20 rounded-xl text-brand-400 shadow-lg shadow-brand-500/10">
+                                        <RefreshCw size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Propuesta de Pago</h3>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-0.5">Sugerencia de cambios para revisión del auditor</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                                {/* Column 1: Proposed Amount & Equivalent */}
+                                <div className="xl:col-span-3 space-y-5">
+                                    <div>
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setProposedAmountBsInput(val);
+                                                    if (val === '') setProposedAmount(undefined);
+                                                    else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
+                                                }}
+                                                onBlur={() => setProposedAmountBsInput(null)}
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all"
+                                            />
+                                        </div>
+                                    </div>
 
-                             <div className="flex flex-col flex-1">
-                                 <div className="flex items-center justify-between mb-3 px-1">
-                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">Observaciones / Notas</label>
-                                     <span className={`text-[10px] font-black uppercase tracking-tighter ${notes.length >= 500 ? 'text-red-500' : 'text-slate-400'}`}>
-                                         {notes.length} / 500
-                                     </span>
-                                 </div>
-                                 <div className="relative h-full group">
-                                     <textarea
+                                    {effectiveExchangeRate !== undefined && (
+                                        <div className="p-4 bg-brand-500/[0.03] border border-brand-500/20 rounded-2xl flex items-center gap-4 group/conv transition-all hover:bg-brand-500/[0.06] overflow-hidden relative shadow-inner">
+                                            <div className="p-2 bg-brand-500/10 text-brand-500/80 rounded-xl shrink-0">
+                                                <DollarSign size={18} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                    <p className="text-[11px] font-black text-brand-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
+                                                    <span className="text-[9px] font-black text-slate-950 bg-brand-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Propuesto</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 font-black text-xl">$</span>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            placeholder="0.00"
+                                                            value={proposedAmount || ''}
+                                                            onChange={(e) => {
+                                                                setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
+                                                                setProposedAmountBsInput(null);
+                                                            }}
+                                                            className="w-full bg-transparent border-none text-3xl font-black text-brand-600 dark:text-brand-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] font-bold text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Column 2: Proposed Alert */}
+                                <div className="xl:col-span-2">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Alerta</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="date"
+                                            value={proposedPaymentDate || ''}
+                                            onChange={(e) => handleProposedPaymentDateChange(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
+                                        />
+                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    </div>
+                                </div>
+
+                                {/* Column 3: Proposed Days to Expire */}
+                                <div className="xl:col-span-2">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Dias a Vencer</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={proposedDaysToExpire ?? ''}
+                                            onChange={(e) => handleProposedDaysToExpireChange(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all"
+                                        />
+                                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    </div>
+                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mt-3 ml-1">Lapsos de vencimiento</p>
+                                </div>
+
+                                {/* Column 4: Proposed Due Date */}
+                                <div className="xl:col-span-2">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Fecha de Vencimiento</label>
+                                    <div className="relative group">
+                                        <input
+                                            type="date"
+                                            value={proposedDueDate || ''}
+                                            onChange={(e) => handleProposedDueDateChange(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all dark:[color-scheme:dark] [color-scheme:light]"
+                                        />
+                                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                    </div>
+                                </div>
+
+                                {/* Column 5: Proposed Frequency */}
+                                <div className="xl:col-span-3">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Frecuencia</label>
+                                    <div className="relative group">
+                                        <select
+                                            value={proposedFrequency}
+                                            onChange={(e) => {
+                                                const newFreq = e.target.value as PaymentFrequency;
+                                                setProposedFrequency(newFreq);
+                                                if (newFreq !== PaymentFrequency.NONE) {
+                                                    const days = getFrequencyDays(newFreq);
+                                                    setProposedDaysToExpire(days);
+                                                    if (proposedDueDate) {
+                                                        const d = new Date(proposedDueDate);
+                                                        d.setDate(d.getDate() + days);
+                                                        setProposedPaymentDate(d.toISOString().split('T')[0]);
+                                                    }
+                                                } else {
+                                                    setProposedDaysToExpire(undefined);
+                                                }
+                                            }}
+                                            className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none cursor-pointer"
+                                        >
+                                            {Object.entries(PaymentFrequency).map(([key, value]) => (
+                                                <option key={key} value={value} className="bg-slate-900">{value}</option>
+                                            ))}
+                                        </select>
+                                        <RefreshCw className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-400 transition-colors" size={20} />
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={18} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Row 3: Map & Observaciones */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            {/* Map */}
+                            <div className="glass-card p-6 border-brand-500/20 bg-slate-950/30">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                        <MapPin size={18} />
+                                    </div>
+                                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Cobertura Nacional</h3>
+                                </div>
+                                <VenezuelaMap 
+                                    stores={dynamicStores} 
+                                    selectedStoreIds={store && store !== 'NATIONAL' ? [store] : []} 
+                                    onStoreClick={(id) => setStore(id)}
+                                />
+                            </div>
+
+                            {/* Observaciones */}
+                            <div className="flex flex-col">
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">Observaciones / Notas</label>
+                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${notes.length >= 500 ? 'text-red-500' : 'text-slate-400'}`}>
+                                        {notes.length} / 500
+                                    </span>
+                                </div>
+                                <div className="relative flex-1 group">
+                                    <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         maxLength={500}
                                         disabled={isSubmitting}
                                         placeholder="Añada notas adicionales para el auditor..."
-                                        className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[240px] resize-none transition-all disabled:opacity-50 leading-relaxed"
-                                     ></textarea>
-                                     <div className="absolute bottom-4 right-4 text-slate-600 group-focus-within:text-brand-500/50 transition-colors">
-                                         <MessageSquare size={20} />
-                                     </div>
-                                 </div>
-                             </div>
+                                        className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-2xl p-5 outline-none focus:ring-4 focus:ring-brand-500/10 h-full min-h-[300px] resize-none transition-all disabled:opacity-50 leading-relaxed"
+                                    ></textarea>
+                                    <div className="absolute bottom-4 right-4 text-slate-600 group-focus-within:text-brand-500/50 transition-colors">
+                                        <MessageSquare size={20} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
-            </div>
-
-            {/* Right Column: Map (Sticky) */}
-            <div className="lg:col-span-4 hidden lg:block">
-                <div className="sticky top-8">
-                    <div className="glass-card p-4 border-brand-500/20">
-                        <VenezuelaMap 
-                            stores={dynamicStores} 
-                            selectedStoreIds={store && store !== 'NATIONAL' ? [store] : []} 
-                            onStoreClick={(id) => setStore(id)}
-                        />
-                    </div>
-                </div>
             </div>
         </div>
 

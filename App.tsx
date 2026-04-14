@@ -1568,7 +1568,7 @@ function App({}: AppProps = {}) {
             {/* Modal Formulario */}
             {isFormOpen && currentView !== 'payments' && (
                <div className="fixed inset-0 z-[60] bg-slate-900/50 dark:bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-                  <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-[1600px] h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5">
                       <PaymentForm 
                         initialData={editingPayment}
                         payments={filteredPayments}
