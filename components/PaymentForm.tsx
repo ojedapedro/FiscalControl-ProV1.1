@@ -175,6 +175,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDocAmount(initialData.documentAmount?.toString() || '');
       setDocName(initialData.documentName || '');
       setNotes(initialData.notes || '');
+      setDocAmountBsInput(null);
+      setProposedAmountBsInput(null);
     } else {
       // Reset to defaults for new payment
       setStore(currentUser?.storeId || '');
@@ -195,6 +197,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setDocAmount('');
       setDocName('');
       setNotes('');
+      setDocAmountBsInput(null);
+      setProposedAmountBsInput(null);
     }
     setErrors({});
     setIsManualOverride(false);
@@ -229,6 +233,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setDocAmount('');
     setDocName('');
     setNotes('');
+    setDocAmountBsInput(null);
+    setProposedAmountBsInput(null);
     
     // Reset proposed fields
     setProposedAmount(undefined);
@@ -1650,21 +1656,57 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Monto Doc. ($)</label>
-                                            <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">$</div>
-                                                <input
-                                                    type="number"
-                                                    value={docAmount}
-                                                    onChange={(e) => {
-                                                        setDocAmount(e.target.value);
-                                                        setDocAmountBsInput(null);
-                                                    }}
-                                                    placeholder="0.00"
-                                                    className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-10 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
-                                                />
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Monto Doc. (Bs.)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={docAmountBsInput !== null ? docAmountBsInput : (docAmount !== '' ? (parseFloat(docAmount) * effectiveExchangeRate).toFixed(2) : '')}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setDocAmountBsInput(val);
+                                                            if (val === '') setDocAmount('');
+                                                            else setDocAmount((parseFloat(val) / effectiveExchangeRate).toFixed(2));
+                                                        }}
+                                                        onBlur={() => setDocAmountBsInput(null)}
+                                                        placeholder="0.00"
+                                                        className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
+                                                    />
+                                                </div>
                                             </div>
+
+                                            {effectiveExchangeRate !== undefined && (
+                                                <div className="p-3 bg-brand-500/[0.03] border border-brand-500/20 rounded-xl flex items-center gap-3 group/conv transition-all hover:bg-brand-500/[0.06] overflow-hidden relative shadow-inner">
+                                                    <div className="p-1.5 bg-brand-500/10 text-brand-500/80 rounded-lg shrink-0">
+                                                        <DollarSign size={14} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                                            <p className="text-[9px] font-black text-brand-500/80 uppercase tracking-[0.2em]">Equivalente en $</p>
+                                                        </div>
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <div className="relative flex-1">
+                                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 font-black text-sm">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    placeholder="0.00"
+                                                                    value={docAmount}
+                                                                    onChange={(e) => {
+                                                                        setDocAmount(e.target.value);
+                                                                        setDocAmountBsInput(null);
+                                                                    }}
+                                                                    className="w-full bg-transparent border-none text-lg font-black text-brand-600 dark:text-brand-400 tabular-nums pl-4 outline-none focus:ring-0 p-0"
+                                                                />
+                                                            </div>
+                                                            <p className="text-[9px] font-bold text-slate-500 tabular-nums shrink-0">Tasa: {effectiveExchangeRate.toLocaleString('es-VE')}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
