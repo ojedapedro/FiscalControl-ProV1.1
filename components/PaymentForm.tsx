@@ -329,8 +329,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
-    setDaysToExpire(val);
-  }, []);
+    let finalVal = val;
+    const days = parseInt(val);
+    // Force negative if positive (as requested by user for consistency)
+    if (!isNaN(days) && days > 0) {
+      finalVal = (-days).toString();
+    }
+    setDaysToExpire(finalVal);
+    
+    if (finalVal && paymentDate && !isNaN(days)) {
+      const d = new Date(paymentDate);
+      // DueDate = PaymentDate - DaysToExpire
+      d.setDate(d.getDate() - parseInt(finalVal));
+      const formatted = d.toISOString().split('T')[0];
+      setDueDate(formatted);
+    }
+  }, [paymentDate]);
 
   // --- Proposed Changes Handlers ---
   const handleProposedPaymentDateChange = React.useCallback((val: string) => {
@@ -361,7 +375,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [proposedDaysToExpire, proposedPaymentDate]);
 
   const handleProposedDaysToExpireChange = React.useCallback((val: string) => {
-    const days = parseInt(val);
+    let days = parseInt(val);
+    // Force negative if positive (as requested by user)
+    if (!isNaN(days) && days > 0) {
+      days = -days;
+    }
     setProposedDaysToExpire(isNaN(days) ? undefined : days);
     if (val && proposedDueDate && !isNaN(days)) {
       const d = new Date(proposedDueDate);
