@@ -124,7 +124,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setStore(initialData.storeId || '');
       setCategory(initialData.category || '');
       // Convert USD amount from database to Bs for the form input
-      const initialAmountInBs = initialData.amount ? (initialData.amount * (docExchangeRate || exchangeRate)).toFixed(2) : '';
+      const initialAmountInBs = (initialData.amount !== undefined && initialData.amount !== null) ? (initialData.amount * (docExchangeRate || exchangeRate)).toFixed(2) : '';
       setAmount(initialAmountInBs);
       setExpectedBudget(initialData.originalBudget || null);
       setDueDate(initialData.dueDate || '');
@@ -304,7 +304,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
               setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
               setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
             } else if (itemData.isVariable) {
-               setAmount(''); 
+               setAmount("0.00"); 
                setExpectedBudget(null); // No fixed budget for variable items
             }
             
@@ -746,10 +746,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
     }
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = amount === '' ? 0 : parseFloat(amount);
     
-    if (amount === '' || isNaN(parsedAmount) || (isTaxCategory ? parsedAmount < 0 : parsedAmount <= 0)) {
-      newErrors.amount = "Monto inválido";
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      newErrors.amount = "Monto inválido (debe ser mayor o igual a cero)";
     }
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
@@ -782,8 +782,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             id: initialData?.id,
             storeId: store,
             category,
-            // Convert Bs amount back to USD for storage
-            amount: parseFloat(amount) / (effectiveExchangeRate || 1),
+            // Convert Bs amount back to USD for storage, treat empty as 0
+            amount: (parseFloat(amount) || 0) / (effectiveExchangeRate || 1),
             dueDate,
             paymentDate,
             daysToExpire: daysToExpire ? parseInt(daysToExpire) : undefined,
@@ -1402,7 +1402,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                         type="number"
                                                         step="0.01"
                                                         placeholder="0.00"
-                                                        value={usdAmountInput !== null ? usdAmountInput : (amount ? (parseFloat(amount) / effectiveExchangeRate).toFixed(2) : '')}
+                                                        value={usdAmountInput !== null ? usdAmountInput : ((amount !== '' && !isNaN(parseFloat(amount))) ? (parseFloat(amount) / effectiveExchangeRate).toFixed(2) : '')}
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             setUsdAmountInput(val);
@@ -1699,7 +1699,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 type="number"
                                                 step="0.01"
                                                 placeholder="0.00"
-                                                value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
+                                                value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount !== undefined ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     setProposedAmountBsInput(val);
