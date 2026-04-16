@@ -583,8 +583,12 @@ function App({}: AppProps = {}) {
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
-        if (file.size > 800000) {
-          reject(new Error('El archivo PDF es demasiado grande para la base de datos actual. El límite es 800KB. Por favor, intente con un archivo más pequeño o suba una imagen (JPG/PNG) en su lugar, ya que las imágenes se comprimen automáticamente.'));
+        // PDF and others - Strict limit due to Firestore 1MB document limit
+        // 950KB raw data results in ~1.26MB base64 which MIGHT exceed 1MB limit.
+        // Let's use 750KB as the safe limit for Firestore (750 * 1.33 = 997KB).
+        const SAFE_LIMIT = 750000; 
+        if (file.size > SAFE_LIMIT) {
+          reject(new Error(`El archivo ${file.type.split('/')[1].toUpperCase()} es demasiado grande (${(file.size / 1024).toFixed(0)}KB). El límite para documentos de texto/PDF es 750KB para garantizar el guardado en la nube. Por favor, suba una captura de pantalla (JPG/PNG) en su lugar, ya que las fotos se comprimen automáticamente para ahorrar espacio.`));
           return;
         }
         const reader = new FileReader();
@@ -601,8 +605,9 @@ function App({}: AppProps = {}) {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
+          // Aumentamos la resolución para mayor claridad en documentos legales
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1600;
           let width = img.width;
           let height = img.height;
 
@@ -621,10 +626,15 @@ function App({}: AppProps = {}) {
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+          }
           
-          // Compress to JPEG with 0.7 quality to keep size small
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          // Compresión inteligente: si el archivo original era grande, usamos menor calidad
+          const quality = file.size > 2000000 ? 0.6 : 0.8;
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
           resolve(dataUrl);
         };
         img.onerror = error => reject(error);
@@ -652,22 +662,22 @@ function App({}: AppProps = {}) {
     if (paymentData.file) {
         try {
             receiptUrl = await fileToBase64(paymentData.file);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error converting file 1", e);
-            setNotification("Error procesando el comprobante principal.");
+            setNotification(e.message || "Error procesando el comprobante principal.");
             setIsLoading(false);
-            return;
+            throw e; 
         }
     }
 
     if (paymentData.file2) {
         try {
             receiptUrl2 = await fileToBase64(paymentData.file2);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error converting file 2", e);
-            setNotification("Error procesando el soporte adicional.");
+            setNotification(e.message || "Error procesando el soporte adicional.");
             setIsLoading(false);
-            return;
+            throw e;
         }
     }
 
@@ -705,11 +715,10 @@ function App({}: AppProps = {}) {
             // Notificar a involucrados (Auditores/Admins)
             notificationService.notifyNewPayment(paymentToSave, users, settings);
         }
-        setIsFormOpen(false);
-        setEditingPayment(null);
     } catch (error) {
         console.error('Error en handleSavePayment:', error);
         setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
+        throw error; // Re-lanzamos para que el formulario sepa que falló y no muestre éxito
     } finally {
         setIsLoading(false);
         setTimeout(() => setNotification(null), 3000);
@@ -1127,10 +1136,12 @@ function App({}: AppProps = {}) {
                           payments={filteredPayments}
                           onSubmit={async (data) => {
                             await handleNewPayment(data);
-                            setEditingPayment(null);
-                            // If no more rejected payments, close modal
+                            // Eliminamos el setEditingPayment(null) inmediato para dejar que 
+                            // PaymentForm muestre su mensaje de éxito y se cierre solo
+                            
+                            // Si era el último pago rechazado, cerramos el modal después de un delay
                             if (rejectedPayments.length <= 1) {
-                              setShowRejectedModal(false);
+                              setTimeout(() => setShowRejectedModal(false), 3000);
                             }
                           }}
                           onCancel={() => setEditingPayment(null)}

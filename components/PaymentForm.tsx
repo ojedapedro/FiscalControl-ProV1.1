@@ -117,7 +117,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
 
   const [notes, setNotes] = React.useState(initialData?.notes || '');
-  const [ivaRegularMissing, setIvaRegularMissing] = React.useState(false);
 
   // Reset form when initialData changes
   React.useEffect(() => {
@@ -203,6 +202,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
     setErrors({});
     setIsManualOverride(false);
+    setShowSuccess(false);
   }, [initialData, currentUser]);
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -248,6 +248,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     setErrors({});
     setIsManualOverride(false);
+    setShowSuccess(false);
   };
 
   // Auto-fill logic based on municipal selection (Items & Amounts)
@@ -290,23 +291,30 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [paymentDate]);
 
   // Auto-fill logic based on tax selection (Items & Amounts)
-  const ivaRegularPayment = React.useMemo(() => {
+  const salesBookPayment = React.useMemo(() => {
     if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && dueDate && taxItem !== '1.1.1') {
-        const targetDate = new Date(dueDate);
-        const targetMonth = targetDate.getMonth();
-        const targetYear = targetDate.getFullYear();
+        const parts = dueDate.split('-');
+        if (parts.length < 2) return null;
+        const targetYear = parts[0];
+        const targetMonth = parts[1];
 
         return payments.filter(p => p.storeId === store).find(p => {
-            const isIva = p.specificType.startsWith('2.1.1');
-            if (!isIva) return false;
+            const isSalesBook = p.category === Category.SENIAT_BOOKS && p.specificType.startsWith('8.5');
+            if (!isSalesBook) return false;
             if (p.status === PaymentStatus.REJECTED) return false;
             
-            const pDate = new Date(p.dueDate);
-            return pDate.getMonth() === targetMonth && pDate.getFullYear() === targetYear;
+            if (!p.dueDate) return false;
+            const pParts = p.dueDate.split('-');
+            if (pParts.length < 2) return false;
+            
+            return pParts[0] === targetYear && pParts[1] === targetMonth;
         });
     }
     return null;
   }, [category, taxGroup, taxItem, dueDate, payments, store]);
+
+  const isPatenteItem = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && taxItem !== '1.1.1' && !!taxItem;
+  const isSalesBookMissing = isPatenteItem && !salesBookPayment;
 
   React.useEffect(() => {
     const config = getTaxConfig(category);
@@ -321,39 +329,44 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         
         if (newSpecificType !== specificType) {
           setSpecificType(newSpecificType);
-          
-          // Only auto-fill amount if it's a NEW selection (not loading initialData)
-          // and manual override is not active
-          if (!isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
-            if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE') {
-                if (taxItem === '1.1.1') {
-                    // Renewal is fixed $150
-                    setAmount((itemData.amount! * (effectiveExchangeRate || 1)).toFixed(2));
+        }
+
+        // --- Logic for Patente Amount ---
+        if (!isManualOverride && category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE') {
+            if (taxItem === '1.1.1') {
+                // Renewal is fixed $150
+                const amountVal = (itemData.amount! * (effectiveExchangeRate || 1)).toFixed(2);
+                if (amount !== amountVal) {
+                    setAmount(amountVal);
                     setExpectedBudget(itemData.amount!);
-                    setIvaRegularMissing(false);
-                } else if (ivaRegularPayment) {
-                    const ivaAmount = ivaRegularPayment.amount;
-                    const finalAmount = ivaAmount <= 20 ? 20 : ivaAmount;
-                    setAmount((finalAmount * (effectiveExchangeRate || 1)).toFixed(2));
+                }
+            } else if (salesBookPayment) {
+                const salesAmount = salesBookPayment.amount;
+                const finalAmount = salesAmount <= 20 ? 20 : salesAmount;
+                const amountVal = (finalAmount * (effectiveExchangeRate || 1)).toFixed(2);
+                if (amount !== amountVal) {
+                    setAmount(amountVal);
                     setExpectedBudget(finalAmount);
-                    setIvaRegularMissing(false);
-                } else {
+                }
+            } else {
+                if (amount !== "0.00") {
                     setAmount("0.00");
                     setExpectedBudget(null);
-                    setIvaRegularMissing(true);
                 }
-            } else if (itemData.amount !== undefined && !itemData.isVariable) {
-              // Convert tax config USD amount to Bs for the input
-              setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
-              setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
-            } else if (itemData.isVariable) {
-               setAmount("0.00"); 
-               setExpectedBudget(null); // No fixed budget for variable items
             }
-            
-            if (itemData.frequency) {
-              setFrequency(itemData.frequency);
-            }
+        } 
+        // --- Logic for Other Tax Items ---
+        else if (newSpecificType !== specificType && !isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
+          if (itemData.amount !== undefined && !itemData.isVariable) {
+            setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
+            setExpectedBudget(itemData.amount);
+          } else if (itemData.isVariable) {
+            setAmount("0.00");
+            setExpectedBudget(null);
+          }
+          
+          if (itemData.frequency) {
+            setFrequency(itemData.frequency);
           }
         }
       }
@@ -362,7 +375,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setTaxItem('');
         setExpectedBudget(null);
     }
-  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, ivaRegularPayment]);
+  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, salesBookPayment, amount]);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
@@ -807,8 +820,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
         
-        if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && ivaRegularMissing && taxItem !== '1.1.1') {
-            newErrors.taxItem = "No se puede pagar Patente sin haber cargado el IVA Regular del periodo.";
+        if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && isSalesBookMissing) {
+            newErrors.taxItem = "No se puede pagar Patente sin haber cargado el Libro de Venta del periodo.";
         }
     }
     const parsedAmount = amount === '' ? 0 : parseFloat(amount);
@@ -874,16 +887,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         });
         
         setShowSuccess(true);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        setIsSubmitting(false);
+        setLoadingText('');
+        
+        // Esperamos un momento para que el usuario vea el check
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Reseteamos el estado de éxito local ANTES de llamar onCancel/resetForm
+        // Esto previene que el overlay se mantenga si el componente no se desmonta
+        setShowSuccess(false);
+        
+        if (onCancel) onCancel();
         resetForm();
-        onCancel();
     } catch (error) {
         console.error("Error submitting payment:", error);
-    } finally {
-        if (!showSuccess) {
-            setIsSubmitting(false);
-            setLoadingText('');
-        }
+        setIsSubmitting(false);
+        setLoadingText('');
     }
   };
 
@@ -892,8 +911,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       
       {/* Overlay de Éxito */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-           <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 max-w-md w-full shadow-[0_0_50px_-12px_rgba(16,185,129,0.3)] border border-emerald-500/20 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+        <div 
+          onClick={() => {
+            setShowSuccess(false);
+            onCancel();
+            resetForm();
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300 cursor-pointer"
+        >
+           <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl p-10 max-w-md w-full shadow-[0_0_50px_-12px_rgba(16,185,129,0.3)] border border-emerald-500/20 flex flex-col items-center text-center animate-in zoom-in-95 duration-500"
+           >
               <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mb-8 relative">
                 <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping duration-1000"></div>
                 <CheckCircle2 size={48} className="text-emerald-500 relative z-10" />
@@ -906,7 +935,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
               </p>
               <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 rounded-full text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">
                   <Loader2 size={12} className="animate-spin" />
-                  Finalizando Sesión...
+                  Finalizando...
               </div>
            </div>
         </div>
@@ -1351,16 +1380,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </div>
                                     ))}
 
-                                    {ivaRegularMissing && category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && taxItem !== '1.1.1' && (
+                                    {isSalesBookMissing && (
                                         <div className="mt-4 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                             <div className="p-3 bg-red-500/20 rounded-xl">
                                                 <AlertTriangle className="text-red-500" size={24} />
                                             </div>
                                             <div>
-                                                <p className="text-red-400 text-sm font-black uppercase tracking-widest">IVA Regular Faltante</p>
+                                                <p className="text-red-400 text-sm font-black uppercase tracking-widest">Libro de Venta Faltante</p>
                                                 <p className="text-red-300/70 text-xs mt-2 leading-relaxed font-medium">
-                                                    No se ha encontrado el registro de <span className="text-red-400 font-bold">IVA Regular (Mensual)</span> para este periodo. 
-                                                    Debe cargar primero las ventas mensuales para poder procesar el pago de Patente.
+                                                    No se ha encontrado el registro de <span className="text-red-400 font-bold">Libro de Venta (8.5)</span> en <span className="text-red-400 font-bold">SENIAT Libros</span> para este periodo. 
+                                                    Debe cargar primero el libro de ventas para poder procesar el pago de Patente.
                                                 </p>
                                                 <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-red-400/50 uppercase tracking-tighter">
                                                     <Clock size={12} />
@@ -1717,7 +1746,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 </div>
                                                 <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
-                                                <p className="text-[9px] text-slate-400 font-medium uppercase tracking-widest mt-1">Límite Flexible: 10MB</p>
+                                                <div className="mt-3 px-3 py-1.5 bg-slate-200/50 dark:bg-white/5 rounded-lg border border-slate-300/30 dark:border-white/10">
+                                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-center leading-tight">
+                                                        JPG/PNG: Auto-Optimizado (Máx 10MB)<br/>
+                                                        PDF: Máximo 750KB
+                                                    </p>
+                                                </div>
                                             </>
                                         )}
                                     </div>
