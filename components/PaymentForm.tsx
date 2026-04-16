@@ -117,6 +117,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
 
   const [notes, setNotes] = React.useState(initialData?.notes || '');
+  const [ivaRegularMissing, setIvaRegularMissing] = React.useState(false);
 
   // Reset form when initialData changes
   React.useEffect(() => {
@@ -212,6 +213,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Estados de carga
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState('');
+  const [showSuccess, setShowSuccess] = React.useState(false);
   const [isFileScanning, setIsFileScanning] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
 
@@ -288,6 +290,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [paymentDate]);
 
   // Auto-fill logic based on tax selection (Items & Amounts)
+  const ivaRegularPayment = React.useMemo(() => {
+    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && dueDate && taxItem !== '1.1.1') {
+        const targetDate = new Date(dueDate);
+        const targetMonth = targetDate.getMonth();
+        const targetYear = targetDate.getFullYear();
+
+        return payments.filter(p => p.storeId === store).find(p => {
+            const isIva = p.specificType.startsWith('2.1.1');
+            if (!isIva) return false;
+            if (p.status === PaymentStatus.REJECTED) return false;
+            
+            const pDate = new Date(p.dueDate);
+            return pDate.getMonth() === targetMonth && pDate.getFullYear() === targetYear;
+        });
+    }
+    return null;
+  }, [category, taxGroup, taxItem, dueDate, payments, store]);
+
   React.useEffect(() => {
     const config = getTaxConfig(category);
     const isTaxCategory = !!config;
@@ -305,7 +325,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
           // Only auto-fill amount if it's a NEW selection (not loading initialData)
           // and manual override is not active
           if (!isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
-            if (itemData.amount !== undefined && !itemData.isVariable) {
+            if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE') {
+                if (taxItem === '1.1.1') {
+                    // Renewal is fixed $150
+                    setAmount((itemData.amount! * (effectiveExchangeRate || 1)).toFixed(2));
+                    setExpectedBudget(itemData.amount!);
+                    setIvaRegularMissing(false);
+                } else if (ivaRegularPayment) {
+                    const ivaAmount = ivaRegularPayment.amount;
+                    const finalAmount = ivaAmount <= 20 ? 20 : ivaAmount;
+                    setAmount((finalAmount * (effectiveExchangeRate || 1)).toFixed(2));
+                    setExpectedBudget(finalAmount);
+                    setIvaRegularMissing(false);
+                } else {
+                    setAmount("0.00");
+                    setExpectedBudget(null);
+                    setIvaRegularMissing(true);
+                }
+            } else if (itemData.amount !== undefined && !itemData.isVariable) {
               // Convert tax config USD amount to Bs for the input
               setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
               setExpectedBudget(itemData.amount); // Set budget baseline (remains in USD)
@@ -325,7 +362,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setTaxItem('');
         setExpectedBudget(null);
     }
-  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType]);
+  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, ivaRegularPayment]);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
@@ -769,6 +806,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (isTaxCategory) {
         if (!taxGroup) newErrors.taxGroup = "Seleccione el grupo fiscal";
         if (!taxItem) newErrors.taxItem = "Seleccione el concepto";
+        
+        if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && ivaRegularMissing && taxItem !== '1.1.1') {
+            newErrors.taxItem = "No se puede pagar Patente sin haber cargado el IVA Regular del periodo.";
+        }
     }
     const parsedAmount = amount === '' ? 0 : parseFloat(amount);
     
@@ -831,17 +872,45 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             proposedJustification,
             proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
         });
+        
+        setShowSuccess(true);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         resetForm();
+        onCancel();
     } catch (error) {
         console.error("Error submitting payment:", error);
     } finally {
-        setIsSubmitting(false);
-        setLoadingText('');
+        if (!showSuccess) {
+            setIsSubmitting(false);
+            setLoadingText('');
+        }
     }
   };
 
   return (
     <div className="p-6 lg:p-10 xl:p-12 w-full max-w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      
+      {/* Overlay de Éxito */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+           <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 max-w-md w-full shadow-[0_0_50px_-12px_rgba(16,185,129,0.3)] border border-emerald-500/20 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+              <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mb-8 relative">
+                <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping duration-1000"></div>
+                <CheckCircle2 size={48} className="text-emerald-500 relative z-10" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter">¡Pago Guardado!</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8 font-medium">
+                  El pago ha sido registrado exitosamente en el sistema de control fiscal. 
+                  <br /><br />
+                  <span className="font-bold text-slate-400">Esta ventana se cerrará automáticamente en unos segundos.</span>
+              </p>
+              <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 rounded-full text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">
+                  <Loader2 size={12} className="animate-spin" />
+                  Finalizando Sesión...
+              </div>
+           </div>
+        </div>
+      )}
       
       {/* Top Banner for Rejected Payments */}
       {initialData?.status === PaymentStatus.REJECTED && (
@@ -1281,6 +1350,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             </div>
                                         </div>
                                     ))}
+
+                                    {ivaRegularMissing && category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && taxItem !== '1.1.1' && (
+                                        <div className="mt-4 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="p-3 bg-red-500/20 rounded-xl">
+                                                <AlertTriangle className="text-red-500" size={24} />
+                                            </div>
+                                            <div>
+                                                <p className="text-red-400 text-sm font-black uppercase tracking-widest">IVA Regular Faltante</p>
+                                                <p className="text-red-300/70 text-xs mt-2 leading-relaxed font-medium">
+                                                    No se ha encontrado el registro de <span className="text-red-400 font-bold">IVA Regular (Mensual)</span> para este periodo. 
+                                                    Debe cargar primero las ventas mensuales para poder procesar el pago de Patente.
+                                                </p>
+                                                <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-red-400/50 uppercase tracking-tighter">
+                                                    <Clock size={12} />
+                                                    Periodo: {dueDate ? new Date(dueDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'No seleccionado'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="mt-8 p-4 bg-brand-500/5 dark:bg-brand-500/10 rounded-2xl border border-brand-500/20 text-xs text-slate-500 dark:text-slate-300">
