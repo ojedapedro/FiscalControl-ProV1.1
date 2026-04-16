@@ -586,7 +586,7 @@ function App({}: AppProps = {}) {
         // PDF and others - Strict limit due to Firestore 1MB document limit
         // 950KB raw data results in ~1.26MB base64 which MIGHT exceed 1MB limit.
         // Let's use 750KB as the safe limit for Firestore (750 * 1.33 = 997KB).
-        const SAFE_LIMIT = 750000; 
+        const SAFE_LIMIT = 10000000; 
         if (file.size > SAFE_LIMIT) {
           reject(new Error(`El archivo ${file.type.split('/')[1].toUpperCase()} es demasiado grande (${(file.size / 1024).toFixed(0)}KB). El límite para documentos de texto/PDF es 750KB para garantizar el guardado en la nube. Por favor, suba una captura de pantalla (JPG/PNG) en su lugar, ya que las fotos se comprimen automáticamente para ahorrar espacio.`));
           return;
