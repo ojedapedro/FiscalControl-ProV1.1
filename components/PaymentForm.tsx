@@ -776,9 +776,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             return;
         }
 
-        const maxSize = 10 * 1024 * 1024; // 10MB flexible limit
+        // Límites diferenciados: PDF (750KB) e Imágenes (10MB)
+        const isImage = selectedFile.type.startsWith('image/');
+        const limitMB = isImage ? 10 : 0.75;
+        const maxSize = limitMB * 1024 * 1024;
+        
         if (selectedFile.size > maxSize) {
-            setErrors(prev => ({...prev, file: `El archivo es demasiado grande (${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB). El límite es 10MB.`}));
+            setErrors(prev => ({
+                ...prev, 
+                file: `Archivo muy grande. Límite para ${isImage ? 'imágenes' : 'PDF'} es ${isImage ? '10MB' : '750KB'}.`
+            }));
             return;
         }
 
@@ -1746,10 +1753,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 </div>
                                                 <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
-                                                <div className="mt-3 px-3 py-1.5 bg-slate-200/50 dark:bg-white/5 rounded-lg border border-slate-300/30 dark:border-white/10">
-                                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-center leading-tight">
-                                                        JPG/PNG: Auto-Optimizado (Máx 10MB)<br/>
-                                                        PDF: Máximo 750KB
+                                                <div className="mt-3 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
+                                                    <p className="text-[9px] text-brand-600 dark:text-brand-400 font-black uppercase tracking-widest text-center leading-tight">
+                                                        Límites: PDF 750KB / Fotos 10MB<br/>
+                                                        (Optimización Automática Activa)
                                                     </p>
                                                 </div>
                                             </>

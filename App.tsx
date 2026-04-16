@@ -583,12 +583,10 @@ function App({}: AppProps = {}) {
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
-        // PDF and others - Strict limit due to Firestore 1MB document limit
-        // 950KB raw data results in ~1.26MB base64 which MIGHT exceed 1MB limit.
-        // Let's use 750KB as the safe limit for Firestore (750 * 1.33 = 997KB).
-        const SAFE_LIMIT = 10000000; 
+        // Límite estricto para PDFs (Base64 suma ~33% al tamaño binario)
+        const SAFE_LIMIT = 750000; // 750KB
         if (file.size > SAFE_LIMIT) {
-          reject(new Error(`El archivo ${file.type.split('/')[1].toUpperCase()} es demasiado grande (${(file.size / 1024).toFixed(0)}KB). El límite para documentos de texto/PDF es 750KB para garantizar el guardado en la nube. Por favor, suba una captura de pantalla (JPG/PNG) en su lugar, ya que las fotos se comprimen automáticamente para ahorrar espacio.`));
+          reject(new Error(`El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). El límite para documentos PDF es 750KB. Por favor, suba una foto en su lugar o comprima el PDF.`));
           return;
         }
         const reader = new FileReader();
@@ -598,6 +596,7 @@ function App({}: AppProps = {}) {
         return;
       }
 
+      // Procesamiento de imágenes (JPG/PNG)
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
@@ -605,22 +604,16 @@ function App({}: AppProps = {}) {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          // Aumentamos la resolución para mayor claridad en documentos legales
+          // Alta resolución para legibilidad en auditoría
           const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1600;
           let width = img.width;
           let height = img.height;
 
           if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
           } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
           }
 
           canvas.width = width;
@@ -632,9 +625,8 @@ function App({}: AppProps = {}) {
             ctx.drawImage(img, 0, 0, width, height);
           }
           
-          // Compresión inteligente: si el archivo original era grande, usamos menor calidad
-          const quality = file.size > 2000000 ? 0.6 : 0.8;
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          // Compresión 0.7 para mantenerse bajo el límite de 1MB de Firestore tras Base64
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
         };
         img.onerror = error => reject(error);
@@ -645,64 +637,74 @@ function App({}: AppProps = {}) {
 
   const handleNewPayment = async (paymentData: any) => {
     setIsLoading(true);
-    const isUpdate = !!paymentData.id;
-    const originalPayment = isUpdate ? payments.find(p => p.id === paymentData.id) : null;
+    console.log("🚀 Iniciando proceso de guardado de pago (Base64)...", paymentData.id ? "(Actualización)" : "(Nuevo)");
     
-    const log: AuditLog = {
-      date: new Date().toISOString(),
-      action: isUpdate ? 'CORRECCION' : 'CREACION',
-      actorName: currentUser?.name || 'Usuario', 
-      role: currentUser?.role || Role.ADMIN,
-      note: isUpdate ? 'Pago corregido tras devolución' : undefined
-    };
-
-    let receiptUrl = isUpdate ? originalPayment?.receiptUrl : undefined;
-    let receiptUrl2 = isUpdate ? originalPayment?.receiptUrl2 : undefined;
-    
-    if (paymentData.file) {
-        try {
-            receiptUrl = await fileToBase64(paymentData.file);
-        } catch (e: any) {
-            console.error("Error converting file 1", e);
-            setNotification(e.message || "Error procesando el comprobante principal.");
-            setIsLoading(false);
-            throw e; 
-        }
-    }
-
-    if (paymentData.file2) {
-        try {
-            receiptUrl2 = await fileToBase64(paymentData.file2);
-        } catch (e: any) {
-            console.error("Error converting file 2", e);
-            setNotification(e.message || "Error procesando el soporte adicional.");
-            setIsLoading(false);
-            throw e;
-        }
-    }
-
-    // Create the payment object preserving ALL existing data and overwriting with new data
-    const paymentToSave: Payment = {
-      ...(originalPayment || {}), // Start with all existing data (Absolutamente TODOS)
-      ...paymentData, // Overwrite with new data from the form
-      id: paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`,
-      storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
-      userId: currentUser?.id || originalPayment?.userId || 'U-UNK',
-      status: PaymentStatus.PENDING, // Always reset to pending on correction/creation
-      rejectionReason: '', // Clear rejection reason on correction
-      submittedDate: isUpdate ? (originalPayment?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
-      history: isUpdate 
-        ? [...(originalPayment?.history || []), log]
-        : [log],
-      receiptUrl: receiptUrl,
-      receiptUrl2: receiptUrl2,
-    };
-    
-    // Clean up temporary file objects that shouldn't be in the final object
-    if ((paymentToSave as any).file) delete (paymentToSave as any).file;
-    if ((paymentToSave as any).file2) delete (paymentToSave as any).file2;
-
     try {
+        const isUpdate = !!paymentData.id;
+        const originalPayment = isUpdate ? payments.find(p => p.id === paymentData.id) : null;
+        
+        const log: AuditLog = {
+          date: new Date().toISOString(),
+          action: isUpdate ? 'CORRECCION' : 'CREACION',
+          actorName: currentUser?.name || 'Usuario', 
+          role: currentUser?.role || Role.ADMIN,
+          note: isUpdate ? 'Pago corregido tras devolución' : undefined
+        };
+
+        let receiptUrl = isUpdate ? originalPayment?.receiptUrl : undefined;
+        let receiptUrl2 = isUpdate ? originalPayment?.receiptUrl2 : undefined;
+        
+        const paymentId = paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`;
+
+        if (paymentData.file && paymentData.file instanceof File) {
+            try {
+                console.log("📂 Procesando archivo 1...");
+                receiptUrl = await fileToBase64(paymentData.file);
+                console.log("✅ Archivo 1 procesado.");
+            } catch (e: any) {
+                console.error("❌ Error processing file 1", e);
+                setNotification(e.message || "Error procesando el comprobante principal.");
+                throw e; 
+            }
+        } else if (paymentData.file && typeof paymentData.file === 'string') {
+            receiptUrl = paymentData.file;
+        }
+
+        if (paymentData.file2 && paymentData.file2 instanceof File) {
+            try {
+                console.log("📂 Procesando archivo 2...");
+                receiptUrl2 = await fileToBase64(paymentData.file2);
+                console.log("✅ Archivo 2 procesado.");
+            } catch (e: any) {
+                console.error("❌ Error processing file 2", e);
+                setNotification(e.message || "Error procesando el soporte adicional.");
+                throw e;
+            }
+        } else if (paymentData.file2 && typeof paymentData.file2 === 'string') {
+            receiptUrl2 = paymentData.file2;
+        }
+
+        // Create the payment object
+        const paymentToSave: Payment = {
+          ...(originalPayment || {}),
+          ...paymentData,
+          id: paymentId,
+          storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
+          userId: currentUser?.id || originalPayment?.userId || 'U-UNK',
+          status: PaymentStatus.PENDING,
+          rejectionReason: '',
+          submittedDate: isUpdate ? (originalPayment?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
+          history: isUpdate 
+            ? [...(originalPayment?.history || []), log]
+            : [log],
+          receiptUrl: receiptUrl,
+          receiptUrl2: receiptUrl2,
+        };
+        
+        if ((paymentToSave as any).file) delete (paymentToSave as any).file;
+        if ((paymentToSave as any).file2) delete (paymentToSave as any).file2;
+
+        console.log("💾 Guardando pago en Firestore...");
         if (isUpdate) {
             await firestoreService.updatePayment(paymentToSave);
             setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
@@ -710,18 +712,19 @@ function App({}: AppProps = {}) {
         } else {
             await firestoreService.createPayment(paymentToSave);
             setPayments(prev => [paymentToSave, ...prev]);
-            setNotification('✅ Pago guardado en Firestore.');
+            setNotification('✅ Pago guardado con éxito.');
             
-            // Notificar a involucrados (Auditores/Admins)
+            // Background notification
             notificationService.notifyNewPayment(paymentToSave, users, settings);
         }
+        console.log("✨ Proceso completado exitosamente.");
     } catch (error) {
-        console.error('Error en handleSavePayment:', error);
-        setNotification(`❌ Error ${isUpdate ? 'actualizando' : 'guardando'} pago.`);
-        throw error; // Re-lanzamos para que el formulario sepa que falló y no muestre éxito
+        console.error('❌ Error en handleNewPayment:', error);
+        setNotification(`❌ Error guardando el pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        throw error; 
     } finally {
         setIsLoading(false);
-        setTimeout(() => setNotification(null), 3000);
+        setTimeout(() => setNotification(null), 5000);
     }
   };
 

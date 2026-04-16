@@ -15,7 +15,8 @@ import {
   limit,
   startAfter
 } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage } from '../firebase';
 import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store } from '../types';
 
 enum OperationType {
@@ -499,5 +500,27 @@ export const firestoreService = {
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
+  },
+
+  // Storage
+  uploadFile: async (file: File, path: string): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      // Timeout de seguridad de 60 segundos
+      const timeout = setTimeout(() => {
+        reject(new Error("Tiempo de espera agotado al subir el archivo (60s). Verifique su conexión."));
+      }, 60000);
+
+      try {
+        const storageRef = ref(storage, path);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        clearTimeout(timeout);
+        resolve(downloadURL);
+      } catch (error) {
+        clearTimeout(timeout);
+        console.error("Error uploading file to Storage:", error);
+        reject(error);
+      }
+    });
   }
 };
