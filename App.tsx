@@ -27,6 +27,10 @@ import { APP_LOGO_URL } from './constants';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { calculateNextDueDate } from './src/utils';
 import { getTaxConfig } from './src/taxConfigurations';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configurar Worker de PDF.js para conversión de PDF a Imagen
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface AppProps {}
 
@@ -580,13 +584,74 @@ function App({}: AppProps = {}) {
     });
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const processImageFromDataUrl = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+        
+        // Optimización agresiva para Firestore (Base64)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = error => reject(error);
+    });
+  };
+
+  const fileToBase64 = async (file: File): Promise<string> => {
+    // Si es un PDF y es muy grande (>750KB), intentamos convertirlo a imagen para optimizarlo
+    if (file.type === 'application/pdf' && file.size > 750000) {
+      try {
+        console.log("📄 PDF excede el límite de almacenamiento directo (750KB). Convirtiendo a imagen para optimización...");
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1); // Procesamos la primera página como comprobante
+        const viewport = page.getViewport({ scale: 2.0 }); // Escala 2.0 para legibilidad
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error("Canvas Error");
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport }).promise;
+        const pdfImageAsDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Procesamos la imagen resultante con el redimensionador estándar
+        return processImageFromDataUrl(pdfImageAsDataUrl);
+      } catch (err) {
+        console.error("No se pudo convertir el PDF a imagen:", err);
+        // Si falla la conversión, el flujo siguiente lanzará el error de tamaño habitual
+      }
+    }
+
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
-        // Límite estricto para PDFs (Base64 suma ~33% al tamaño binario)
-        const SAFE_LIMIT = 750000; // 750KB
+        // Límite estricto para PDFs crudos
+        const SAFE_LIMIT = 750000;
         if (file.size > SAFE_LIMIT) {
-          reject(new Error(`El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). El límite para documentos PDF es 750KB. Por favor, suba una foto en su lugar o comprima el PDF.`));
+          reject(new Error(`El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). Se intentó optimizar pero falló. Por favor, suba un PDF menor a 750KB o una imagen.`));
           return;
         }
         const reader = new FileReader();
@@ -596,40 +661,16 @@ function App({}: AppProps = {}) {
         return;
       }
 
-      // Procesamiento de imágenes (JPG/PNG)
+      // Procesamiento estándar de imágenes
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          // Alta resolución para legibilidad en auditoría
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1600;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, 0, 0, width, height);
-          }
-          
-          // Compresión 0.7 para mantenerse bajo el límite de 1MB de Firestore tras Base64
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
+      reader.onload = async (event) => {
+        try {
+          const processed = await processImageFromDataUrl(event.target?.result as string);
+          resolve(processed);
+        } catch (err) {
+          reject(err);
+        }
       };
       reader.onerror = error => reject(error);
     });

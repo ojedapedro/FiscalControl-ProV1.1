@@ -3928,7 +3928,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <p className="text-slate-900 dark:text-white font-bold">
                           {financeComprobante ? `Archivo: ${financeComprobante}` : 'Haz clic o arrastra el comprobante de pago'}
                         </p>
-                        <p className="text-slate-500 text-xs mt-1">Formatos: PDF, JPG, PNG (Max 10MB para imágenes / 750KB para PDF)</p>
+                        <p className="text-slate-500 text-xs mt-1">Formatos: PDF, JPG, PNG (Max 10MB - Conversión de PDF activa)</p>
                       </div>
                     </div>
                   </div>

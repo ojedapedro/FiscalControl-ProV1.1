@@ -776,15 +776,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             return;
         }
 
-        // Límites diferenciados: PDF (750KB) e Imágenes (10MB)
-        const isImage = selectedFile.type.startsWith('image/');
-        const limitMB = isImage ? 10 : 0.75;
+        // Nuevo: Ambos permiten 10MB porque los PDFs grandes se convierten a Imagen optimizada
+        const limitMB = 10;
         const maxSize = limitMB * 1024 * 1024;
         
         if (selectedFile.size > maxSize) {
             setErrors(prev => ({
                 ...prev, 
-                file: `Archivo muy grande. Límite para ${isImage ? 'imágenes' : 'PDF'} es ${isImage ? '10MB' : '750KB'}.`
+                file: `Archivo muy grande. El límite máximo es ${limitMB}MB.`
             }));
             return;
         }
@@ -1755,8 +1754,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
                                                 <div className="mt-3 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
                                                     <p className="text-[9px] text-brand-600 dark:text-brand-400 font-black uppercase tracking-widest text-center leading-tight">
-                                                        Límites: PDF 750KB / Fotos 10MB<br/>
-                                                        (Optimización Automática Activa)
+                                                        Límites: PDF e Imágenes 10MB<br/>
+                                                        (Conversión de PDF a Imagen Activa)
                                                     </p>
                                                 </div>
                                             </>
