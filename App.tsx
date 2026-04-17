@@ -28,9 +28,9 @@ import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { calculateNextDueDate } from './src/utils';
 import { getTaxConfig } from './src/taxConfigurations';
 import * as pdfjsLib from 'pdfjs-dist';
-
-// Configurar Worker de PDF.js para conversión de PDF a Imagen
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Configurar Worker de PDF.js para conversión de PDF a Imagen (CDN sincronizado con la versión de la librería)
+const PDF_JS_VERSION = pdfjsLib.version;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDF_JS_VERSION}/build/pdf.worker.min.mjs`;
 
 interface AppProps {}
 
@@ -619,30 +619,57 @@ function App({}: AppProps = {}) {
   };
 
   const fileToBase64 = async (file: File): Promise<string> => {
-    // Si es un PDF y es muy grande (>750KB), intentamos convertirlo a imagen para optimizarlo
-    if (file.type === 'application/pdf' && file.size > 750000) {
+    let pdfConversionError = '';
+    console.log(`📂 Procesando archivo: ${file.name} (${file.type}) - Tamaño: ${(file.size / 1024).toFixed(2)}KB`);
+
+    // Detección más inclusiva para PDFs
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    // Si es un PDF y es grande (>750KB), intentamos convertirlo a imagen para optimizarlo
+    if (isPDF && file.size > 750000) {
       try {
-        console.log("📄 PDF excede el límite de almacenamiento directo (750KB). Convirtiendo a imagen para optimización...");
+        console.log("📄 Iniciando optimización de PDF pesado via renderizado de imagen...");
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const page = await pdf.getPage(1); // Procesamos la primera página como comprobante
-        const viewport = page.getViewport({ scale: 2.0 }); // Escala 2.0 para legibilidad
+        
+        // Cargar documento PDF (Uint8Array es más compatible)
+        const loadingTask = pdfjsLib.getDocument({ 
+          data: new Uint8Array(arrayBuffer)
+        });
+        
+        const pdf = await loadingTask.promise;
+        console.log(`✅ PDF cargado. Páginas: ${pdf.numPages}`);
+        
+        const page = await pdf.getPage(1); // Primera página como comprobante
+        
+        // Escalar para que el ancho sea ~1200px para mantener consistencia con el optimizador de imágenes
+        const originalViewport = page.getViewport({ scale: 1.0 });
+        const scale = 1200 / originalViewport.width;
+        const viewport = page.getViewport({ scale });
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        if (!context) throw new Error("Canvas Error");
+        if (!context) throw new Error("No se pudo obtener el contexto del canvas");
         
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         
-        await page.render({ canvasContext: context, viewport }).promise;
-        const pdfImageAsDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        console.log(`🖌️ Renderizando página PDF a canvas (${canvas.width}x${canvas.height})...`);
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
         
-        // Procesamos la imagen resultante con el redimensionador estándar
-        return processImageFromDataUrl(pdfImageAsDataUrl);
-      } catch (err) {
-        console.error("No se pudo convertir el PDF a imagen:", err);
-        // Si falla la conversión, el flujo siguiente lanzará el error de tamaño habitual
+        await page.render(renderContext).promise;
+        
+        // Convertir a JPEG y procesar con el optimizador estándar para garantizar el tamaño final
+        const pdfImageAsDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        
+        console.log("✨ Conversión de PDF a imagen completada. Optimizando resultado final...");
+        return await processImageFromDataUrl(pdfImageAsDataUrl);
+      } catch (err: any) {
+        console.error("❌ Fallo crítico en la conversión de PDF a imagen:", err);
+        pdfConversionError = err?.message || String(err);
+        // Continuamos al flujo normal que fallará con el error de tamaño si sigue siendo PDF
       }
     }
 
@@ -651,7 +678,10 @@ function App({}: AppProps = {}) {
         // Límite estricto para PDFs crudos
         const SAFE_LIMIT = 750000;
         if (file.size > SAFE_LIMIT) {
-          reject(new Error(`El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). Se intentó optimizar pero falló. Por favor, suba un PDF menor a 750KB o una imagen.`));
+           const errMsg = pdfConversionError 
+              ? `El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). Intentamos optimizarlo pero ocurrió un error técnico (${pdfConversionError}). Sube un archivo menos pesado.`
+              : `El archivo PDF es demasiado grande (${(file.size / 1024).toFixed(0)}KB). Se intentó optimizar pero falló. Por favor, suba un PDF menor a 750KB o una imagen.`;
+          reject(new Error(errMsg));
           return;
         }
         const reader = new FileReader();
