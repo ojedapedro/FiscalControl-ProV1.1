@@ -15,6 +15,7 @@ import createPaymentIntentHandler from './api/create-payment-intent.ts';
 import sendEmailsHandler from './api/payroll/send-emails.ts';
 import sendEmailHandler from './api/notifications/send-email.ts';
 import whatsappCheckHandler from './api/notifications/whatsapp/check.ts';
+import whatsappSendHandler from './api/notifications/whatsapp/send.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ async function startServer() {
   app.all('/api/payroll/send-emails', sendEmailsHandler);
   app.all('/api/notifications/send-email', sendEmailHandler);
   app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
+  app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
 
   // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {

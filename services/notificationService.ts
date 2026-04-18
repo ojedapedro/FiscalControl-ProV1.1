@@ -105,11 +105,11 @@ export const notificationService = {
   notifyPaymentReminder: async (payment: Payment, users: User[], settings: SystemSettings | null) => {
     if (!settings?.whatsappEnabled && !settings?.emailEnabled) return;
 
-    // Personas involucradas: El creador del pago y los auditores de la tienda
+    // Personas involucradas: El creador del pago y los directivos/auditores
     const recipients = users.filter(u => 
       (u.id === payment.userId) || 
-      ((u.role === Role.AUDITOR || u.role === Role.ADMIN || u.role === Role.SUPER_ADMIN) && 
-       (u.storeId === payment.storeId || u.role === Role.SUPER_ADMIN))
+      ((u.role === Role.AUDITOR || u.role === Role.ADMIN || u.role === Role.SUPER_ADMIN || u.role === Role.PRESIDENT) && 
+       (u.storeId === payment.storeId || u.role === Role.SUPER_ADMIN || u.role === Role.PRESIDENT))
     );
 
     const today = new Date();

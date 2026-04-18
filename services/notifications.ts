@@ -1,7 +1,8 @@
 import twilio from 'twilio';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+import { SystemSettings, PaymentStatus } from '../types';
 
 // Initialize Firebase for server-side
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -15,19 +16,19 @@ const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER;
 
 let client: twilio.Twilio | null = null;
 
+// Helper to format WhatsApp number
+const formatWhatsApp = (num: string) => {
+  const cleanNum = num.trim();
+  if (cleanNum.startsWith('whatsapp:')) return cleanNum;
+  return `whatsapp:${cleanNum.startsWith('+') ? cleanNum : `+${cleanNum}`}`;
+};
+
 // Validación básica antes de intentar inicializar para evitar errores de validación del SDK
 if (accountSid && authToken && accountSid.startsWith('AC')) {
   try {
     client = twilio(accountSid, authToken);
   } catch (error: any) {
     console.warn('⚠️ Error al inicializar Twilio (verifica tus credenciales):', error.message);
-  }
-} else if (accountSid || authToken) {
-  // Si hay algo configurado pero es inválido, informamos de manera más amigable
-  if (accountSid && !accountSid.startsWith('AC')) {
-    console.warn('⚠️ Twilio no inicializado: El Account SID debe comenzar con "AC".');
-  } else {
-    console.warn('⚠️ Twilio no inicializado: Faltan credenciales (SID o Token).');
   }
 }
 
@@ -37,67 +38,101 @@ export async function checkAndSendNotifications() {
     return { success: false, message: 'Twilio not configured' };
   }
 
-  console.log('🔍 [Notifications] Iniciando escaneo de pagos para notificaciones...');
+  console.log('🔍 [Notifications] Iniciando auditoría de pagos para notificaciones...');
   
   try {
+    // 1. Obtener Configuración Global
+    const settingsDoc = await getDoc(doc(db, 'settings', 'global'));
+    const settings = settingsDoc.exists() ? settingsDoc.data() as SystemSettings : null;
+    
+    if (settings && !settings.whatsappEnabled) {
+      console.log('🔇 [Notifications] WhatsApp está desactivado en la configuración global.');
+      return { success: true, message: 'WhatsApp disabled in settings' };
+    }
+
+    const warningDays = settings?.daysBeforeWarning || 3;
+    const criticalDays = settings?.daysBeforeCritical || 1;
+
+    // 2. Obtener Pagos
     const paymentsRef = collection(db, 'payments');
     const snapshot = await getDocs(paymentsRef);
-    const now = new Date();
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(now.getDate() + 3);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const overduePayments: any[] = [];
-    const upcomingPayments: any[] = [];
+    const overdueArr: any[] = [];
+    const criticalArr: any[] = [];
+    const warningArr: any[] = [];
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.status === 'PAID' || data.status === 'REJECTED') return;
+    snapshot.forEach(docSnap => {
+      const p = docSnap.data();
+      // Solo notificar pagos que no han sido pagados ni rechazados
+      if (p.status === PaymentStatus.PAID || p.status === PaymentStatus.REJECTED) return;
 
-      const dueDate = new Date(data.dueDate);
-      
-      // Overdue
-      if (dueDate < now) {
-        overduePayments.push({ id: doc.id, ...data });
-      } 
-      // Upcoming (exactly 3 days before or within 3 days)
-      else if (dueDate <= threeDaysFromNow) {
-        upcomingPayments.push({ id: doc.id, ...data });
+      const dueDate = new Date(p.dueDate + 'T00:00:00');
+      const diffTime = dueDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        overdueArr.push({ ...p, diffDays });
+      } else if (diffDays <= criticalDays) {
+        criticalArr.push({ ...p, diffDays });
+      } else if (diffDays <= warningDays) {
+        warningArr.push({ ...p, diffDays });
       }
     });
 
-    if (overduePayments.length === 0 && upcomingPayments.length === 0) {
-      console.log('✅ [Notifications] No hay pagos que requieran notificación hoy.');
-      return { success: true, message: 'No notifications needed' };
+    if (overdueArr.length === 0 && criticalArr.length === 0 && warningArr.length === 0) {
+      console.log('✅ [Notifications] No hay pagos urgentes hoy.');
+      return { success: true, message: 'No urgent payments found' };
     }
 
-    let message = '*🔔 Notificación de FiscalControl Pro*\n\n';
+    // 3. Construir Mensaje de Auditoría y Prioridad
+    let message = `📊 *REPORTE DE AUDITORÍA - FORZA 22*\n`;
+    message += `Fecha: ${today.toLocaleDateString()}\n`;
+    message += `--------------------------------\n\n`;
 
-    if (overduePayments.length > 0) {
-      message += '*⚠️ PAGOS VENCIDOS:*\n';
-      overduePayments.forEach(p => {
-        message += `- ${p.storeName}: ${p.specificType} ($${p.amount}) - Venció: ${p.dueDate}\n`;
+    if (overdueArr.length > 0) {
+      message += `🔴 *PAGOS VENCIDOS (CRÍTICO)*\n`;
+      message += `_Atención inmediata requerida_\n`;
+      overdueArr.forEach(p => {
+        message += `• ${p.storeName}: ${p.specificType}\n  💰 $${p.amount.toLocaleString()} | 🗓️ Hace ${Math.abs(p.diffDays)}d\n`;
       });
-      message += '\n';
+      message += `\n`;
     }
 
-    if (upcomingPayments.length > 0) {
-      message += '*⏳ PAGOS POR VENCER (3 días):*\n';
-      upcomingPayments.forEach(p => {
-        message += `- ${p.storeName}: ${p.specificType} ($${p.amount}) - Vence: ${p.dueDate}\n`;
+    if (criticalArr.length > 0) {
+      message += `🚨 *URGENTE (VENCE PRONTO)*\n`;
+      criticalArr.forEach(p => {
+        const d = p.diffDays === 0 ? 'HOY' : `en ${p.diffDays}d`;
+        message += `• ${p.storeName}: ${p.specificType}\n  💰 $${p.amount.toLocaleString()} | ⏰ Vence ${d}\n`;
       });
+      message += `\n`;
     }
 
+    if (warningArr.length > 0) {
+      message += `🟡 *RECORDATORIO (PREVENTIVO)*\n`;
+      warningArr.forEach(p => {
+        message += `• ${p.storeName}: ${p.specificType}\n  💰 $${p.amount.toLocaleString()} | 📅 Vence en ${p.diffDays}d\n`;
+      });
+      message += `\n`;
+    }
+
+    message += `--------------------------------\n`;
+    message += `💡 _Por favor, verifique y proceda con el pago según la prioridad indicada._`;
+
+    // 4. Preparar Destinatarios
     const recipients = [...adminNumbers];
     if (presidencyNumber) recipients.push(presidencyNumber);
 
-    const uniqueRecipients = [...new Set(recipients)];
+    const uniqueRecipients = [...new Set(recipients)].map(formatWhatsApp);
 
-    console.log(`📧 [Notifications] Enviando a ${uniqueRecipients.length} destinatarios...`);
+    console.log(`📧 [Notifications] Enviando reporte a ${uniqueRecipients.length} destinatarios...`);
 
     const results = await Promise.all(uniqueRecipients.map(async (to) => {
       try {
-        await client.messages.create({
-          from: fromWhatsApp,
+        await client!.messages.create({
+          from: formatWhatsApp(fromWhatsApp),
           to: to,
           body: message
         });
@@ -110,7 +145,7 @@ export async function checkAndSendNotifications() {
 
     return { success: true, results };
   } catch (error: any) {
-    console.error('💥 [Notifications] Error crítico:', error);
+    console.error('💥 [Notifications] Error crítico en auditoría:', error);
     return { success: false, error: error.message };
   }
 }

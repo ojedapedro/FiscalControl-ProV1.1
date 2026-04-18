@@ -11,26 +11,26 @@ const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith(
 export const api = {
   // Forzar chequeo de notificaciones (Test Manual)
   triggerNotificationCheck: async () => {
-     if (isMockMode()) {
-       return { status: 'success', message: 'Chequeo de notificaciones simulado' };
+     try {
+       const response = await fetch('/api/notifications/whatsapp/check', { method: 'POST' });
+       return await response.json();
+     } catch (e) {
+       console.error("Error triggering check", e);
+       return { status: 'error', message: 'Error de conexión' };
      }
-     const response = await fetch(`${API_URL}?action=checkNotifications`, { method: 'POST' });
-     return await response.json();
   },
 
   // --- NOTIFICACIONES ---
   
   sendWhatsApp: async (to: string, message: string) => {
-    if (isMockMode()) {
-      console.log(`[MOCK WHATSAPP] To: ${to}, Msg: ${message}`);
-      return { status: 'success', message: 'WhatsApp simulado enviado' };
-    }
     try {
-      const response = await fetch(`${API_URL}?action=sendWhatsApp`, {
+      const response = await fetch('/api/notifications/whatsapp/send', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, message })
       });
-      return await response.json();
+      const data = await response.json();
+      return { status: data.success ? 'success' : 'error', message: data.details || data.error || 'Resultado' };
     } catch (e) {
       console.error("Error sending WhatsApp", e);
       return { status: 'error', message: 'Error de conexión' };
