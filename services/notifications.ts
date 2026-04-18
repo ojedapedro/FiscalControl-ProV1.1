@@ -143,9 +143,9 @@ export async function checkAndSendNotifications() {
       }
     }));
 
-    return { success: true, results };
+    return { success: true, message: `Reporte enviado con éxito a ${uniqueRecipients.length} destinatarios.`, results };
   } catch (error: any) {
     console.error('💥 [Notifications] Error crítico en auditoría:', error);
-    return { success: false, error: error.message };
+    return { success: false, message: `Error en la auditoría: ${error.message}`, error: error.message };
   }
 }

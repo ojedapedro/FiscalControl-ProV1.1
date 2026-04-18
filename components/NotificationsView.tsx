@@ -317,7 +317,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       
       if (config.whatsappEnabled) {
         const res = await api.triggerNotificationCheck();
-        alert(`Resultado prueba WhatsApp: ${res.message}`);
+        if (res.error || res.status === 'error' || res.success === false) {
+          alert(`❌ Error en prueba WhatsApp: ${res.message || res.error || 'Error desconocido'}`);
+        } else {
+          alert(`✅ Resultado prueba WhatsApp: ${res.message || 'Chequeo completado con éxito'}`);
+        }
       } else if (config.pushEnabled) {
         alert('Notificación Push de prueba enviada.');
       } else {
