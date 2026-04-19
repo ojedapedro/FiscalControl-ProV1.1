@@ -1,13 +1,23 @@
+import { checkAndSendNotifications } from '../../../server/notifications.ts';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { checkAndSendNotifications } = await import('../../../server/notifications');
     const result = await checkAndSendNotifications();
-    res.json(result);
+    res.json({
+      ...result,
+      _serverTime: new Date().toISOString(),
+      _v: '2.1'
+    });
   } catch (err: any) {
-    res.status(500).json({ error: 'Error interno al procesar notificaciones', details: err.message, stack: err.stack });
+    console.error('💥 [API Check] Error:', err);
+    res.status(500).json({ 
+      error: 'Error interno al procesar notificaciones', 
+      details: err.message, 
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+    });
   }
 }

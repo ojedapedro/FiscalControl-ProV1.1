@@ -318,7 +318,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       if (config.whatsappEnabled) {
         const res = await api.triggerNotificationCheck();
         if (res.error || res.status === 'error' || res.success === false) {
-          alert(`❌ Error en prueba WhatsApp: ${res.message || res.error || 'Error desconocido'}`);
+          const detail = res.message || res.error || 'Error desconocido';
+          alert(`❌ Error en prueba WhatsApp: ${detail}\n\nPor favor, verifica que las variables TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN estén configuradas en el menú de Ajustes (Settings) de la aplicación.`);
         } else {
           alert(`✅ Resultado prueba WhatsApp: ${res.message || 'Chequeo completado con éxito'}`);
         }
