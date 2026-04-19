@@ -308,59 +308,28 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
   const handleTestNotification = async () => {
     setIsTesting(true);
-    const results: string[] = [];
     try {
-      // 1. Push Notification Test
       if (config.pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Forza 22', {
           body: 'Esta es una notificación de prueba.',
         });
-        results.push('✅ Push: Notificación enviada');
       }
       
-      // 2. Email Test (Resend)
-      if (config.emailEnabled) {
-        try {
-          const testEmail = prompt('Ingrese el correo electrónico para la prueba de envío (Resend):');
-          if (testEmail && testEmail.includes('@')) {
-            const emailRes = await api.sendEmail(
-              testEmail,
-              '🧪 Prueba de Correo - Forza 22',
-              'Este es un correo de prueba enviado desde el sistema FiscalControl Pro.\n\nSi recibes este mensaje, la integración con Resend está funcionando correctamente.\n\nFecha de prueba: ' + new Date().toLocaleString()
-            );
-            if (emailRes.success) {
-              const demoNote = emailRes.isDemo ? ' (MODO DEMO - API Key no configurada)' : '';
-              results.push(`✅ Email: Correo enviado a ${testEmail}${demoNote}`);
-            } else {
-              results.push(`❌ Email: ${emailRes.error || emailRes.message || 'Error desconocido'}`);
-            }
-          } else if (testEmail !== null) {
-            results.push('⚠️ Email: Correo electrónico inválido');
-          }
-        } catch (emailErr: any) {
-          results.push(`❌ Email: Error de conexión - ${emailErr.message || 'No se pudo conectar al servidor'}`);
-        }
-      }
-
-      // 3. WhatsApp Test (Twilio)
       if (config.whatsappEnabled) {
         const res = await api.triggerNotificationCheck();
         if (res.error || res.status === 'error' || res.success === false) {
           const detail = res.message || res.error || 'Error desconocido';
-          results.push(`❌ WhatsApp: ${detail}`);
+          alert(`❌ Error en prueba WhatsApp: ${detail}\n\nPor favor, verifica que las variables TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN estén configuradas en el menú de Ajustes (Settings) de la aplicación.`);
         } else {
-          results.push(`✅ WhatsApp: ${res.message || 'Chequeo completado con éxito'}`);
+          alert(`✅ Resultado prueba WhatsApp: ${res.message || 'Chequeo completado con éxito'}`);
         }
-      }
-
-      // Show consolidated results
-      if (results.length > 0) {
-        alert(`📋 Resultado de Pruebas:\n\n${results.join('\n')}`);
+      } else if (config.pushEnabled) {
+        alert('Notificación Push de prueba enviada.');
       } else {
         alert('No hay canales de notificación habilitados para probar.');
       }
     } catch (e) {
-      alert('Error ejecutando prueba: ' + (e instanceof Error ? e.message : 'Error desconocido'));
+      alert('Error ejecutando prueba');
     } finally {
       setIsTesting(false);
     }
