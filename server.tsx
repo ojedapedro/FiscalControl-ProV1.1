@@ -1,9 +1,36 @@
+import fs from 'fs';
+import path from 'path';
+
+// Load .env.local variables before anything else
+try {
+  const envPath = path.resolve(process.cwd(), '.env.local');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex > 0) {
+          const key = trimmed.substring(0, eqIndex).trim();
+          const value = trimmed.substring(eqIndex + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    });
+    console.log('✅ [Server] Variables de entorno cargadas desde .env.local');
+  }
+} catch (err) {
+  console.warn('⚠️ [Server] No se pudo cargar .env.local:', err);
+}
+
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 
 console.log('🚀 [Server] server.tsx cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
-import path from 'path';
+console.log('🔑 [Server] RESEND_API_KEY:', process.env.RESEND_API_KEY ? `Configurada (${process.env.RESEND_API_KEY.substring(0, 6)}...)` : 'NO CONFIGURADA');
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';

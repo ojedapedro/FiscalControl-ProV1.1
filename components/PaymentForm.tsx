@@ -292,28 +292,41 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Auto-fill logic based on tax selection (Items & Amounts)
   const salesBookPayment = React.useMemo(() => {
-    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && dueDate && taxItem !== '1.1.1') {
+    // Definimos el mapeo de códigos de Patente a Libros de Venta SENIAT (Declaraciones)
+    const PATENT_TO_SENIAT_CODE: Record<string, string> = {
+      '1.1.2': '7.2.1', // Patente Cod 1 -> Libro Venta Cod 1
+      '1.1.3': '7.2.2', // Patente Cod 2 -> Libro Venta Cod 2
+      '1.1.4': '7.2.3', // Patente Cod 3 -> Libro Venta Cod 3
+      '1.1.5': '7.2.4', // Patente Cod 4 -> Libro Venta Cod 4
+      '1.1.6': '7.2.5'  // Patente Cod 5 -> Libro Venta Cod 5
+    };
+
+    const targetSeniatCode = PATENT_TO_SENIAT_CODE[taxItem];
+
+    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && dueDate && targetSeniatCode) {
         const parts = dueDate.split('-');
         if (parts.length < 2) return null;
         const targetYear = parts[0];
         const targetMonth = parts[1];
 
+        // Buscamos un pago en SENIAT_DECLARACIONES que coincida con el código mapeado
         return payments.filter(p => p.storeId === store).find(p => {
-            const isSalesBook = p.category === Category.SENIAT_BOOKS && p.specificType.startsWith('8.5');
-            if (!isSalesBook) return false;
+            const isTargetSeniatBook = p.category === Category.SENIAT_DECLARATIONS && p.specificType.startsWith(targetSeniatCode);
+            if (!isTargetSeniatBook) return false;
             if (p.status === PaymentStatus.REJECTED) return false;
             
             if (!p.dueDate) return false;
             const pParts = p.dueDate.split('-');
             if (pParts.length < 2) return false;
             
+            // Verificamos que sea el mismo año y mes
             return pParts[0] === targetYear && pParts[1] === targetMonth;
         });
     }
     return null;
   }, [category, taxGroup, taxItem, dueDate, payments, store]);
 
-  const isPatenteItem = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && taxItem !== '1.1.1' && !!taxItem;
+  const isPatenteItem = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && ['1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6'].includes(taxItem);
   const isSalesBookMissing = isPatenteItem && !salesBookPayment;
 
   React.useEffect(() => {
@@ -1394,8 +1407,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <div>
                                                 <p className="text-red-400 text-sm font-black uppercase tracking-widest">Libro de Venta Faltante</p>
                                                 <p className="text-red-300/70 text-xs mt-2 leading-relaxed font-medium">
-                                                    No se ha encontrado el registro de <span className="text-red-400 font-bold">Libro de Venta (8.5)</span> en <span className="text-red-400 font-bold">SENIAT Libros</span> para este periodo. 
-                                                    Debe cargar primero el libro de ventas para poder procesar el pago de Patente.
+                                                    Aun no hay registro del <span className="text-red-400 font-bold">Libro de Venta</span> en <span className="text-red-400 font-bold">SENIAT Declaraciones</span> para el código seleccionado. 
+                                                    Debe cargar primero la declaración correspondiente para este periodo mensual para poder procesar el pago de Patente.
                                                 </p>
                                                 <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-red-400/50 uppercase tracking-tighter">
                                                     <Clock size={12} />
