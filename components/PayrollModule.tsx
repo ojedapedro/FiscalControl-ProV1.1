@@ -799,76 +799,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     if (filteredEntries.length === 0) return;
     setIsSendingEmails(true);
     try {
-      const entriesWithEmails = filteredEntries.map(entry => {
-        const employee = employees.find(e => e.id === entry.employeeId);
-        return {
-          ...entry,
-          employeeEmail: employee?.email || ''
-        };
-      }).filter(e => e.employeeEmail);
-
-      if (entriesWithEmails.length === 0) {
-        setNotification('⚠️ No se encontraron correos electrónicos para los empleados seleccionados.');
-        setTimeout(() => setNotification(null), 3000);
-        return;
-      }
-
-      console.log('📧 Enviando correos masivos...');
-      const response = await fetch('/api/payroll/send-emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries: entriesWithEmails })
-      }).catch(err => {
-        console.error('Fetch error:', err);
-        return null;
-      });
-
-      if (!response) {
-        setNotification('❌ No se pudo conectar con el servidor. Por favor, intenta de nuevo en unos segundos.');
-        return;
-      }
-
-      if (!response.ok) {
-        let errorMsg = 'Error de servidor';
-        const text = await response.text().catch(() => '');
-        console.error('🔴 Server returned error status:', response.status, response.statusText);
-        
-        try {
-          const errorData = JSON.parse(text);
-          errorMsg = errorData.error || errorData.details || errorMsg;
-        } catch (e) {
-          errorMsg = `Error del servidor. Status: ${response.status}. ${text.substring(0, 50)}`;
-        }
-        setNotification(`❌ Error: ${errorMsg}`);
-        return;
-      }
-
-      const result = await response.json();
-      
-      // 3. Enviar WhatsApps si están habilitados
-      if (settings?.whatsappEnabled) {
-        console.log('📱 Enviando notificaciones de WhatsApp...');
-        for (const entry of filteredEntries) {
-          const employee = employees.find(e => e.id === entry.employeeId);
-          if (employee && employee.directPhone) {
-            const message = `📄 *Recibo de Pago de Nómina*\n\n` +
-              `Hola ${employee.name},\n` +
-              `Tu pago del mes de ${entry.month} ha sido procesado.\n\n` +
-              `Monto Neto: $${entry.totalWorkerNet.toLocaleString()}\n` +
-              `Equivalente: Bs. ${(entry.totalWorkerNet * (settings.exchangeRate || 1)).toLocaleString()}\n\n` +
-              `El recibo detallado ha sido enviado a tu correo electrónico.`;
-            await api.sendWhatsApp(employee.directPhone, message);
-          }
-        }
-      }
-
-      const successCount = result.results.filter((r: any) => r.success).length;
-      const failCount = result.results.filter((r: any) => !r.success).length;
-      setNotification(`✅ Envíos completados: ${successCount} exitosos, ${failCount} fallidos.`);
-      
-      if (failCount > 0) {
-        console.error('Detalles de fallos:', result.results.filter((r: any) => !r.success));
-      }
+      const result = await notificationService.notifyBulkPayrollReceipts(
+        filteredEntries, 
+        employees, 
+        settings || null
+      );
+      setNotification(result.message);
     } catch (error) {
       console.error('Error sending emails:', error);
       setNotification(`❌ Error: ${error instanceof Error ? error.message : 'Error de conexión al servidor'}`);

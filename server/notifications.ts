@@ -70,6 +70,8 @@ export async function checkAndSendNotifications() {
 
     const warningDays = settings?.daysBeforeWarning || 3;
     const criticalDays = settings?.daysBeforeCritical || 1;
+    const gatewayUrl = settings?.whatsappGatewayUrl || '';
+    const settingsPhone = settings?.whatsappPhone || '';
 
     // 2. Obtener Pagos
     const paymentsRef = collection(db, 'payments');
@@ -138,6 +140,7 @@ export async function checkAndSendNotifications() {
     // 4. Enviar
     const recipients = [...adminNumbers];
     if (presidencyNumber) recipients.push(presidencyNumber);
+    if (settingsPhone) recipients.push(settingsPhone);
     const uniqueRecipients = [...new Set(recipients)].map(formatWhatsApp);
 
     const fromFormatted = formatWhatsApp(fromWhatsApp);
@@ -145,12 +148,24 @@ export async function checkAndSendNotifications() {
 
     const results = await Promise.all(uniqueRecipients.map(async (to) => {
       try {
+        // Soporte para Gateway Externo (CallMeBot, etc)
+        if (gatewayUrl && gatewayUrl.includes('[MESSAGE]')) {
+          const cleanPhone = to.replace('whatsapp:', '').replace('+', '');
+          const finalUrl = gatewayUrl
+            .replace('[PHONE]', cleanPhone)
+            .replace('[MESSAGE]', encodeURIComponent(message));
+          
+          await fetch(finalUrl);
+          return { to, success: true, method: 'gateway' };
+        }
+
+        // Si no hay gateway URL, usar Twilio (Default)
         await client!.messages.create({
           from: fromFormatted,
           to: to,
           body: message
         });
-        return { to, success: true };
+        return { to, success: true, method: 'twilio' };
       } catch (err: any) {
         let errorHint = '';
         if (err.message.includes('Channel')) {

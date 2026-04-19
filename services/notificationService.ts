@@ -100,6 +100,66 @@ export const notificationService = {
   },
 
   /**
+   * Notifica de forma masiva los recibos de nómina
+   */
+  notifyBulkPayrollReceipts: async (entries: PayrollEntry[], employees: Employee[], settings: SystemSettings | null) => {
+    if (!settings?.emailEnabled && !settings?.whatsappEnabled) return { success: false, message: 'Notificaciones desactivadas en configuración' };
+
+    const results = {
+      emailsSent: 0,
+      whatsAppsSent: 0,
+      total: entries.length,
+      errors: [] as string[]
+    };
+
+    // 1. Preparar y enviar correos masivos vía API si está habilitado
+    if (settings.emailEnabled) {
+      const entriesWithEmails = entries.map(entry => {
+        const employee = employees.find(e => e.id === entry.employeeId);
+        return {
+          ...entry,
+          employeeEmail: employee?.email || ''
+        };
+      }).filter(e => e.employeeEmail);
+
+      if (entriesWithEmails.length > 0) {
+        const emailResult = await api.sendBulkPayrollEmails(entriesWithEmails);
+        if (emailResult.success) {
+          results.emailsSent = emailResult.results.filter((r: any) => r.success).length;
+        } else {
+          results.errors.push(emailResult.message || 'Error en el servicio de correos masivos');
+        }
+      }
+    }
+
+    // 2. Enviar WhatsApps individuales si está habilitado
+    if (settings.whatsappEnabled) {
+      for (const entry of entries) {
+        const employee = employees.find(e => e.id === entry.employeeId);
+        if (employee && employee.directPhone) {
+          const message = `📄 *Recibo de Pago de Nómina*\n\n` +
+            `Hola ${employee.name},\n` +
+            `Tu pago del mes de ${entry.month} ha sido procesado.\n\n` +
+            `Monto Neto: $${entry.totalWorkerNet.toLocaleString()}\n` +
+            `Equivalente: Bs. ${(entry.totalWorkerNet * (settings.exchangeRate || 1)).toLocaleString()}\n\n` +
+            `El recibo detallado ha sido enviado a tu correo electrónico.`;
+          
+          const waResult = await api.sendWhatsApp(employee.directPhone, message);
+          if (waResult.status === 'success') {
+            results.whatsAppsSent++;
+          }
+        }
+      }
+    }
+
+    return { 
+      success: true, 
+      message: `Procesado: ${results.emailsSent} correos y ${results.whatsAppsSent} WhatsApps enviados.`,
+      results 
+    };
+  },
+
+  /**
    * Notifica un recordatorio de pago próximo a vencer o vencido
    */
   notifyPaymentReminder: async (payment: Payment, users: User[], settings: SystemSettings | null) => {

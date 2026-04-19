@@ -399,12 +399,12 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                       </div>
 
                       {config.whatsappEnabled && (
-                          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-3 animate-in fade-in slide-in-from-top-2">
-                              <AlertTriangle className="text-amber-600 shrink-0" size={20} />
+                          <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex gap-3 animate-in fade-in slide-in-from-top-2">
+                              <CheckCircle2 className="text-emerald-600 shrink-0" size={20} />
                               <div className="space-y-1">
-                                  <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Acción requerida en Google Apps Script</p>
-                                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                                      Para que los envíos sean automáticos, debes configurar un <strong>Activador de tiempo</strong> (Trigger) en el editor de Apps Script para la función <code>checkDeadlinesAndNotify</code> (ej. una vez al día).
+                                  <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Automatización Activa</p>
+                                  <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                                      El sistema realiza auditorías automáticas de pagos cada 24 horas y envía resúmenes a los destinatarios configurados.
                                   </p>
                               </div>
                           </div>
@@ -418,7 +418,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                     type="text" 
                                     value={config.whatsappGatewayUrl}
                                     onChange={(e) => setConfig({...config, whatsappGatewayUrl: e.target.value})}
-                                    placeholder="https://api.gateway.com/send?phone=[PHONE]&text=[MESSAGE]..." 
+                                    placeholder="Ej: https://api.callmebot.com/whatsapp.php?phone=[PHONE]&text=[MESSAGE]&apikey=TU_KEY" 
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white font-mono"
                                   />
                                   <LinkIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />

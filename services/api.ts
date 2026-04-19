@@ -68,5 +68,19 @@ export const api = {
       console.error("Error sending payroll email", e);
       return { status: 'error', message: 'Error de conexión' };
     }
+  },
+
+  sendBulkPayrollEmails: async (entries: any[]) => {
+    try {
+      const response = await fetch('/api/payroll/send-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries })
+      });
+      return await response.json();
+    } catch (e) {
+      console.error("Error sending bulk payroll emails", e);
+      return { status: 'error', message: 'Error de conexión' };
+    }
   }
 };
