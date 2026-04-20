@@ -296,24 +296,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     const PATENT_TO_SENIAT_CODE: Record<string, string> = {
       '1.1.2': '7.2.1', // Patente Cod 1 -> Libro Venta Cod 1
       '1.1.3': '7.2.2', // Patente Cod 2 -> Libro Venta Cod 2
-      '1.1.4': '7.2.3', // Patente Cod 3 -> Libro Venta Cod 3
-      '1.1.5': '7.2.4', // Patente Cod 4 -> Libro Venta Cod 4
+      '1.1.4': '7.2.3', // Patente Cod 3 -> Libro Venta Cod 4 (Note: logic follows the requested mapping)
+      '1.1.5': '7.2.4', // Patente Cod 4 -> Libro Venta Cod 5
       '1.1.6': '7.2.5'  // Patente Cod 5 -> Libro Venta Cod 5
     };
 
     const targetSeniatCode = PATENT_TO_SENIAT_CODE[taxItem];
 
-    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && dueDate && targetSeniatCode) {
+    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && !!dueDate && !!targetSeniatCode) {
         const parts = dueDate.split('-');
         if (parts.length < 2) return null;
         const targetYear = parts[0];
         const targetMonth = parts[1];
 
         // Buscamos un pago en SENIAT_DECLARACIONES que coincida con el código mapeado
-        return payments.filter(p => p.storeId === store).find(p => {
-            const isTargetSeniatBook = p.category === Category.SENIAT_DECLARATIONS && p.specificType.startsWith(targetSeniatCode);
-            if (!isTargetSeniatBook) return false;
+        // Refinamos la búsqueda para ser más exactos con el storeId y el código
+        return payments.find(p => {
+            const sameStore = String(p.storeId) === String(store);
+            if (!sameStore) return false;
+
+            const isSeniatCategory = p.category === Category.SENIAT_DECLARATIONS;
+            if (!isSeniatCategory) return false;
+            
             if (p.status === PaymentStatus.REJECTED) return false;
+            
+            // Extraer el código del specificType para comparación exacta
+            // specificType suele ser "7.2.1 - NOMBRE DEL RUBRO"
+            const pCode = p.specificType.split(' - ')[0];
+            const isTargetCode = pCode === targetSeniatCode || p.specificType.startsWith(targetSeniatCode + ' ');
+            
+            if (!isTargetCode) return false;
             
             if (!p.dueDate) return false;
             const pParts = p.dueDate.split('-');
@@ -327,7 +339,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [category, taxGroup, taxItem, dueDate, payments, store]);
 
   const isPatenteItem = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && ['1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6'].includes(taxItem);
-  const isSalesBookMissing = isPatenteItem && !salesBookPayment;
+  const isSalesBookMissing = isPatenteItem && !!dueDate && !salesBookPayment;
 
   React.useEffect(() => {
     const config = getTaxConfig(category);
@@ -344,6 +356,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
           setSpecificType(newSpecificType);
         }
 
+        // Siempre actualizamos la frecuencia si el rubro la tiene definida
+        if (itemData.frequency && frequency !== itemData.frequency) {
+          setFrequency(itemData.frequency);
+        }
+
         // --- Logic for Patente Amount ---
         if (!isManualOverride && category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE') {
             if (taxItem === '1.1.1') {
@@ -353,22 +370,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     setAmount(amountVal);
                     setExpectedBudget(itemData.amount!);
                 }
-            } else if (salesBookPayment) {
-                const salesAmount = salesBookPayment.amount;
-                const finalAmount = salesAmount <= 20 ? 20 : salesAmount;
-                const amountVal = (finalAmount * (effectiveExchangeRate || 1)).toFixed(2);
-                if (amount !== amountVal) {
-                    setAmount(amountVal);
-                    setExpectedBudget(finalAmount);
-                }
-            } else {
-                if (amount !== "0.00") {
-                    setAmount("0.00");
-                    setExpectedBudget(null);
+            } else if (isPatenteItem) {
+                if (salesBookPayment) {
+                  const salesAmount = salesBookPayment.amount;
+                  const finalAmount = salesAmount <= 20 ? 20 : salesAmount;
+                  const amountVal = (finalAmount * (effectiveExchangeRate || 1)).toFixed(2);
+                  if (amount !== amountVal) {
+                      setAmount(amountVal);
+                      setExpectedBudget(finalAmount);
+                  }
+                } else if (dueDate) {
+                  // Si es un rubro de patente 1-5 y no hay libro de venta, pero hay fecha, forzamos a 0.00
+                  if (amount !== "0.00") {
+                      setAmount("0.00");
+                      setExpectedBudget(null);
+                  }
                 }
             }
         } 
-        // --- Logic for Other Tax Items ---
+        // --- Logic for Other Tax Items (or fixed Patent items like Renewal if not handled above) ---
         else if (newSpecificType !== specificType && !isManualOverride && (!initialData || newSpecificType !== initialData.specificType)) {
           if (itemData.amount !== undefined && !itemData.isVariable) {
             setAmount((itemData.amount * (effectiveExchangeRate || 1)).toFixed(2));
@@ -377,10 +397,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             setAmount("0.00");
             setExpectedBudget(null);
           }
-          
-          if (itemData.frequency) {
-            setFrequency(itemData.frequency);
-          }
         }
       }
     } else if (!isTaxCategory) {
@@ -388,7 +404,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setTaxItem('');
         setExpectedBudget(null);
     }
-  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, salesBookPayment, amount]);
+  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, salesBookPayment, amount, dueDate, frequency, isPatenteItem]);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
@@ -1407,8 +1423,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             <div>
                                                 <p className="text-red-400 text-sm font-black uppercase tracking-widest">Libro de Venta Faltante</p>
                                                 <p className="text-red-300/70 text-xs mt-2 leading-relaxed font-medium">
-                                                    Aun no hay registro del <span className="text-red-400 font-bold">Libro de Venta</span> en <span className="text-red-400 font-bold">SENIAT Declaraciones</span> para el código seleccionado. 
-                                                    Debe cargar primero la declaración correspondiente para este periodo mensual para poder procesar el pago de Patente.
+                                                    Aviso: Para realizar el pago de <span className="text-red-400 font-bold">Patente Municipal</span>, primero debe haber registro del <span className="text-red-400 font-bold">Libro de Venta</span> en <span className="text-red-400 font-bold">SENIAT Declaraciones</span> para el código y periodo mensual seleccionado.
                                                 </p>
                                                 <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-red-400/50 uppercase tracking-tighter">
                                                     <Clock size={12} />
@@ -1518,6 +1533,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <div className="xl:col-span-3 space-y-5">
                                 <div>
                                     <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
+                                    {salesBookPayment && isPatenteItem && (
+                                        <div className="mb-3 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-pulse">
+                                            <p className="text-[10px] font-bold text-emerald-400 leading-tight">
+                                                Monto calculado del Libro de Venta: {salesBookPayment.amount <= 20 ? '$20.00 (Mínimo)' : `$${salesBookPayment.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-700 group-focus-within:text-brand-400 font-black transition-colors">Bs.</div>
                                         <input
