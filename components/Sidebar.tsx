@@ -18,7 +18,8 @@ import {
   Users,
   TrendingUp,
   Activity,
-  BarChart3
+  BarChart3,
+  CreditCard
 } from 'lucide-react';
 import { Role, User } from '../types';
 import { useTheme } from './ThemeContext';
@@ -70,6 +71,7 @@ export const Sidebar: FC<SidebarProps> = ({
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'calendar', label: 'Planificacion Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
+    { id: 'invoices', label: 'Facturación', icon: CreditCard, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
     { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },

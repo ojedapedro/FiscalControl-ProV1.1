@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
-import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store, Invoice, Client } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -496,6 +496,99 @@ export const firestoreService = {
     const path = `stores/${id}`;
     try {
       await deleteDoc(doc(db, 'stores', id));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
+  // Invoices
+  getInvoices: async (limitCount?: number, lastDoc?: any): Promise<{ invoices: Invoice[], lastVisible: any }> => {
+    const path = 'invoices';
+    try {
+      let q = query(collection(db, path), orderBy('issueDate', 'desc'));
+      if (limitCount) {
+        q = query(q, limit(limitCount));
+      }
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      const snapshot = await getDocs(q);
+      const invoices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      return { invoices, lastVisible };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return { invoices: [], lastVisible: null };
+    }
+  },
+
+  createInvoice: async (invoice: Invoice) => {
+    const path = `invoices/${invoice.id}`;
+    try {
+      await setDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  },
+
+  updateInvoice: async (invoice: Invoice) => {
+    const path = `invoices/${invoice.id}`;
+    try {
+      await updateDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  },
+
+  deleteInvoice: async (id: string) => {
+    const path = `invoices/${id}`;
+    try {
+      await deleteDoc(doc(db, 'invoices', id));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
+  // Clients
+  getClients: async (): Promise<Client[]> => {
+    const path = 'clients';
+    try {
+      const snapshot = await getDocs(collection(db, path));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  createClient: async (client: Client) => {
+    const path = `clients/${client.id}`;
+    try {
+      await setDoc(doc(db, 'clients', client.id), cleanObject(client));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  },
+
+  updateClient: async (client: Client) => {
+    const path = `clients/${client.id}`;
+    try {
+      await updateDoc(doc(db, 'clients', client.id), cleanObject(client));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  },
+
+  deleteClient: async (id: string) => {
+    const path = `clients/${id}`;
+    try {
+      await deleteDoc(doc(db, 'clients', id));
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);

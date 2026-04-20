@@ -15,6 +15,7 @@ import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
+import { InvoicingModule } from './components/InvoicingModule';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
@@ -1311,6 +1312,8 @@ function App({}: AppProps = {}) {
             stores={filteredStores}
           />
         );
+      case 'invoices':
+        return <InvoicingModule currentUser={currentUser} stores={filteredStores} />;
       case 'evaluation':
         return <EvaluationModule payments={filteredPayments} />;
       case 'notifications':
@@ -1567,12 +1570,12 @@ function App({}: AppProps = {}) {
 
   useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'presidency', 'evaluation', 'predictive'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'invoices', 'presidency', 'evaluation', 'predictive'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'reports', 'evaluation'],
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'invoices', 'reports', 'evaluation'],
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'presidency', 'predictive']
+      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'invoices', 'presidency', 'predictive']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
       setCurrentView(getInitialView(currentUser.role));

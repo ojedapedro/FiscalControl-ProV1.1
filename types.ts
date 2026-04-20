@@ -249,3 +249,51 @@ export interface BudgetEntry {
   category: Category;
   notes?: string;
 }
+
+export enum InvoiceStatus {
+  DRAFT = 'Borrador',
+  SENT = 'Enviada',
+  PAID = 'Pagada',
+  CANCELLED = 'Anulada'
+}
+
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  taxRate: number; // e.g., 0.16 for 16%
+  total: number;
+}
+
+export interface Client {
+  id: string; // Internal ID
+  rif: string; // RIF or ID
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface Invoice {
+  id: string; // Internal ID
+  number: string; // Invoice number (Control)
+  issueDate: string;
+  dueDate: string;
+  clientId: string;
+  clientName: string;
+  clientRif: string;
+  clientEmail: string;
+  clientAddress?: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  status: InvoiceStatus;
+  notes?: string;
+  currency: 'USD' | 'BS';
+  exchangeRate: number;
+  storeId: string;
+  createdBy: string;
+  sentAt?: string;
+}

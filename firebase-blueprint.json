@@ -195,6 +195,44 @@
         "lng": { "type": "number" }
       },
       "required": ["id", "name", "address", "municipality"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer details for invoicing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rif": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["id", "name", "rif", "email"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Electronic invoice record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "issueDate": { "type": "string", "format": "date" },
+        "dueDate": { "type": "string", "format": "date" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientRif": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "subtotal": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Borrador", "Enviada", "Pagada", "Anulada"] },
+        "currency": { "type": "string", "enum": ["USD", "BS"] },
+        "exchangeRate": { "type": "number" },
+        "storeId": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["id", "number", "issueDate", "clientId", "total", "status"]
     }
   },
   "firestore": {
@@ -229,6 +267,14 @@
     "/stores/{storeId}": {
       "schema": "Store",
       "description": "Store locations"
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Customer database for invoices"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Sales invoices"
     }
   }
 }
