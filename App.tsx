@@ -216,7 +216,8 @@ function App({}: AppProps = {}) {
                            currentUser.role === Role.PRESIDENT ||
                            currentUser.role === Role.AUDITOR;
       
-      const relevantPayments = isGlobalUser ? payments : payments.filter(p => p.storeId === currentUser.storeId);
+      const userStoreIds = isGlobalUser ? [] : currentUser.storeIds || [];
+      const relevantPayments = isGlobalUser ? payments : payments.filter(p => userStoreIds.includes(p.storeId));
 
       relevantPayments.forEach(p => {
         if (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE) {
@@ -1060,13 +1061,13 @@ function App({}: AppProps = {}) {
     }
   };
 
-  // Filter data based on user's assigned store
+  // Filter data based on user's assigned stores
   const isGlobalUser = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
-  const userStoreId = isGlobalUser ? null : currentUser?.storeId;
+  const userStoreIds = isGlobalUser ? [] : currentUser?.storeIds || [];
   
   const filteredPayments = payments.filter(p => {
     // Filter by store
-    if (userStoreId && p.storeId !== userStoreId) return false;
+    if (userStoreIds.length > 0 && !userStoreIds.includes(p.storeId)) return false;
     
     // Filter by fiscal permissions if not a global user
     if (!isGlobalUser) {
@@ -1096,10 +1097,10 @@ function App({}: AppProps = {}) {
     
     return true;
   });
-  const filteredPayrollEntries = userStoreId ? payrollEntries.filter(p => p.storeId === userStoreId) : payrollEntries;
-  const filteredEmployees = userStoreId ? employees.filter(e => e.storeId === userStoreId) : employees;
-  const filteredBudgets = userStoreId ? budgets.filter(b => b.storeId === userStoreId) : budgets;
-  const filteredStores = userStoreId ? stores.filter(s => s.id === userStoreId) : stores;
+  const filteredPayrollEntries = userStoreIds.length > 0 ? payrollEntries.filter(p => userStoreIds.includes(p.storeId)) : payrollEntries;
+  const filteredEmployees = userStoreIds.length > 0 ? employees.filter(e => userStoreIds.includes(e.storeId)) : employees;
+  const filteredBudgets = userStoreIds.length > 0 ? budgets.filter(b => userStoreIds.includes(b.storeId)) : budgets;
+  const filteredStores = userStoreIds.length > 0 ? stores.filter(s => userStoreIds.includes(s.id)) : stores;
 
   const renderContent = () => {
     if (!isAuthenticated) return null;
@@ -1280,7 +1281,7 @@ function App({}: AppProps = {}) {
       case 'presidency':
         return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
       case 'network':
-        return <StoreStatus payments={filteredPayments} userStoreId={userStoreId} stores={filteredStores} />;
+        return <StoreStatus payments={filteredPayments} userStoreIds={userStoreIds} stores={filteredStores} />;
       case 'calendar':
         return <CalendarView 
           payments={filteredPayments} 
@@ -1395,9 +1396,13 @@ function App({}: AppProps = {}) {
                       </span>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tienda Asignada</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tiendas Asignadas</label>
                       <p className="text-slate-600 dark:text-slate-400">
-                        {currentUser?.storeId ? stores.find(s => s.id === currentUser.storeId)?.name : 'Acceso Global'}
+                        {currentUser?.storeIds && currentUser.storeIds.length > 0 
+                          ? currentUser.storeIds.length === 1 
+                            ? stores.find(s => s.id === currentUser.storeIds![0])?.name 
+                            : `${currentUser.storeIds.length} Tiendas`
+                          : 'Acceso Global'}
                       </p>
                     </div>
                   </div>

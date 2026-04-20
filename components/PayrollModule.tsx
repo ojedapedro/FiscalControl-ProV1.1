@@ -182,7 +182,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const [payrollFormData, setPayrollFormData] = React.useState({
     employeeName: '',
     employeeId: '',
-    storeId: currentUser?.storeId || '',
+    storeId: (currentUser?.storeIds && currentUser.storeIds.length > 0) ? currentUser.storeIds[0] : '',
     month: new Date().toISOString().slice(0, 7),
     baseSalary: 0,
     bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
@@ -226,7 +226,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     wearsGlasses: 'NO',
     hasCondition: 'NO',
     height: '',
-    storeId: currentUser?.storeId || '',
+    storeId: (currentUser?.storeIds && currentUser.storeIds.length > 0) ? currentUser.storeIds[0] : '',
     baseSalary: 0,
     isActive: true,
     bankAccount: '',
@@ -1057,7 +1057,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   wearsGlasses: 'NO',
                   hasCondition: 'NO',
                   height: '',
-                  storeId: currentUser?.storeId || '',
+                  storeId: (currentUser?.storeIds && currentUser.storeIds.length > 0) ? currentUser.storeIds[0] : '',
                   baseSalary: 0,
                   isActive: true,
                   bankAccount: '',
@@ -2031,11 +2031,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={payrollFormData.storeId}
                       onChange={(e) => setPayrollFormData({ ...payrollFormData, storeId: e.target.value })}
-                      disabled={!!currentUser?.storeId}
+                      disabled={!!currentUser?.storeIds && currentUser.storeIds.length === 1}
                       className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       <option value="">Seleccionar tienda...</option>
-                      {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (
+                      {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -2591,11 +2591,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       required
                       value={employeeFormData.storeId}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
-                      disabled={!!currentUser?.storeId}
+                      disabled={!!currentUser?.storeIds && currentUser.storeIds.length === 1}
                       className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       <option value="">Seleccionar tienda...</option>
-                      {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (
+                      {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>

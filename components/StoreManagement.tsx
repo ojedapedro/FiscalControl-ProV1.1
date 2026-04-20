@@ -93,7 +93,7 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
   );
 
   const getAssignedUsers = (storeId: string) => {
-    return users.filter(u => u.storeId === storeId && (u.role === Role.ADMIN || u.role === Role.AUDITOR));
+    return users.filter(u => u.storeIds?.includes(storeId) && (u.role === Role.ADMIN || u.role === Role.AUDITOR));
   };
 
   if (!canManage) {

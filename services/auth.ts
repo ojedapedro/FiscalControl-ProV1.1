@@ -27,8 +27,8 @@ export const authService = {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
         if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
-          if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
-            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+          if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
+            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
             await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
             return { id: firebaseUser.uid, ...updatedUser } as User;
           }
@@ -73,8 +73,8 @@ export const authService = {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
         if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
-          if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
-            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+          if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
+            const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
             await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
             return { id: firebaseUser.uid, ...updatedUser } as User;
           }
@@ -126,8 +126,8 @@ export const authService = {
           const userData = userDoc.data() as User;
           // Force Super Admin role for the bootstrap email
           if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
-            if (userData.role !== Role.SUPER_ADMIN || userData.storeId) {
-              const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeId: undefined };
+            if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
+              const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
               await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
               callback({ id: firebaseUser.uid, ...updatedUser } as User);
             } else {

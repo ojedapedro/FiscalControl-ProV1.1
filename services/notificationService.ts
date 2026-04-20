@@ -34,7 +34,7 @@ export const notificationService = {
     // Personas involucradas: Auditores y Admins de la misma tienda
     const recipients = users.filter(u => 
       (u.role === Role.AUDITOR || u.role === Role.ADMIN || u.role === Role.SUPER_ADMIN) && 
-      (u.storeId === payment.storeId || u.role === Role.SUPER_ADMIN)
+      (u.storeIds?.includes(payment.storeId) || u.role === Role.SUPER_ADMIN)
     );
 
     const message = `📢 *Nuevo Pago Registrado*\n\n` +
@@ -169,7 +169,7 @@ export const notificationService = {
     const recipients = users.filter(u => 
       (u.id === payment.userId) || 
       ((u.role === Role.AUDITOR || u.role === Role.ADMIN || u.role === Role.SUPER_ADMIN || u.role === Role.PRESIDENT) && 
-       (u.storeId === payment.storeId || u.role === Role.SUPER_ADMIN || u.role === Role.PRESIDENT))
+       (u.storeIds?.includes(payment.storeId) || u.role === Role.SUPER_ADMIN || u.role === Role.PRESIDENT))
     );
 
     const today = new Date();

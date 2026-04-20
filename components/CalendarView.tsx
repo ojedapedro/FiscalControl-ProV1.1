@@ -117,7 +117,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'fiscal' | 'payroll'>('fiscal');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(currentUser?.storeId || (stores.length > 0 ? stores[0].id : 'all'));
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    currentUser?.storeIds && currentUser.storeIds.length > 0 
+      ? currentUser.storeIds[0] 
+      : (stores.length > 0 ? stores[0].id : 'all')
+  );
   
   // Filtrar presupuestos por tienda seleccionada
   const filteredBudgets = useMemo(() => {
@@ -509,11 +513,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <select
           value={selectedStoreId}
           onChange={(e) => setSelectedStoreId(e.target.value)}
-          disabled={!!currentUser?.storeId}
+          disabled={!!currentUser?.storeIds && currentUser.storeIds.length === 1}
           className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {!currentUser?.storeId && <option value="all">Todas las Tiendas</option>}
-          {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
+          {(!currentUser?.storeIds || currentUser.storeIds.length === 0) && <option value="all">Todas las Tiendas</option>}
+          {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(store => (
             <option key={store.id} value={store.id}>{store.name}</option>
           ))}
         </select>

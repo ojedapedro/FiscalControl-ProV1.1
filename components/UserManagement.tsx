@@ -57,7 +57,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
     phone: string;
     password?: string;
     role: Role;
-    storeId: string;
+    storeIds: string[];
     avatar: string;
     allowedCategories: Category[];
     allowedTaxGroups: string[];
@@ -68,7 +68,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
     phone: '',
     password: '',
     role: Role.ADMIN,
-    storeId: currentUser?.storeId || '',
+    storeIds: currentUser?.storeIds || [],
     avatar: '',
     allowedCategories: [],
     allowedTaxGroups: [],
@@ -123,8 +123,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
     setIsLoading(true);
     try {
       const data = await firestoreService.getUsers();
-      if (currentUser?.storeId && currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.PRESIDENT) {
-        setUsers(data.filter(u => u.storeId === currentUser.storeId));
+      if (currentUser?.storeIds && currentUser.storeIds.length > 0 && currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.PRESIDENT) {
+        setUsers(data.filter(u => u.storeIds?.some(id => currentUser.storeIds?.includes(id))));
       } else {
         setUsers(data);
       }
@@ -143,7 +143,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       phone: user.phone || '',
       password: user.password || '',
       role: user.role,
-      storeId: user.storeId || '',
+      storeIds: user.storeIds || [],
       avatar: user.avatar || '',
       allowedCategories: user.allowedCategories || [],
       allowedTaxGroups: user.allowedTaxGroups || [],
@@ -223,7 +223,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
         
         setShowForm(false);
         setEditingUserId(null);
-        setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
+        setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeIds: currentUser?.storeIds || [], avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
       } else {
         setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
@@ -268,7 +268,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
             setShowForm(!showForm);
             if (showForm) {
               setEditingUserId(null);
-              setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeId: currentUser?.storeId || '', avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
+              setNewUser({ name: '', email: '', phone: '', password: '', role: Role.ADMIN, storeIds: currentUser?.storeIds || [], avatar: '', allowedCategories: [], allowedTaxGroups: [], allowedTaxItems: [] });
             }
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all active:scale-95"
@@ -395,23 +395,30 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tienda Asignada</label>
-              <div className="relative">
-                <select 
-                  required
-                  value={newUser.storeId || ''}
-                  onChange={e => setNewUser({...newUser, storeId: e.target.value})}
-                  disabled={!!currentUser?.storeId}
-                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  <option value="" disabled>Seleccione una tienda...</option>
-                  {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(store => (
-                    <option key={store.id} value={store.id}>{store.name} - {store.location}</option>
-                  ))}
-                </select>
-                <StoreIcon className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tiendas Asignadas</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto custom-scrollbar">
+                {stores.map(store => (
+                  <div key={store.id} className="flex items-center gap-2">
+                    <input 
+                      type="checkbox"
+                      id={`store-${store.id}`}
+                      checked={newUser.storeIds.includes(store.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setNewUser(prev => ({ ...prev, storeIds: [...prev.storeIds, store.id] }));
+                        } else {
+                          setNewUser(prev => ({ ...prev, storeIds: prev.storeIds.filter(id => id !== store.id) }));
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor={`store-${store.id}`} className="text-xs text-slate-700 dark:text-slate-300 truncate" title={store.name}>
+                      {store.name}
+                    </label>
+                  </div>
+                ))}
               </div>
-              <p className="text-xs text-slate-500 mt-1">Este usuario solo tendrá acceso a los datos de la tienda seleccionada.</p>
+              <p className="text-xs text-slate-500 mt-1">Este usuario tendrá acceso a los datos de las tiendas seleccionadas.</p>
             </div>
 
             <div className="md:col-span-2 mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
@@ -551,7 +558,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
                    </td>
                 </tr>
               ) : (
-                (currentUser?.storeId ? users.filter(u => u.storeId === currentUser.storeId) : users).map((user) => (
+                (currentUser?.storeIds && currentUser.storeIds.length > 0 && currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.PRESIDENT 
+                  ? users.filter(u => u.storeIds?.some(id => currentUser.storeIds?.includes(id))) 
+                  : users).map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -575,7 +584,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                        {user.storeId ? stores.find(s => s.id === user.storeId)?.name || 'Desconocida' : 'Todas (Global)'}
+                        {!user.storeIds || user.storeIds.length === 0 
+                          ? 'Todas (Global)' 
+                          : user.storeIds.length === 1 
+                            ? stores.find(s => s.id === user.storeIds![0])?.name || 'Desconocida'
+                            : `${user.storeIds.length} Tiendas`
+                        }
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-500 text-[11px] font-bold tracking-tighter">

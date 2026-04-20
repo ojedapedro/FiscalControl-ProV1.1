@@ -279,7 +279,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   }, [laborLiabilitiesData, liabilityTypes]);
 
   const municipalities = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
+    const userStoreIds = (currentUser?.storeIds && currentUser.storeIds.length > 0) ? currentUser.storeIds : [];
+    const storesToProcess = userStoreIds.length > 0 ? stores.filter(s => userStoreIds.includes(s.id)) : stores;
     const allMunicipalities = storesToProcess.map(s => s.municipality || 'N/A');
     return ['all', ...Array.from(new Set(allMunicipalities))];
   }, [currentUser, stores]);
@@ -300,7 +301,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
 
   // Calcular el estado dinámico de las tiendas para el mapa en el reporte
   const dynamicStores = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
+    const userStoreIds = (currentUser?.storeIds && currentUser.storeIds.length > 0) ? currentUser.storeIds : [];
+    const storesToProcess = userStoreIds.length > 0 ? stores.filter(s => userStoreIds.includes(s.id)) : stores;
     return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -914,7 +916,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                     className="bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs font-bold p-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer hover:bg-slate-100 dark:bg-slate-800"
                 >
                     <option value="all">Todas las Tiendas</option>
-                    {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 <select 
                     value={selectedMunicipality} 

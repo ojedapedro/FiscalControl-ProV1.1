@@ -59,7 +59,7 @@ export interface User {
   role: Role;
   avatar?: string;
   password?: string; // Solo para simulación local
-  storeId?: string; // Para Administradores y Auditores asignados a una tienda
+  storeIds?: string[]; // Para Administradores y Auditores asignados a varias tiendas
   allowedCategories?: Category[];
   allowedTaxGroups?: string[];
   allowedTaxItems?: string[];

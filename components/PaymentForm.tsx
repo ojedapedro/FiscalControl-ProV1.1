@@ -55,7 +55,7 @@ interface PaymentFormProps {
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser, stores }) => {
   const { exchangeRate } = useExchangeRate();
-  const [store, setStore] = React.useState(initialData?.storeId || currentUser?.storeId || '');
+  const [store, setStore] = React.useState(initialData?.storeId || (currentUser?.storeIds && currentUser.storeIds.length > 0 ? currentUser.storeIds[0] : ''));
   
   const filteredPayments = React.useMemo(() => {
       return payments.filter(p => p.storeId === store);
@@ -179,7 +179,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setProposedAmountBsInput(null);
     } else {
       // Reset to defaults for new payment
-      setStore(currentUser?.storeId || '');
+      setStore(currentUser?.storeIds && currentUser.storeIds.length > 0 ? currentUser.storeIds[0] : '');
       setCategory('');
       setAmount('');
       setExpectedBudget(null);
@@ -522,7 +522,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
   // Calcular el estado dinámico de las tiendas para el mapa
   const dynamicStores = React.useMemo(() => {
-    const storesToProcess = currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores;
+    const storesToProcess = (currentUser?.storeIds && currentUser.storeIds.length > 0) ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores;
     return storesToProcess.map(store => {
         const storePayments = payments.filter(p => p.storeId === store.id);
         let calculatedStatus: 'En Regla' | 'En Riesgo' | 'Vencido' = 'En Regla';
@@ -1090,14 +1090,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <select 
                                 value={store}
                                 onChange={(e) => handleStoreChange(e.target.value)}
-                                disabled={isSubmitting || !!currentUser?.storeId}
+                                disabled={isSubmitting || (!!currentUser?.storeIds && currentUser.storeIds.length === 1)}
                                 className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer`}
                             >
                                 <option value="" className="bg-slate-50 dark:bg-slate-900">Seleccionar ubicación...</option>
-                                {category === Category.PAYROLL && !currentUser?.storeId && (
+                                {category === Category.PAYROLL && (!currentUser?.storeIds || currentUser.storeIds.length === 0) && (
                                     <option value="NATIONAL" className="bg-slate-50 dark:bg-slate-900">Nacional (Cobertura Nacional)</option>
                                 )}
-                                {(currentUser?.storeId ? stores.filter(s => s.id === currentUser.storeId) : stores).map(s => (
+                                {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => (
                                     <option key={s.id} value={s.id} className="bg-slate-50 dark:bg-slate-900">{s.name}</option>
                                 ))}
                             </select>

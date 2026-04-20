@@ -10,7 +10,10 @@
         "email": { "type": "string", "format": "email" },
         "role": { "type": "string", "enum": ["Super Usuario", "Administrador", "Auditor", "Presidencia"] },
         "avatar": { "type": "string" },
-        "storeId": { "type": "string" }
+        "storeIds": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
       },
       "required": ["id", "name", "email", "role"]
     },

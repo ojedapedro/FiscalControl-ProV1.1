@@ -29,11 +29,11 @@ import VenezuelaMap from './VenezuelaMap';
 
 interface StoreStatusProps {
   payments: Payment[];
-  userStoreId?: string;
+  userStoreIds?: string[];
   stores: Store[];
 }
 
-export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId, stores }) => {
+export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreIds = [], stores }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
@@ -41,8 +41,8 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
   // Calcular el estado dinámico de las tiendas basado en los pagos reales
   const dynamicStores = useMemo(() => {
     let storesToProcess = stores;
-    if (userStoreId) {
-      storesToProcess = stores.filter(s => s.id === userStoreId);
+    if (userStoreIds.length > 0) {
+      storesToProcess = stores.filter(s => userStoreIds.includes(s.id));
     }
 
     return storesToProcess.map(store => {
@@ -88,7 +88,7 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreId,
             }
         };
     });
-  }, [payments, stores, userStoreId]);
+  }, [payments, stores, userStoreIds]);
 
   const toggleStoreSelection = (id: string) => {
     setSelectedStoreIds(prev => 

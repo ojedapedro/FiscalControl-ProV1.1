@@ -127,7 +127,7 @@ export const InvoicingModule: React.FC<InvoicingModuleProps> = ({ currentUser, s
       notes,
       currency,
       exchangeRate,
-      storeId: currentUser.storeId || stores[0]?.id || 'MASTER',
+      storeId: (currentUser.storeIds && currentUser.storeIds.length > 0 ? currentUser.storeIds[0] : (stores[0]?.id || 'MASTER')),
       createdBy: currentUser.id
     };
 

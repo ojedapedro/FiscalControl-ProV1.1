@@ -51,7 +51,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   stores = []
 }) => {
   const [filter, setFilter] = useState<'all' | AlertSeverity>('all');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(currentUser?.storeId || 'all');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    currentUser?.storeIds && currentUser.storeIds.length > 0 ? currentUser.storeIds[0] : 'all'
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -649,15 +651,16 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-            {currentUser?.role === Role.ADMIN && (
+            {(currentUser?.role === Role.ADMIN || currentUser?.role === Role.AUDITOR) && (
               <div className="relative group">
                 <select
                   value={selectedStoreId}
                   onChange={(e) => setSelectedStoreId(e.target.value)}
-                  className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block py-2.5 pl-10 pr-10 transition-all outline-none cursor-pointer shadow-sm"
+                  disabled={currentUser?.storeIds && currentUser.storeIds.length === 1}
+                  className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block py-2.5 pl-10 pr-10 transition-all outline-none cursor-pointer shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <option value="all">Todas las Tiendas</option>
-                  {stores.map(s => (
+                  {(!currentUser?.storeIds || currentUser.storeIds.length === 0) && <option value="all">Todas las Tiendas</option>}
+                  {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
