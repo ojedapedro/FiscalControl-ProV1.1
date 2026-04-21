@@ -147,12 +147,14 @@ export interface AlertItem {
   id: string;
   paymentId: string;
   storeName: string;
+  storeId: string;
   category: string;
   title: string;
   amount: number;
   severity: AlertSeverity;
   timeLabel: string;
   dueDate: string;
+  paymentDate?: string;
 }
 
 export interface SystemSettings {

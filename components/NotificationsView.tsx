@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  ArrowLeft, 
-  Settings, 
-  AlertTriangle, 
-  Clock, 
+  Search,
+  Filter,
+  ArrowLeft,
+  Settings,
+  AlertTriangle,
+  Clock,
   Calendar,
   ChevronRight,
   ChevronDown,
@@ -24,7 +26,7 @@ import { api } from '../services/api';
 import { firestoreService } from '../services/firestoreService';
 import { notificationService } from '../services/notificationService';
 import { formatTime } from '../src/utils';
-import { Building2, ChevronDown as ChevronDownIcon } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -64,6 +66,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   // Paginación State
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [sortBy, setSortBy] = useState<'severity' | 'date'>('severity');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   // Custom Expirations State (Persisted)
   const [customExpirations, setCustomExpirations] = useState<Record<string, string>>(() => {
@@ -190,12 +194,14 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             id: p.id,
             paymentId: p.id,
             storeName: p.storeName,
+            storeId: p.storeId,
             category: p.category,
             title: p.specificType,
             amount: p.amount,
             severity,
             timeLabel,
-            dueDate: effectiveDueDate
+            dueDate: effectiveDueDate,
+            paymentDate: p.paymentDate
         };
       })
       .sort((a, b) => {
@@ -350,9 +356,25 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   };
 
   // Filtrado visual y Paginación
-  const filteredAlerts = filter === 'all'
-    ? alerts
-    : alerts.filter(alert => alert.severity === filter);
+  const filteredAlerts = alerts.filter(alert => {
+    // Filtro por severidad/tipo
+    if (filter !== 'all' && alert.severity !== filter) return false;
+    
+    // Filtro por concepto (search)
+    if (searchTerm && !alert.title.toLowerCase().includes(searchTerm.toLowerCase()) && !alert.category.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+    }
+
+    // Filtro por fecha
+    if (dateFilter) {
+        // Puede filtrar por dueDate o paymentDate si existe
+        const alertDate = alert.dueDate;
+        const pDate = alert.paymentDate;
+        if (alertDate !== dateFilter && pDate !== dateFilter) return false;
+    }
+
+    return true;
+  });
 
   const visibleAlerts = filteredAlerts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredAlerts.length;
@@ -665,7 +687,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                   ))}
                 </select>
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
               </div>
             )}
             <button 
@@ -678,41 +700,79 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         </div>
       </header>
 
-      {/* Filters & Sorting */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-          {[
-              { id: 'all', label: 'Todas las Alertas' },
-              { id: 'critical', label: 'Críticas (Vencidas)' },
-              { id: 'scheduled', label: 'Programadas' }
-          ].map(item => (
-              <button
-                  key={item.id}
-                  onClick={() => setFilter(item.id as any)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                      filter === item.id 
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
-                      : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+      {/* Filters & Search */}
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {[
+                { id: 'all', label: 'Todas las Alertas' },
+                { id: 'critical', label: 'Críticas (Vencidas)' },
+                { id: 'scheduled', label: 'Programadas' }
+            ].map(item => (
+                <button
+                    key={item.id}
+                    onClick={() => setFilter(item.id as any)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                        filter === item.id 
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' 
+                        : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                >
+                    {item.label}
+                </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm self-start md:self-auto">
+              <button 
+                  onClick={() => setSortBy('severity')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'severity' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                  {item.label}
+                  Prioridad
               </button>
-          ))}
+              <button 
+                  onClick={() => setSortBy('date')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'date' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                  Fecha
+              </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm self-start md:self-auto">
-            <button 
-                onClick={() => setSortBy('severity')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'severity' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-                Prioridad
-            </button>
-            <button 
-                onClick={() => setSortBy('date')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'date' ? 'bg-slate-100 dark:bg-slate-800 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-                Fecha
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative lg:col-span-2">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                    type="text"
+                    placeholder="Buscar por concepto o categoría..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                />
+            </div>
+            <div className="relative">
+                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                />
+                {dateFilter && (
+                    <button 
+                        onClick={() => setDateFilter('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-500 font-bold"
+                    >
+                        Limpiar
+                    </button>
+                )}
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+                <Filter size={16} className="text-blue-500" />
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                    {filteredAlerts.length} resultados encontrados
+                </span>
+            </div>
         </div>
       </div>
 
@@ -741,27 +801,46 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                 {getSeverityIcon(alert.severity)}
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase text-slate-500">
+                                        <Building2 size={10} />
+                                        Tienda: {alert.storeName}
+                                    </div>
                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-200">{alert.storeName}</span>
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{alert.title}</h3>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <p className={`text-sm font-medium ${
-                                        alert.severity === 'critical' ? 'text-red-600' : 'text-emerald-600'
-                                    }`}>
-                                        {alert.timeLabel}
-                                    </p>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                                    <span className="text-blue-500 dark:text-blue-400 text-xs font-black block uppercase mb-0.5">Concepto de Pago</span>
+                                    {alert.title}
+                                </h3>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Estado / Tiempo</span>
+                                        <p className={`text-sm font-bold ${
+                                            alert.severity === 'critical' ? 'text-red-500' : 'text-emerald-500'
+                                        }`}>
+                                            {alert.timeLabel}
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Fecha de Pago / Soporte</span>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                            {alert.paymentDate ? new Date(alert.paymentDate + 'T00:00:00').toLocaleDateString('es-ES') : 'No registrada'}
+                                        </p>
+                                    </div>
+
                                     <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
                                         <Calendar size={12} className="text-slate-400" />
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Vencimiento:</span>
-                                        <input 
-                                            type="date"
-                                            value={alert.dueDate}
-                                            onChange={(e) => setCustomExpirations(prev => ({ ...prev, [alert.id]: e.target.value }))}
-                                            className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer"
-                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Vencimiento</span>
+                                            <input 
+                                                type="date"
+                                                value={alert.dueDate}
+                                                onChange={(e) => setCustomExpirations(prev => ({ ...prev, [alert.id]: e.target.value }))}
+                                                className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
