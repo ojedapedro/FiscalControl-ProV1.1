@@ -338,8 +338,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     return null;
   }, [category, taxGroup, taxItem, dueDate, payments, store]);
 
-  const isPatenteItem = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && ['1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6'].includes(taxItem);
-  const isSalesBookMissing = isPatenteItem && !!dueDate && !salesBookPayment;
+  const isPatenteGroup = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE';
+  const isPatenteScaleItem = isPatenteGroup && ['1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6'].includes(taxItem);
+  const isSalesBookMissing = isPatenteScaleItem && !!dueDate && !salesBookPayment;
 
   React.useEffect(() => {
     const config = getTaxConfig(category);
@@ -370,7 +371,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     setAmount(amountVal);
                     setExpectedBudget(itemData.amount!);
                 }
-            } else if (isPatenteItem) {
+            } else if (isPatenteScaleItem) {
                 if (salesBookPayment) {
                   const salesAmount = salesBookPayment.amount;
                   const finalAmount = salesAmount <= 20 ? 20 : salesAmount;
@@ -404,7 +405,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         setTaxItem('');
         setExpectedBudget(null);
     }
-  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, salesBookPayment, amount, dueDate, frequency, isPatenteItem]);
+  }, [category, taxGroup, taxItem, effectiveExchangeRate, initialData, isManualOverride, specificType, salesBookPayment, amount, dueDate, frequency, isPatenteScaleItem]);
 
   // Sync paymentDate when daysToExpire changes manually
   const handleDaysToExpireChange = React.useCallback((val: string) => {
@@ -1533,7 +1534,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             <div className="xl:col-span-3 space-y-5">
                                 <div>
                                     <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 ml-1">Monto Total (Bs.)</label>
-                                    {salesBookPayment && isPatenteItem && (
+                                    {salesBookPayment && isPatenteScaleItem && (
                                         <div className="mb-3 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-pulse">
                                             <p className="text-[10px] font-bold text-emerald-400 leading-tight">
                                                 Monto calculado del Libro de Venta: {salesBookPayment.amount <= 20 ? '$20.00 (Mínimo)' : `$${salesBookPayment.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
@@ -1547,12 +1548,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             step="0.01"
                                             placeholder="0.00"
                                             value={amount}
-                                            readOnly={isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
+                                            readOnly={isFinancialLocked && !isPatenteGroup || (!!getTaxConfig(category) && !isManualOverride && !isPatenteGroup) || isSubmitting}
                                             onChange={(e) => {
                                                 setAmount(e.target.value);
                                                 setUsdAmountInput(null);
+                                                if (isPatenteGroup) setIsManualOverride(true);
                                             }}
-                                            className={`w-full ${(isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride)) ? 'bg-[#0a0c10]/60 cursor-not-allowed' : 'bg-[#0a0c10]'} border ${
+                                            className={`w-full ${(isFinancialLocked && !isPatenteGroup || (!!getTaxConfig(category) && !isManualOverride && !isPatenteGroup)) ? 'bg-[#0a0c10]/60 cursor-not-allowed' : 'bg-[#0a0c10]'} border ${
                                                 isOverBudget 
                                                     ? 'border-amber-500/50 ring-2 ring-amber-500/10' 
                                                     : errors.amount ? 'border-red-500/50' : 'border-slate-800 group-focus-within:border-brand-500/50'
@@ -1590,9 +1592,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             setUsdAmountInput(val);
                                                             if (val === '') setAmount('');
                                                             else setAmount((parseFloat(val) * effectiveExchangeRate).toFixed(2));
+                                                            if (isPatenteGroup) setIsManualOverride(true);
                                                         }}
                                                         onBlur={() => setUsdAmountInput(null)}
-                                                        readOnly={isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
+                                                        readOnly={isFinancialLocked && !isPatenteGroup || (!!getTaxConfig(category) && !isManualOverride && !isPatenteGroup) || isSubmitting}
                                                         className="w-full bg-transparent border-none text-3xl font-black text-emerald-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
                                                     />
                                                 </div>
