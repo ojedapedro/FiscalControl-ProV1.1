@@ -76,6 +76,8 @@ export interface Store {
   matrixId: string;
   lat?: number;
   lng?: number;
+  logo?: string;
+  rifEnding?: number; // 0-9
 }
 
 export interface Payment {
@@ -191,6 +193,14 @@ export interface PayrollEntry {
   totalEmployerCost: number;
   status: 'PENDIENTE' | 'PROCESADO';
   submittedDate: string;
+  
+  // Shift related calculated values (LOTTT)
+  nightHoursWorked?: number;
+  sundaysHolidaysWorked?: number;
+  overtimeHoursWorked?: number;
+  bonoNocturnoAmount?: number;
+  sundaysHolidaysAmount?: number;
+  overtimeAmount?: number;
 }
 
 export interface PPEItemData {
@@ -207,6 +217,21 @@ export interface PPEAssignment {
   items: PPEItemData[];
   totalCost: number;
 }
+
+export enum ShiftGroup {
+  GROUP_A = 'Grupo A',
+  GROUP_B = 'Grupo B',
+  GROUP_C = 'Grupo C',
+  ADMINISTRATIVE = 'Administrativo',
+  NONE = 'Sin Asignar'
+}
+
+export type ShiftSlot = {
+  name: string;
+  startTime: string;
+  endTime: string;
+  nightHoursPerDay: number;
+};
 
 export interface Employee {
   id: string; // Cédula/ID
@@ -240,6 +265,7 @@ export interface Employee {
   defaultDeductions: { name: string; amount: number }[];
   defaultEmployerLiabilities: { name: string; amount: number }[];
   ppeAssignments?: PPEAssignment[];
+  shiftGroup?: ShiftGroup;
 }
 
 export interface BudgetEntry {
@@ -298,4 +324,16 @@ export interface Invoice {
   storeId: string;
   createdBy: string;
   sentAt?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  senderRole: Role;
+  text: string;
+  timestamp: string;
+  type: 'text' | 'system';
+  room: string;
 }

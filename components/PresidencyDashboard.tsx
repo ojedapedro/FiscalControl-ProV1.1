@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Payment, PaymentStatus, PayrollEntry, Category, User, Role, Store } from '../types';
+import { Payment, PaymentStatus, PayrollEntry, Category, User, Role, Store, BudgetEntry } from '../types';
 import { 
   DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, 
   AlertOctagon, Clock, XCircle, Building2, Filter, Users, 
@@ -14,12 +14,13 @@ import {
 interface PresidencyDashboardProps {
   payments: Payment[];
   payrollEntries: PayrollEntry[];
+  budgets: BudgetEntry[];
   currentUser?: User;
   onApproveAll?: () => void;
   stores: Store[];
 }
 
-export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, currentUser, onApproveAll, stores }) => {
+export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, budgets, currentUser, onApproveAll, stores }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
@@ -76,6 +77,20 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
     });
   }, [payrollEntries, selectedStore, startDate, endDate]);
 
+  const filteredBudgets = useMemo(() => {
+    return budgets.filter(b => {
+      if (selectedStore !== 'all' && b.storeId !== selectedStore) return false;
+      
+      const bDate = new Date(b.date);
+      if (startDate && bDate < new Date(startDate)) return false;
+      if (endDate && bDate > new Date(endDate)) return false;
+      
+      return true;
+    });
+  }, [budgets, selectedStore, startDate, endDate]);
+
+  const totalBudget = filteredBudgets.reduce((sum, b) => sum + b.amount, 0);
+
   const totalApproved = filteredPayments
     .filter(p => p.status === PaymentStatus.APPROVED)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -96,6 +111,10 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
     return sum + liabilitiesSum;
   }, 0);
   
+  const budgetUtilization = totalBudget > 0 ? ((totalApproved / totalBudget) * 100).toFixed(1) : '0.0';
+  const budgetStatusBg = Number(budgetUtilization) > 100 ? 'bg-red-500/10' : Number(budgetUtilization) > 90 ? 'bg-amber-500/10' : 'bg-emerald-500/10';
+  const budgetStatusColor = Number(budgetUtilization) > 100 ? 'text-red-400' : Number(budgetUtilization) > 90 ? 'text-amber-400' : 'text-emerald-400';
+
   const overBudgetCount = filteredPayments.filter(p => p.isOverBudget).length;
 
   const now = new Date();
@@ -145,6 +164,21 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
   const trendData = Object.entries(monthlySpending)
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Monthly Budget vs Actual
+  const monthlyBudget: Record<string, number> = {};
+  filteredBudgets.forEach(b => {
+    const date = new Date(b.date);
+    const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    monthlyBudget[monthYear] = (monthlyBudget[monthYear] || 0) + b.amount;
+  });
+
+  const allMonths = Array.from(new Set([...Object.keys(monthlySpending), ...Object.keys(monthlyBudget)])).sort();
+  const comparisonData = allMonths.map(month => ({
+    month,
+    spent: monthlySpending[month] || 0,
+    budget: monthlyBudget[month] || 0
+  }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ec4899', '#14b8a6'];
 
@@ -217,14 +251,16 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {[
-          { label: 'Pagos Aprobados', value: totalApproved, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Presupuesto Total', value: totalBudget, icon: DollarSign, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: 'Ejecución Presup.', value: budgetUtilization, icon: TrendingUp, color: budgetStatusColor, bg: budgetStatusBg, isPercent: true, sub: `$${totalApproved.toLocaleString()} usados` },
+          { label: 'Pagos Aprobados', value: totalApproved, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Sobre Presupuesto', value: overBudgetCount, icon: AlertTriangle, color: 'text-pink-400', bg: 'bg-pink-500/10', isCount: true },
           { label: 'Pagos Realizados', value: totalPaid, icon: CheckCircle2, color: 'text-brand-400', bg: 'bg-brand-500/10' },
           { label: 'Pagos Pendientes', value: totalPending, icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
           { label: 'Pagos Vencidos', value: totalOverdue, icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/10', sub: `${overduePayments.length} pagos` },
           { label: 'Próximos (7d)', value: totalDueSoon, icon: Clock, color: 'text-orange-400', bg: 'bg-orange-500/10', sub: `${dueSoonPayments.length} pagos` },
           { label: 'Costo Nómina', value: totalPayrollCost, icon: FileText, color: 'text-brand-400', bg: 'bg-brand-500/10' },
           { label: 'Pasivos Laborales', value: totalLaborLiabilities, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { label: 'Sobre Presupuesto', value: overBudgetCount, icon: AlertTriangle, color: 'text-pink-400', bg: 'bg-pink-500/10', isCount: true },
           { label: 'Tasa de Rechazo', value: rejectionRate, icon: XCircle, color: 'text-purple-400', bg: 'bg-purple-500/10', isPercent: true, sub: `${rejectedCount} devueltos` },
         ].map((card, idx) => (
           <div key={idx} className="glass-card glass-card-hover p-5 flex flex-col justify-between min-h-[120px]">
@@ -375,6 +411,39 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
               <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
                 <PieChartIcon size={40} className="opacity-20" />
                 <p className="font-medium">Sin datos de categorías</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Comparativa Presupuesto vs Real */}
+        <div className="glass-card p-8 lg:col-span-2">
+          <h2 className="text-xl font-bold mb-8 flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+              <FileText size={20} />
+            </div>
+            Cumplimiento Portafolio: Ejecutado vs Presupuestado
+          </h2>
+          <div className="h-[350px]">
+            {comparisonData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="month" stroke="#475569" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} dy={10} />
+                  <YAxis stroke="#475569" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  />
+                  <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px' }} />
+                  <Bar dataKey="budget" name="Presupuesto" fill="#1e293b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="spent" name="Ejecutado" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <FileText size={40} className="opacity-20" />
+                <p className="font-medium">No hay datos de presupuesto cargados para las fechas seleccionadas</p>
               </div>
             )}
           </div>

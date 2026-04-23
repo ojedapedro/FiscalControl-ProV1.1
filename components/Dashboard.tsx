@@ -75,8 +75,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const fiscalHealth = React.useMemo(() => {
     if (selectedStoreId === 'all') return 'slate';
-    return getStoreFiscalHealth(selectedStoreId, payments);
-  }, [selectedStoreId, payments]);
+    const store = stores.find(s => s.id === selectedStoreId);
+    return getStoreFiscalHealth(selectedStoreId, payments, store);
+  }, [selectedStoreId, payments, stores]);
 
   const handleDownloadFiscalCategoryPDF = () => {
     const w = window as any;

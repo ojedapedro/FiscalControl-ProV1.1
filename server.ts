@@ -6,6 +6,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { checkAndSendNotifications } from './server/notifications';
 
 // Import API handlers
@@ -22,7 +24,35 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   console.log(`🚀 [Server] Iniciando servidor Express... (${new Date().toISOString()})`);
   const app = express();
+  const httpServer = createServer(app);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
   const PORT = 3000;
+
+  // Socket.IO Logic
+  io.on('connection', (socket) => {
+    console.log(`🔌 [Socket] Nuevo usuario conectado: ${socket.id}`);
+
+    socket.on('join:room', (room) => {
+      socket.join(room);
+      console.log(`👥 [Socket] Usuario ${socket.id} se unió a la sala: ${room}`);
+    });
+
+    socket.on('chat:message', (message) => {
+      // Broadcast simple a todos en la sala. 
+      // La persistencia se maneja en el cliente vía Firestore para robustez.
+      io.to(message.room).emit('chat:message', message);
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`🔌 [Socket] Usuario desconectado: ${socket.id}`);
+    });
+  });
 
   app.use(express.json({ limit: '50mb' }));
   app.use(cookieParser());
@@ -70,7 +100,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
     // Configurar chequeo diario de notificaciones (cada 24 horas)

@@ -206,6 +206,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [initialData, currentUser]);
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const storeObj = React.useMemo(() => {
+    return stores.find(s => s.id === store);
+  }, [stores, store]);
+
   const [isManualOverride, setIsManualOverride] = React.useState(false);
   const [isFinancialLocked, setIsFinancialLocked] = React.useState(true);
   const canEditFinancials = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
@@ -469,7 +474,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
   }, [proposedDueDate]);
 
-  // Auto-fill Due Date based on Tax Group Configuration
+  // Auto-fill Due Date based on Tax Group Configuration (With Gaceta 43.273 Logic)
   React.useEffect(() => {
     const configMap = getTaxConfig(category);
     const isTaxCategory = !!configMap;
@@ -478,19 +483,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         const config = configMap[taxGroup];
         if (config) {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
             
-            // Ajustar día si el mes es más corto que la fecha límite (ej. Feb 28 vs día 30)
-            const targetDay = Math.min(config.deadlineDay, lastDayOfMonth);
-            
-            // Formatear a YYYY-MM-DD
-            const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
-            handleDueDateChange(formattedDate);
+            // Try to get specific date from RIF logic (Gaceta 43.273)
+            // Use the first item in group as representative for code checking
+            const repItem = config.items[0];
+            const rifDate = (storeObj && repItem) 
+               ? getFiscalDueDate(category, repItem.code, storeObj.rifEnding || 0, now) 
+               : null;
+
+            if (rifDate) {
+               handleDueDateChange(rifDate.toISOString().split('T')[0]);
+            } else {
+              // Legacy/Fallback Logic
+              const year = now.getFullYear();
+              const month = now.getMonth();
+              const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+              const targetDay = Math.min(config.deadlineDay, lastDayOfMonth);
+              const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+              handleDueDateChange(formattedDate);
+            }
         }
     }
-  }, [category, taxGroup, initialData, handleDueDateChange]);
+  }, [category, taxGroup, initialData, handleDueDateChange, storeObj]);
 
   const isCurrentTaxItemVariable = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -608,7 +622,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         let hasRed = false;
         let hasOrange = false;
         
-        const baseStatus = getTaxStatus(groupConfig.deadlineDay);
+        const baseStatus = getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj);
 
         groupConfig.items.forEach(item => {
             const itemPayments = payments.filter(p => {
@@ -713,7 +727,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         };
       }
 
-      const status = getTaxStatus(groupConfig.deadlineDay);
+      const status = getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj);
       // Map 'Próximo' to 'Enviado' (Orange) if we want to follow the user's color logic strictly
       // but 'Próximo' is a date status, not a payment status.
       // However, the user wants Orange for "sent to auditor".
@@ -771,7 +785,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             } else if (hasApprovedOrPaid) {
                 statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
             } else {
-                const dateStatus = getTaxStatus(groupConfig.deadlineDay);
+                const dateStatus = getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj);
                 statusInfo = { 
                     ...dateStatus, 
                     status: dateStatus.status === 'Próximo' ? 'Próximo' : (dateStatus.status === 'En fecha' ? 'Al día' : dateStatus.status)
@@ -1173,7 +1187,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         }).map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
-                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments);
+                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments, storeObj);
                             const trafficLight = rawTrafficLight;
                             
                             let trafficClasses = '';

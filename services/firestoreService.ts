@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
-import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store, Invoice, Client } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store, Invoice, Client, ChatMessage } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -614,6 +614,49 @@ export const firestoreService = {
         console.error("Error uploading file to Storage:", error);
         reject(error);
       }
+    });
+  },
+
+  // Chat
+  getChatMessages: async (room: string = 'global', limitCount: number = 50): Promise<ChatMessage[]> => {
+    const path = 'chat_messages';
+    try {
+      const q = query(
+        collection(db, path), 
+        where('room', '==', room),
+        orderBy('timestamp', 'asc'), 
+        limit(limitCount)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  createChatMessage: async (message: ChatMessage) => {
+    const path = `chat_messages/${message.id}`;
+    try {
+      await setDoc(doc(db, 'chat_messages', message.id), cleanObject(message));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  },
+
+  subscribeToChat: (room: string = 'global', callback: (messages: ChatMessage[]) => void) => {
+    const path = 'chat_messages';
+    const q = query(
+      collection(db, path), 
+      where('room', '==', room),
+      orderBy('timestamp', 'asc')
+    );
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      callback(messages);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
     });
   }
 };

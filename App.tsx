@@ -16,6 +16,7 @@ import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
 import { InvoicingModule } from './components/InvoicingModule';
+import { ChatCenter } from './components/ChatCenter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
@@ -1279,7 +1280,7 @@ function App({}: AppProps = {}) {
       case 'reports':
         return <Reports payments={filteredPayments} currentUser={currentUser} budgets={filteredBudgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={filteredStores} />;
       case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
+        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={filteredBudgets} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
       case 'network':
         return <StoreStatus payments={filteredPayments} userStoreIds={userStoreIds} stores={filteredStores} />;
       case 'calendar':
@@ -1332,6 +1333,8 @@ function App({}: AppProps = {}) {
         );
       case 'predictive':
         return <PredictiveDashboard payments={filteredPayments} />;
+      case 'chat':
+        return currentUser ? <ChatCenter currentUser={currentUser} /> : null;
       case 'settings':
         return (
           <div className="p-6 lg:p-10 text-slate-900 dark:text-white animate-in fade-in space-y-8 pb-24 lg:pb-10">
@@ -1575,12 +1578,12 @@ function App({}: AppProps = {}) {
 
   useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'invoices', 'presidency', 'evaluation', 'predictive'];
+    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'invoices', 'presidency', 'evaluation', 'predictive', 'chat'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'invoices', 'reports', 'evaluation'],
-      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'invoices', 'presidency', 'predictive']
+      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'invoices', 'reports', 'evaluation', 'chat'],
+      [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive', 'chat'],
+      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'invoices', 'presidency', 'predictive', 'chat']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
       setCurrentView(getInitialView(currentUser.role));

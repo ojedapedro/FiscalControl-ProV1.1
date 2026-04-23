@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Activity,
   BarChart3,
-  CreditCard
+  CreditCard,
+  MessageSquare
 } from 'lucide-react';
 import { Role, User } from '../types';
 import { useTheme } from './ThemeContext';
@@ -76,6 +77,7 @@ export const Sidebar: FC<SidebarProps> = ({
     { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
     { id: 'reports', label: 'Reportes', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN, Role.ADMIN] },
     { id: 'presidency', label: 'Presidencia', icon: PieChart, roles: [Role.PRESIDENT, Role.SUPER_ADMIN] },
+    { id: 'chat', label: 'Chat Interno', icon: MessageSquare, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
   ];
 

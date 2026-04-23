@@ -69,6 +69,13 @@ service cloud.firestore {
     match /categories/{id} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /stores/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia(); }
 
+    // Chat messages
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false; 
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

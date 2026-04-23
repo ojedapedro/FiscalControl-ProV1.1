@@ -41,7 +41,8 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
     address: '',
     municipality: '',
     location: '',
-    matrixId: 'HQ-01'
+    matrixId: 'HQ-01',
+    rifEnding: 0
   });
 
   const canManage = currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.PRESIDENT;
@@ -54,7 +55,8 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
         address: store.address || '',
         municipality: store.municipality || '',
         location: store.location || '',
-        matrixId: store.matrixId || 'HQ-01'
+        matrixId: store.matrixId || 'HQ-01',
+        rifEnding: store.rifEnding || 0
       });
     } else {
       setEditingStore(null);
@@ -63,7 +65,8 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
         address: '',
         municipality: '',
         location: '',
-        matrixId: 'HQ-01'
+        matrixId: 'HQ-01',
+        rifEnding: 0
       });
     }
     setIsFormOpen(true);
@@ -148,9 +151,14 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-950 dark:text-slate-50">{store.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                      <MapPin size={12} /> {store.municipality}, {store.location || 'Venezuela'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <MapPin size={12} /> {store.municipality}, {store.location || 'Venezuela'}
+                      </p>
+                      {store.rifEnding !== undefined && (
+                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-mono font-bold">RIF: ***{store.rifEnding}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -257,16 +265,29 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Estado/Ubicación</label>
-                  <input 
-                    required
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Último Dígito RIF</label>
+                  <select 
+                    value={formData.rifEnding}
+                    onChange={(e) => setFormData({...formData, rifEnding: Number(e.target.value)})}
                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: Caracas, DC"
-                  />
+                  >
+                    {[0,1,2,3,4,5,6,7,8,9].map(num => (
+                      <option key={num} value={num}>Dígito {num}</option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Estado/Ubicación</label>
+                <input 
+                  required
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ej: Caracas, DC"
+                />
               </div>
 
               <div className="pt-4 flex gap-3">
