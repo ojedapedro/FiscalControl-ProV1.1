@@ -41,7 +41,7 @@ import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { firestoreService } from '../services/firestoreService';
 import { getTaxConfig } from '../src/taxConfigurations';
-import { getTaxStatus, getCategoryTrafficLight } from '../src/fiscalUtils';
+import { getTaxStatus, getCategoryTrafficLight, getFiscalDueDate } from '../src/fiscalUtils';
 
 interface PaymentFormProps {
   onSubmit: (data: any) => Promise<void> | void;
