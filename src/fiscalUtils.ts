@@ -29,7 +29,7 @@ export const getFiscalDueDate = (category: Category, itemCode: string, rifEnding
   if (isBiweekly) {
     const day = date.getDate();
     const table = day <= 15 ? FISCAL_CALENDAR_2026.firstHalf : FISCAL_CALENDAR_2026.secondHalf;
-    const rifDates = table[rifEnding as keyof typeof table.firstHalf];
+    const rifDates = table[rifEnding as unknown as keyof typeof table];
     const targetDay = rifDates[monthIdx];
     
     if (day <= 15) {

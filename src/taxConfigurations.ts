@@ -65,41 +65,6 @@ export const MUNICIPAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: 
   }
 };
 
-export const NATIONAL_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean; frequency?: PaymentFrequency }[] }> = {
-  'IVA': {
-    label: '2.1 IVA (IMPUESTO AL VALOR AGREGADO)',
-    deadlineDay: 15,
-    items: [
-      { code: '2.1.1', name: 'IVA MENSUAL - REGULAR', isVariable: true, frequency: PaymentFrequency.MONTHLY },
-      { code: '2.1.2', name: 'RETENCIONES DE IVA', isVariable: true, frequency: PaymentFrequency.BIWEEKLY },
-    ]
-  },
-  'ISLR': {
-    label: '2.2 ISLR (IMPUESTO SOBRE LA RENTA)',
-    deadlineDay: 10,
-    items: [
-      { code: '2.2.1', name: 'RETENCIONES ISLR - SERVICIOS', isVariable: true, frequency: PaymentFrequency.MONTHLY },
-      { code: '2.2.2', name: 'RETENCIONES ISLR - ALQUILERES', isVariable: true, frequency: PaymentFrequency.MONTHLY },
-      { code: '2.2.3', name: 'DECLARACION ESTIMADA ISLR', isVariable: true, frequency: PaymentFrequency.ANNUAL },
-      { code: '2.2.4', name: 'DECLARACION DEFINITIVA ANUAL', isVariable: true, frequency: PaymentFrequency.ANNUAL },
-    ]
-  },
-  'IGTF': {
-    label: '2.3 IGTF (GRANDES TRANSACCIONES)',
-    deadlineDay: 15,
-    items: [
-      { code: '2.3.1', name: 'IGTF - PAGO QUINCENAL', isVariable: true, frequency: PaymentFrequency.BIWEEKLY }
-    ]
-  },
-  'OTROS_NACIONALES': {
-    label: '2.4 OTROS IMPUESTOS NACIONALES',
-    deadlineDay: 30,
-    items: [
-      { code: '2.4.1', name: 'OTRO IMPUESTO NACIONAL', isVariable: true, frequency: PaymentFrequency.MONTHLY },
-    ]
-  }
-};
-
 export const OBJECT_TAX_CONFIG: Record<string, { label: string; deadlineDay: number; items: { code: string; name: string; amount?: number; isVariable?: boolean; frequency?: PaymentFrequency }[] }> = {
   'SENCAMER_CERT': {
     label: '2.1 CERTIFICADO DE SENCAMER (REM 36357)',
@@ -205,13 +170,14 @@ export const INSTITUTIONS_TAX_CONFIG: Record<string, { label: string; deadlineDa
     ]
   },
   'INSALUD': {
-    label: '3.6 PERMISOS SANITARIO (INSALUD)',
+    label: '3.6 INSALUD',
     deadlineDay: 30,
     items: [
       { code: '3.6.1', name: 'CERTIFICADO DE FUMIGACION', isVariable: true, frequency: PaymentFrequency.TRIMESTRAL },
-      { code: '3.6.2', name: 'CERTIFICADO DE LIMPIEZA DE TANQUES', isVariable: true, frequency: PaymentFrequency.SEMIANNUAL },
+      { code: '3.6.2', name: 'CERTIFICADO DE LIMPIEZA DE TANQUE', isVariable: true, frequency: PaymentFrequency.SEMIANNUAL },
       { code: '3.6.3', name: 'CERTIFICADO DE DESRATIZACION', isVariable: true, frequency: PaymentFrequency.QUADRIMESTER },
-      { code: '3.6.4', name: 'PERMISO SANITARIO', isVariable: true, frequency: PaymentFrequency.ANNUAL },
+      { code: '3.6.4', name: 'CERTIFICADO DE INSALUD', isVariable: true, frequency: PaymentFrequency.ANNUAL },
+      { code: '3.6.5', name: 'ACTA DE INSPECCION INSALUD', isVariable: true, frequency: PaymentFrequency.ANNUAL },
     ]
   }
 };
@@ -371,7 +337,6 @@ export const OTHER_TAX_CONFIG: Record<string, { label: string; deadlineDay: numb
 export const getTaxConfig = (cat: Category | '') => {
   switch (cat) {
     case Category.MUNICIPAL_TAX: return MUNICIPAL_TAX_CONFIG;
-    case Category.NATIONAL_TAX: return NATIONAL_TAX_CONFIG;
     case Category.OBJECT: return OBJECT_TAX_CONFIG;
     case Category.INSTITUTIONS: return INSTITUTIONS_TAX_CONFIG;
     case Category.TRANSPORT: return TRANSPORT_TAX_CONFIG;

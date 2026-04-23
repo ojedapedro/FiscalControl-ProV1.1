@@ -1,17 +1,17 @@
 import React from 'react';
-import {
-  Users,
-  Briefcase,
-  Plus,
-  Search,
-  DollarSign,
-  FileText,
-  Calculator,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  ShieldCheck,
-  Contact,
+import { 
+  Users, 
+  Briefcase, 
+  Plus, 
+  Search, 
+  DollarSign, 
+  FileText, 
+  Calculator, 
+  TrendingUp, 
+  TrendingDown, 
+  Calendar, 
+  ShieldCheck, 
+  Contact, 
   Trash2,
   ChevronRight,
   UserPlus,
@@ -73,10 +73,10 @@ interface PayrollModuleProps {
 
 type TabType = 'payroll' | 'employees' | 'ppe-history' | 'shifts';
 
-export const PayrollModule: React.FC<PayrollModuleProps> = ({
-  entries,
-  employees,
-  onAddEntry,
+export const PayrollModule: React.FC<PayrollModuleProps> = ({ 
+  entries, 
+  employees, 
+  onAddEntry, 
   onUpdateEntry,
   onDeleteEntry,
   onAddEmployee,
@@ -109,7 +109,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     message: string;
   }>({
     isOpen: false,
-    onConfirm: () => { },
+    onConfirm: () => {},
     title: '',
     message: ''
   });
@@ -135,11 +135,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       return { name: 'Administrativo', startTime: '8:00 AM', endTime: '5:00 PM', nightHoursPerDay: 0 };
     }
     if (group === ShiftGroup.NONE) return null;
-
+    
     const groups = [ShiftGroup.GROUP_A, ShiftGroup.GROUP_B, ShiftGroup.GROUP_C];
     const groupIdx = groups.indexOf(group);
     if (groupIdx === -1) return null;
-
+    
     const slotIdx = (groupIdx + rotationOffset) % 3;
     return SHIFT_SLOTS[slotIdx];
   };
@@ -159,7 +159,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     }
   }, [employees, viewingEmployee]);
 
-  const calculateParafiscales = (baseSalary: number, bonuses: { amount: number }[]) => {
+  const calculateParafiscales = (baseSalary: number, bonuses: {amount: number}[]) => {
     const totalBonuses = bonuses.reduce((sum, b) => sum + b.amount, 0);
     const salarioNormal = baseSalary;
     const salarioIntegral = baseSalary + totalBonuses;
@@ -184,7 +184,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     };
   };
 
-  const getParafiscalDiff = (name: string, amount: number, baseSalary: number, bonuses: { amount: number }[]) => {
+  const getParafiscalDiff = (name: string, amount: number, baseSalary: number, bonuses: {amount: number}[]) => {
     const { deductions, liabilities } = calculateParafiscales(baseSalary, bonuses);
     const all = [...deductions, ...liabilities];
     const theoretical = all.find(item => item.name === name)?.amount || 0;
@@ -194,7 +194,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const hasParafiscalDiscrepancies = (entry: PayrollEntry) => {
     const { deductions, liabilities } = calculateParafiscales(entry.baseSalary, entry.bonuses);
-
+    
     const hasDeductionDiff = entry.deductions.some(d => {
       const theoretical = deductions.find(item => item.name === d.name)?.amount || 0;
       return Math.abs(d.amount - theoretical) > 0.01;
@@ -217,14 +217,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     baseSalary: 0,
     bonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
     deductions: [
-      { name: 'SSO (4%)', amount: 0 },
-      { name: 'RPE (0.5%)', amount: 0 },
+      { name: 'SSO (4%)', amount: 0 }, 
+      { name: 'RPE (0.5%)', amount: 0 }, 
       { name: 'FAOV / LPH (1%)', amount: 0 }
     ],
     employerLiabilities: [
-      { name: 'SSO Patronal (9%)', amount: 0 },
-      { name: 'RPE Patronal (2%)', amount: 0 },
-      { name: 'FAOV Patronal (2%)', amount: 0 },
+      { name: 'SSO Patronal (9%)', amount: 0 }, 
+      { name: 'RPE Patronal (2%)', amount: 0 }, 
+      { name: 'FAOV Patronal (2%)', amount: 0 }, 
       { name: 'INCES Patronal (2%)', amount: 0 },
       { name: 'Fondo de Pensiones (9%)', amount: 0 },
       { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
@@ -268,14 +268,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     bankAccount: '',
     defaultBonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
     defaultDeductions: [
-      { name: 'SSO (4%)', amount: 0 },
-      { name: 'RPE (0.5%)', amount: 0 },
+      { name: 'SSO (4%)', amount: 0 }, 
+      { name: 'RPE (0.5%)', amount: 0 }, 
       { name: 'FAOV / LPH (1%)', amount: 0 }
     ],
     defaultEmployerLiabilities: [
-      { name: 'SSO Patronal (9%)', amount: 0 },
-      { name: 'RPE Patronal (2%)', amount: 0 },
-      { name: 'FAOV Patronal (2%)', amount: 0 },
+      { name: 'SSO Patronal (9%)', amount: 0 }, 
+      { name: 'RPE Patronal (2%)', amount: 0 }, 
+      { name: 'FAOV Patronal (2%)', amount: 0 }, 
       { name: 'INCES Patronal (2%)', amount: 0 },
       { name: 'Fondo de Pensiones (9%)', amount: 0 },
       { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
@@ -302,11 +302,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
     const incomeUT = estimatedIncomeBs / taxUnitValueBs;
     const expensesUT = estimatedExpensesBs / taxUnitValueBs;
-
+    
     const isObligated = incomeUT > 1000;
-
+    
     const taxableIncomeUT = Math.max(0, incomeUT - expensesUT);
-
+    
     let taxUT = 0;
     if (taxableIncomeUT <= 1000) {
       taxUT = taxableIncomeUT * 0.06;
@@ -333,7 +333,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
     const finalTaxUT = Math.max(0, taxUT - totalRebajasUT);
     const finalTaxBs = finalTaxUT * taxUnitValueBs;
-
+    
     let percentage = 0;
     if (estimatedIncomeBs > 0) {
       percentage = (finalTaxBs / estimatedIncomeBs) * 100;
@@ -358,14 +358,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const calculatePrestacionesForEmployee = (employee: Employee, endDateStr: string = new Date().toISOString().split('T')[0]) => {
     const hireDate = new Date(employee.hireDate);
     const endDate = new Date(endDateStr);
-
+    
     if (endDate < hireDate) return null;
 
     // Calculate time difference
     let years = endDate.getFullYear() - hireDate.getFullYear();
     let months = endDate.getMonth() - hireDate.getMonth();
     let days = endDate.getDate() - hireDate.getDate();
-
+    
     if (days < 0) {
       months -= 1;
       days += new Date(endDate.getFullYear(), endDate.getMonth(), 0).getDate();
@@ -374,40 +374,40 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       years -= 1;
       months += 12;
     }
-
+    
     const totalMonths = years * 12 + months;
     const quarters = Math.floor(totalMonths / 3);
-
+    
     // Integral Salary
     const totalBonuses = employee.defaultBonuses.reduce((sum, b) => sum + b.amount, 0);
     const monthlyIntegralSalary = employee.baseSalary + totalBonuses;
     const dailyIntegralSalary = monthlyIntegralSalary / 30;
-
+    
     // 1. Garantía Trimestral (Art. 142 literal a y b)
     const baseDaysQuarterly = quarters * 15;
-
+    
     // Días adicionales por antigüedad (después del 1er año, 2 días por año, max 30)
     let additionalDays = 0;
     if (years > 1) {
       additionalDays = (years - 1) * 2;
       if (additionalDays > 30) additionalDays = 30;
     }
-
+    
     const totalGuaranteeDays = baseDaysQuarterly + additionalDays;
     const totalGuaranteeAmount = totalGuaranteeDays * dailyIntegralSalary;
-
+    
     // 2. Cálculo Literal C (Retroactivo - Art. 142 literal c)
     let literalCYears = years;
     if (months >= 6) {
       literalCYears += 1;
     }
-
+    
     const literalCDays = literalCYears * 30;
     const literalCAmount = literalCDays * dailyIntegralSalary;
-
+    
     // 3. Monto a Pagar (El mayor)
     const finalAmount = Math.max(totalGuaranteeAmount, literalCAmount);
-
+    
     return {
       years, months, days,
       dailyIntegralSalary,
@@ -466,7 +466,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       const totalBonuses = entry.bonuses.reduce((sum, b) => sum + b.amount, 0);
       const totalDeductions = entry.deductions.reduce((sum, d) => sum + d.amount, 0);
       const totalLiabilities = entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
-
+      
       return [
         `"${entry.employeeName}"`,
         `"${entry.employeeId}"`,
@@ -518,20 +518,20 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const totalBonuses = (data.bonuses || data.defaultBonuses || []).reduce((acc: number, b: any) => acc + b.amount, 0);
     const totalDeductions = (data.deductions || data.defaultDeductions || []).reduce((acc: number, d: any) => acc + d.amount, 0);
     const totalLiabilities = (data.employerLiabilities || data.defaultEmployerLiabilities || []).reduce((acc: number, l: any) => acc + l.amount, 0);
-
+    
     // LOTTT Extras
     const extras = calculateLOTTTExtras(
-      data.baseSalary,
-      data.nightHoursWorked || 0,
-      data.sundaysHolidaysWorked || 0,
+      data.baseSalary, 
+      data.nightHoursWorked || 0, 
+      data.sundaysHolidaysWorked || 0, 
       data.overtimeHoursWorked || 0
     );
 
     const totalWorkerNet = data.baseSalary + totalBonuses + extras.bonoNocturnoAmount + extras.sundaysHolidaysAmount + extras.overtimeAmount - totalDeductions;
     const totalEmployerCost = data.baseSalary + totalBonuses + extras.bonoNocturnoAmount + extras.sundaysHolidaysAmount + extras.overtimeAmount + totalLiabilities;
-
-    return {
-      totalWorkerNet,
+    
+    return { 
+      totalWorkerNet, 
       totalEmployerCost,
       ...extras
     };
@@ -546,7 +546,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       status: 'PROCESADO'
     };
     await onAddEntry(entry);
-
+    
     setIsAddingEntry(false);
   };
 
@@ -570,7 +570,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
     const updatedEntry = {
       ...entry,
-      deductions: type === 'deduction'
+      deductions: type === 'deduction' 
         ? entry.deductions.map(d => d.name === fieldName ? { ...d, amount: theoreticalValue } : d)
         : entry.deductions,
       employerLiabilities: type === 'liability'
@@ -582,7 +582,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const totalBonuses = updatedEntry.bonuses.reduce((sum, b) => sum + b.amount, 0);
     const totalDeductions = updatedEntry.deductions.reduce((sum, d) => sum + d.amount, 0);
     const totalLiabilities = updatedEntry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
-
+    
     updatedEntry.totalWorkerNet = updatedEntry.baseSalary + totalBonuses - totalDeductions;
     updatedEntry.totalEmployerCost = updatedEntry.baseSalary + totalBonuses + totalLiabilities;
 
@@ -594,7 +594,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const activeEmployees = employees.filter(e => e.isActive);
     const currentMonth = new Date().toISOString().slice(0, 7);
     const newEntries: PayrollEntry[] = [];
-
+    
     for (const emp of activeEmployees) {
       // Estimate night hours based on current rotation slot
       const shift = getShiftForGroup(emp.shiftGroup as ShiftGroup);
@@ -605,7 +605,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
       // For auto-generation, we assume 0 sundays and 0 overtime unless specified otherwise
       // but the logic is ready to handle them if we add parameters to this function later
-
+      
       const combinedData = {
         ...emp,
         nightHoursWorked: estNightHours,
@@ -652,8 +652,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     return matchesId && matchesDate;
   });
 
-  const filteredEmployees = employees.filter(e =>
-    `${e.name} ${e.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredEmployees = employees.filter(e => 
+    `${e.name} ${e.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     e.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -702,7 +702,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     acc[entry.month].totalEmployerCost += entry.totalEmployerCost;
     acc[entry.month].totalStateLiabilities += entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
     acc[entry.month].entriesCount += 1;
-
+    
     entry.employerLiabilities.forEach(l => {
       const name = l.name.toLowerCase();
       if (name.includes('sso') || name.includes('seguro social')) acc[entry.month].ssoTotal += l.amount;
@@ -716,11 +716,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
   const sortedMonths = Object.values(payrollByMonth).sort((a, b) => b.month.localeCompare(a.month));
 
   const allPpeAssignments = React.useMemo(() => {
-    const assignments: {
-      employeeName: string;
-      employeeId: string;
-      storeId: string;
-      assignment: PPEAssignment
+    const assignments: { 
+      employeeName: string; 
+      employeeId: string; 
+      storeId: string; 
+      assignment: PPEAssignment 
     }[] = [];
 
     employees.forEach(emp => {
@@ -737,8 +737,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     });
 
     return assignments.filter(item => {
-      const matchesSearch = item.employeeName.toLowerCase().includes(ppeSearchTerm.toLowerCase()) ||
-        item.employeeId.toLowerCase().includes(ppeSearchTerm.toLowerCase());
+      const matchesSearch = item.employeeName.toLowerCase().includes(ppeSearchTerm.toLowerCase()) || 
+                            item.employeeId.toLowerCase().includes(ppeSearchTerm.toLowerCase());
       const matchesStore = ppeStoreFilter ? item.storeId === ppeStoreFilter : true;
       const matchesDate = ppeDateFilter ? item.assignment.date.startsWith(ppeDateFilter) : true;
       return matchesSearch && matchesStore && matchesDate;
@@ -764,14 +764,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const handleExportPpePDF = () => {
     const doc = new jsPDF();
-
+    
     doc.setFontSize(18);
     doc.text('Historial de Entrega de EPP', 14, 22);
-
+    
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Fecha de reporte: ${formatDate(new Date())}`, 14, 30);
-
+    
     const tableData = allPpeAssignments.map(item => [
       formatDate(item.assignment.date),
       item.employeeName,
@@ -795,41 +795,41 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     const isBulk = !!doc;
     const currentDoc = doc || new jsPDF();
     const store = stores.find(s => s.id === entry.storeId);
-
+    
     // Header
     currentDoc.setFontSize(20);
     currentDoc.setTextColor(37, 99, 235);
     currentDoc.text('RECIBO DE PAGO', 105, 20, { align: 'center' });
-
+    
     currentDoc.setFontSize(12);
     currentDoc.setTextColor(100);
     currentDoc.text('Forza 22 - Gestión de Nómina', 105, 28, { align: 'center' });
-
+    
     // Employee Info
     currentDoc.setDrawColor(200);
     currentDoc.line(14, 35, 196, 35);
-
+    
     currentDoc.setFontSize(10);
     currentDoc.setTextColor(0);
     currentDoc.setFont('helvetica', 'bold');
     currentDoc.text('DATOS DEL TRABAJADOR', 14, 45);
-
+    
     currentDoc.setFont('helvetica', 'normal');
     currentDoc.text(`Nombre: ${entry.employeeName}`, 14, 52);
     currentDoc.text(`Cédula/ID: ${entry.employeeId}`, 14, 57);
     currentDoc.text(`Tienda: ${store?.name || 'N/A'}`, 14, 62);
     currentDoc.text(`Periodo: ${entry.month}`, 14, 67);
-
+    
     // Financial Details
     currentDoc.setFont('helvetica', 'bold');
     currentDoc.text('DETALLE DE PAGO', 14, 80);
-
+    
     const tableData: any[][] = [
       ['Concepto', 'Asignaciones ($)', 'Deducciones ($)']
     ];
-
+    
     tableData.push(['Sueldo Base', `$${entry.baseSalary.toLocaleString()}`, '']);
-
+    
     if (entry.bonoNocturnoAmount && entry.bonoNocturnoAmount > 0) {
       tableData.push([`Bono Nocturno (${entry.nightHoursWorked}h)`, `$${entry.bonoNocturnoAmount.toLocaleString()}`, '']);
     }
@@ -843,11 +843,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     entry.bonuses.forEach(b => {
       tableData.push([b.name, `$${b.amount.toLocaleString()}`, '']);
     });
-
+    
     entry.deductions.forEach(d => {
       tableData.push([d.name, '', `$${d.amount.toLocaleString()}`]);
     });
-
+    
     autoTable(currentDoc, {
       startY: 85,
       head: [tableData[0]],
@@ -857,22 +857,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       foot: [['TOTAL NETO', `$${entry.totalWorkerNet.toLocaleString()}`, '']],
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
-
+    
     const finalY = (currentDoc as any).lastAutoTable.finalY + 10;
-
+    
     // Totals in Local Currency
     currentDoc.setFontSize(11);
     currentDoc.setFont('helvetica', 'bold');
     currentDoc.text(`Total a Pagar: $${entry.totalWorkerNet.toLocaleString()}`, 14, finalY);
     currentDoc.text(`Equivalente en Bs (Tasa ${exchangeRate}): Bs. ${(entry.totalWorkerNet * exchangeRate).toLocaleString()}`, 14, finalY + 7);
-
+    
     // Signature area
     currentDoc.line(14, finalY + 40, 80, finalY + 40);
     currentDoc.text('Firma del Trabajador', 14, finalY + 45);
-
+    
     currentDoc.line(130, finalY + 40, 196, finalY + 40);
     currentDoc.text('Sello y Firma Patrono', 130, finalY + 45);
-
+    
     if (!isBulk) {
       currentDoc.save(`Recibo_${entry.employeeName.replace(/ /g, '_')}_${entry.month}.pdf`);
     }
@@ -893,8 +893,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
     setIsSendingEmails(true);
     try {
       const result = await notificationService.notifyBulkPayrollReceipts(
-        filteredEntries,
-        employees,
+        filteredEntries, 
+        employees, 
         settings || null
       );
       setNotification(result.message);
@@ -909,42 +909,42 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
   const generateAnticipoReceiptPDF = (employee: Employee, amount: number, accumulated: number, reason: string) => {
     const doc = new jsPDF();
-
+    
     // Header
     doc.setFontSize(20);
     doc.setTextColor(37, 99, 235);
     doc.text('RECIBO DE ANTICIPO DE PRESTACIONES', 105, 20, { align: 'center' });
-
+    
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.text('Forza 22 - Gestión de Nómina', 105, 28, { align: 'center' });
-
+    
     // Employee Info
     doc.setDrawColor(200);
     doc.line(14, 35, 196, 35);
-
+    
     doc.setFontSize(10);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
     doc.text('DATOS DEL TRABAJADOR', 14, 45);
-
+    
     doc.setFont('helvetica', 'normal');
     doc.text(`Nombre: ${employee.name} ${employee.lastName}`, 14, 52);
     doc.text(`Cédula/ID: ${employee.id}`, 14, 57);
     doc.text(`Cargo: ${employee.position}`, 14, 62);
     doc.text(`Fecha de Ingreso: ${employee.hireDate}`, 14, 67);
-
+    
     // Advance Details
     doc.setFont('helvetica', 'bold');
     doc.text('DETALLE DEL ANTICIPO (Art. 144 LOTTT)', 14, 80);
-
+    
     const tableData: any[][] = [
       ['Concepto', 'Monto ($)', 'Monto (Bs.)']
     ];
-
-    tableData.push(['Fondo de Garantía Acumulado', `$${accumulated.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, `Bs. ${(accumulated * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`]);
-    tableData.push(['Monto Solicitado (Anticipo)', `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, `Bs. ${(amount * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`]);
-
+    
+    tableData.push(['Fondo de Garantía Acumulado', `$${accumulated.toLocaleString(undefined, {minimumFractionDigits: 2})}`, `Bs. ${(accumulated * exchangeRate).toLocaleString(undefined, {minimumFractionDigits: 2})}`]);
+    tableData.push(['Monto Solicitado (Anticipo)', `$${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`, `Bs. ${(amount * exchangeRate).toLocaleString(undefined, {minimumFractionDigits: 2})}`]);
+    
     autoTable(doc, {
       startY: 85,
       head: [tableData[0]],
@@ -952,32 +952,32 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235] },
     });
-
+    
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-
+    
     // Reason
     doc.setFont('helvetica', 'bold');
     doc.text('Motivo de la Solicitud:', 14, finalY);
     doc.setFont('helvetica', 'normal');
     const splitReason = doc.splitTextToSize(reason || 'No especificado', 180);
     doc.text(splitReason, 14, finalY + 7);
-
+    
     // Legal Note
     doc.setFontSize(8);
     doc.setTextColor(100);
     const legalText = "De conformidad con el Artículo 144 de la LOTTT, el trabajador tiene derecho a un anticipo de hasta el 75% de lo acreditado en su Fondo de Garantía de Prestaciones Sociales para satisfacer obligaciones derivadas de vivienda, educación, salud o pensiones alimenticias.";
     const splitLegal = doc.splitTextToSize(legalText, 180);
     doc.text(splitLegal, 14, finalY + 25);
-
+    
     // Signature area
     doc.setTextColor(0);
     doc.setFontSize(10);
     doc.line(14, finalY + 60, 80, finalY + 60);
     doc.text('Firma del Trabajador', 14, finalY + 65);
-
+    
     doc.line(130, finalY + 60, 196, finalY + 60);
     doc.text('Sello y Firma Patrono', 130, finalY + 65);
-
+    
     doc.save(`Anticipo_${employee.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
@@ -1016,7 +1016,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       const employee = employees.find(e => e.id === entry.employeeId);
       return `${entry.employeeId};${entry.employeeName};${entry.totalWorkerNet.toFixed(2)};${employee?.bankAccount || 'N/A'}`;
     });
-
+    
     const content = lines.join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -1039,7 +1039,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Control de expedientes, pasivos laborales y salarios</p>
         </div>
-
+        
         <div className="flex flex-wrap gap-3">
           {activeTab === 'payroll' ? (
             <>
@@ -1063,14 +1063,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-44 text-slate-900 dark:text-white"
                   />
                 </div>
-                <button
+                <button 
                   className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-2 text-sm"
                 >
                   <Search size={16} />
                   Filtrar
                 </button>
               </div>
-              <button
+              <button 
                 onClick={handleAutoGeneratePayroll}
                 disabled={employees.filter(e => e.isActive).length === 0}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
@@ -1078,7 +1078,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <Wand2 size={20} />
                 Generar Nómina Automática
               </button>
-              <button
+              <button 
                 onClick={() => generatePayrollTXT(filteredEntries)}
                 disabled={filteredEntries.length === 0}
                 className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
@@ -1086,14 +1086,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <FileText size={20} />
                 Generar Archivo TXT
               </button>
-              <button
+              <button 
                 onClick={() => setIsFinanceModalOpen(true)}
                 className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-amber-900/20 active:scale-95"
               >
                 <Landmark size={20} />
                 Finanzas
               </button>
-              <button
+              <button 
                 onClick={handleSendBulkEmails}
                 disabled={filteredEntries.length === 0 || isSendingEmails}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
@@ -1112,7 +1112,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               )}
             </>
           ) : activeTab === 'employees' ? (
-            <button
+            <button 
               onClick={() => {
                 const nextCode = (() => {
                   if (employees.length === 0) return 'EMP-0001';
@@ -1156,14 +1156,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   bankAccount: '',
                   defaultBonuses: [{ name: 'Bono de Alimentación', amount: 0 }],
                   defaultDeductions: [
-                    { name: 'SSO (4%)', amount: 0 },
-                    { name: 'RPE (0.5%)', amount: 0 },
+                    { name: 'SSO (4%)', amount: 0 }, 
+                    { name: 'RPE (0.5%)', amount: 0 }, 
                     { name: 'FAOV / LPH (1%)', amount: 0 }
                   ],
                   defaultEmployerLiabilities: [
-                    { name: 'SSO Patronal (9%)', amount: 0 },
-                    { name: 'RPE Patronal (2%)', amount: 0 },
-                    { name: 'FAOV Patronal (2%)', amount: 0 },
+                    { name: 'SSO Patronal (9%)', amount: 0 }, 
+                    { name: 'RPE Patronal (2%)', amount: 0 }, 
+                    { name: 'FAOV Patronal (2%)', amount: 0 }, 
                     { name: 'INCES Patronal (2%)', amount: 0 },
                     { name: 'Fondo de Pensiones (9%)', amount: 0 },
                     { name: 'Provisión Prestaciones (16.66%)', amount: 0 },
@@ -1181,7 +1181,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               Nuevo Expediente
             </button>
           ) : (
-            <button
+            <button 
               onClick={() => {
                 setActiveTab('employees');
                 setNotification('Seleccione un trabajador para realizar una entrega de EPP');
@@ -1197,7 +1197,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
       {/* Verification Banner */}
       {activeTab === 'payroll' && filteredEntries.some(hasParafiscalDiscrepancies) && (
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-orange-500/10 border border-orange-500/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-sm"
@@ -1219,34 +1219,38 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
       {/* Tabs */}
       <div className="flex p-1 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl w-fit">
-        <button
+        <button 
           onClick={() => setActiveTab('payroll')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'payroll' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
-            }`}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'payroll' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
         >
           <Calculator size={18} />
           Histórico de Nómina
         </button>
-        <button
+        <button 
           onClick={() => setActiveTab('employees')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'employees' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
-            }`}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'employees' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
         >
           <Contact size={18} />
           Expedientes de Empleados
         </button>
-        <button
+        <button 
           onClick={() => setActiveTab('ppe-history')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'ppe-history' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
-            }`}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'ppe-history' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
         >
           <History size={18} />
           Historial EPP
         </button>
-        <button
+        <button 
           onClick={() => setActiveTab('shifts')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'shifts' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
-            }`}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'shifts' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
         >
           <Clock size={18} />
           Horarios Rotativos
@@ -1462,7 +1466,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
+                <input 
                   type="text"
                   placeholder="Buscar en histórico detallado..."
                   value={searchTerm}
@@ -1482,7 +1486,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 onClick={async () => {
                   let syncCount = 0;
                   if (!onUpdateEntry) return;
-
+                  
                   for (const entry of filteredEntries) {
                     const emp = employees.find(e => e.id === entry.employeeId);
                     if (emp) {
@@ -1492,7 +1496,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         deductions: emp.defaultDeductions,
                         employerLiabilities: emp.defaultEmployerLiabilities
                       });
-
+                      
                       const updatedEntry = {
                         ...entry,
                         employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
@@ -1506,7 +1510,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       syncCount++;
                     }
                   }
-
+                  
                   if (syncCount > 0) {
                     setNotification(`🔄 ${syncCount} registros sincronizados con sus expedientes`);
                   } else {
@@ -1551,7 +1555,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     filteredEntries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors group">
                         <td className="px-6 py-4">
-                          <div
+                          <div 
                             className="flex items-center gap-3 cursor-pointer group/name"
                             onClick={() => {
                               const emp = employees.find(e => e.id === entry.employeeId);
@@ -1591,15 +1595,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           <div className="text-[10px] text-slate-500">Bs. {(entry.totalEmployerCost * exchangeRate).toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${entry.status === 'PROCESADO' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-yellow-500/10 text-yellow-500'
-                            }`}>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            entry.status === 'PROCESADO' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-yellow-500/10 text-yellow-500'
+                          }`}>
                             {entry.status === 'PROCESADO' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
                             {entry.status}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
-                            <button
+                            <button 
                               onClick={async () => {
                                 const emp = employees.find(e => e.id === entry.employeeId);
                                 if (emp) {
@@ -1617,14 +1622,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             >
                               <Mail size={18} />
                             </button>
-                            <button
+                            <button 
                               onClick={() => generatePaymentReceiptPDF(entry)}
                               className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                               title="Generar Recibo de Pago"
                             >
                               <FileText size={18} />
                             </button>
-                            <button
+                            <button 
                               onClick={async () => {
                                 const emp = employees.find(e => e.id === entry.employeeId);
                                 if (emp && onUpdateEntry) {
@@ -1634,7 +1639,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                     deductions: emp.defaultDeductions,
                                     employerLiabilities: emp.defaultEmployerLiabilities
                                   });
-
+                                  
                                   const updatedEntry = {
                                     ...entry,
                                     employeeName: `${emp.name} ${emp.lastName || ''}`.trim(),
@@ -1657,14 +1662,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             >
                               <RefreshCw size={18} />
                             </button>
-                            <button
+                            <button 
                               onClick={() => setViewingEntry(entry)}
                               className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                               title="Ver Detalles"
                             >
                               <Eye size={18} />
                             </button>
-                            <button
+                            <button 
                               onClick={() => setConfirmModal({
                                 isOpen: true,
                                 title: '¿Eliminar registro de nómina?',
@@ -1685,7 +1690,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </table>
               {hasMorePayroll && onLoadMorePayroll && (
                 <div className="p-4 flex justify-center border-t border-slate-800">
-                  <button
+                  <button 
                     onClick={onLoadMorePayroll}
                     className="px-6 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 transition-all flex items-center gap-2 group"
                   >
@@ -1703,7 +1708,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input
+              <input 
                 type="text"
                 placeholder="Buscar empleado..."
                 value={searchTerm}
@@ -1741,7 +1746,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors group">
                       <td className="px-6 py-4">
-                        <div
+                        <div 
                           className="flex items-center gap-3 cursor-pointer group/name"
                           onClick={() => setViewingEmployee(emp)}
                         >
@@ -1761,35 +1766,37 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <td className="px-6 py-4 text-slate-300 font-medium">
                         {stores.find(s => s.id === emp.storeId)?.name || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-slate-300">${emp.baseSalary.toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase ${emp.shiftGroup === ShiftGroup.GROUP_A ? 'bg-emerald-500/10 text-emerald-500' :
+                        <td className="px-6 py-4 text-right font-mono text-slate-300">${emp.baseSalary.toLocaleString()}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              emp.shiftGroup === ShiftGroup.GROUP_A ? 'bg-emerald-500/10 text-emerald-500' :
                               emp.shiftGroup === ShiftGroup.GROUP_B ? 'bg-blue-500/10 text-blue-500' :
-                                emp.shiftGroup === ShiftGroup.GROUP_C ? 'bg-indigo-500/10 text-indigo-500' :
-                                  emp.shiftGroup === ShiftGroup.ADMINISTRATIVE ? 'bg-slate-500/10 text-slate-400' :
-                                    'bg-slate-800 text-slate-500'
+                              emp.shiftGroup === ShiftGroup.GROUP_C ? 'bg-indigo-500/10 text-indigo-500' :
+                              emp.shiftGroup === ShiftGroup.ADMINISTRATIVE ? 'bg-slate-500/10 text-slate-400' :
+                              'bg-slate-800 text-slate-500'
                             }`}>
-                            {emp.shiftGroup || 'N/A'}
-                          </span>
-                          {emp.shiftGroup && emp.shiftGroup !== ShiftGroup.NONE && (
-                            <span className="text-[9px] text-indigo-400 font-mono mt-1">
-                              {getShiftForGroup(emp.shiftGroup)?.name}
+                              {emp.shiftGroup || 'N/A'}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">{emp.hireDate}</td>
+                            {emp.shiftGroup && emp.shiftGroup !== ShiftGroup.NONE && (
+                              <span className="text-[9px] text-indigo-400 font-mono mt-1">
+                                {getShiftForGroup(emp.shiftGroup)?.name}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">{emp.hireDate}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${emp.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                          }`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          emp.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                        }`}>
                           {emp.isActive ? <UserCheck size={12} /> : <UserX size={12} />}
                           {emp.isActive ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1 opacity-100 transition-all">
-                          <button
+                          <button 
                             onClick={() => {
                               const result = calculatePrestacionesForEmployee(emp);
                               if (result) {
@@ -1805,7 +1812,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           >
                             <HandCoins size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => {
                               setPrestacionesEmployee(emp);
                               setPrestacionesEndDate(new Date().toISOString().split('T')[0]);
@@ -1816,7 +1823,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           >
                             <Landmark size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => {
                               setAriEmployee(emp);
                               setAriData({
@@ -1832,7 +1839,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           >
                             <FileSignature size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => {
                               setPpeEmployee(emp);
                               setIsPPEModalOpen(true);
@@ -1842,14 +1849,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           >
                             <ShieldCheck size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => setViewingEmployee(emp)}
                             className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
                             title="Ver Expediente"
                           >
                             <FileText size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => {
                               setEditingEmployee(emp);
                               setEmployeeIdInput(emp.id);
@@ -1861,7 +1868,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           >
                             <Edit3 size={18} />
                           </button>
-                          <button
+                          <button 
                             onClick={() => setConfirmModal({
                               isOpen: true,
                               title: '¿Eliminar expediente de empleado?',
@@ -1882,7 +1889,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             </table>
             {hasMoreEmployees && onLoadMoreEmployees && (
               <div className="p-4 flex justify-center border-t border-slate-800">
-                <button
+                <button 
                   onClick={onLoadMoreEmployees}
                   className="px-6 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-indigo-400 transition-all flex items-center gap-2 group"
                 >
@@ -1907,7 +1914,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Configuración de turnos y grupos de trabajo</p>
                 </div>
               </div>
-              <button
+              <button 
                 onClick={handleRotateShifts}
                 className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-indigo-900/20"
               >
@@ -2002,12 +2009,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col">
-                            <span className={`w-fit px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${emp.shiftGroup === ShiftGroup.GROUP_A ? 'bg-emerald-500/10 text-emerald-500' :
-                                emp.shiftGroup === ShiftGroup.GROUP_B ? 'bg-blue-500/10 text-blue-500' :
-                                  emp.shiftGroup === ShiftGroup.GROUP_C ? 'bg-indigo-500/10 text-indigo-500' :
-                                    emp.shiftGroup === ShiftGroup.ADMINISTRATIVE ? 'bg-slate-500/10 text-slate-400' :
-                                      'bg-slate-800 text-slate-500'
-                              }`}>
+                            <span className={`w-fit px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              emp.shiftGroup === ShiftGroup.GROUP_A ? 'bg-emerald-500/10 text-emerald-500' :
+                              emp.shiftGroup === ShiftGroup.GROUP_B ? 'bg-blue-500/10 text-blue-500' :
+                              emp.shiftGroup === ShiftGroup.GROUP_C ? 'bg-indigo-500/10 text-indigo-500' :
+                              emp.shiftGroup === ShiftGroup.ADMINISTRATIVE ? 'bg-slate-500/10 text-slate-400' :
+                              'bg-slate-800 text-slate-500'
+                            }`}>
                               {emp.shiftGroup || 'Sin Asignar'}
                             </span>
                             {emp.shiftGroup && emp.shiftGroup !== ShiftGroup.NONE && (
@@ -2019,8 +2027,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
-                            <span className="text-xs text-slate-500 font-medium">Sin registro de hardware</span>
+                             <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
+                             <span className="text-xs text-slate-500 font-medium">Sin registro de hardware</span>
                           </div>
                         </td>
                       </tr>
@@ -2041,14 +2049,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 Historial de Entregas de EPP
               </h3>
               <div className="flex gap-2 w-full md:w-auto">
-                <button
+                <button 
                   onClick={handleExportPpeCSV}
                   className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 rounded-xl hover:bg-emerald-600/30 transition-all font-bold text-sm"
                 >
                   <Download size={16} />
                   Excel/CSV
                 </button>
-                <button
+                <button 
                   onClick={handleExportPpePDF}
                   className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-xl hover:bg-red-600/30 transition-all font-bold text-sm"
                 >
@@ -2061,7 +2069,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
+                <input 
                   type="text"
                   placeholder="Buscar trabajador..."
                   value={ppeSearchTerm}
@@ -2071,7 +2079,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
               <div className="relative">
                 <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <select
+                <select 
                   value={ppeStoreFilter}
                   onChange={(e) => setPpeStoreFilter(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
@@ -2084,7 +2092,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
+                <input 
                   type="date"
                   value={ppeDateFilter}
                   onChange={(e) => setPpeDateFilter(e.target.value)}
@@ -2144,7 +2152,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           <div className="text-[10px] text-slate-500">Bs. {(item.assignment.totalCost * exchangeRate).toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button
+                          <button 
                             onClick={() => {
                               const emp = employees.find(e => e.id === item.employeeId);
                               if (emp) setViewingEmployee(emp);
@@ -2169,15 +2177,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isAddingEntry && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddingEntry(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2193,7 +2201,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Complete los datos del trabajador y pasivos</p>
                   </div>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsAddingEntry(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -2214,7 +2222,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Seleccionar Trabajador</label>
-                      <select
+                      <select 
                         onChange={(e) => {
                           const empId = e.target.value;
                           if (!empId) return;
@@ -2224,7 +2232,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             const shift = getShiftForGroup(emp.shiftGroup as ShiftGroup);
                             let estNightHours = 0;
                             if (shift) {
-                              estNightHours = shift.nightHoursPerDay * 22; // 22 working days
+                               estNightHours = shift.nightHoursPerDay * 22; // 22 working days
                             }
 
                             const extras = calculateLOTTTExtras(emp.baseSalary, estNightHours, 0, 0);
@@ -2267,14 +2275,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <Calculator size={18} />
                     Componentes Automáticos (LOTTT)
                   </h3>
-
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
                         <Moon size={12} className="text-indigo-400" /> Horas Nocturnas (Mes)
                       </label>
                       <div className="flex gap-2">
-                        <input
+                        <input 
                           type="number"
                           value={payrollFormData.nightHoursWorked}
                           onChange={(e) => {
@@ -2297,7 +2305,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <Sun size={12} className="text-orange-400" /> Domingos / Feriados (Días)
                       </label>
                       <div className="flex gap-2">
-                        <input
+                        <input 
                           type="number"
                           value={payrollFormData.sundaysHolidaysWorked}
                           onChange={(e) => {
@@ -2320,7 +2328,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         <Clock size={12} className="text-emerald-400" /> Horas Extra (Sencillas)
                       </label>
                       <div className="flex gap-2">
-                        <input
+                        <input 
                           type="number"
                           value={payrollFormData.overtimeHoursWorked}
                           onChange={(e) => {
@@ -2347,7 +2355,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre del Trabajador</label>
                     <div className="relative">
                       <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
+                      <input 
                         required
                         type="text"
                         value={payrollFormData.employeeName}
@@ -2361,7 +2369,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cédula / ID</label>
                     <div className="relative">
                       <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
+                      <input 
                         required
                         type="text"
                         value={payrollFormData.employeeId}
@@ -2373,7 +2381,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
-                    <select
+                    <select 
                       required
                       value={payrollFormData.storeId}
                       onChange={(e) => setPayrollFormData({ ...payrollFormData, storeId: e.target.value })}
@@ -2388,7 +2396,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mes de Nómina</label>
-                    <input
+                    <input 
                       required
                       type="month"
                       value={payrollFormData.month}
@@ -2400,21 +2408,21 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sueldo Básico ($)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
+                      <input 
                         required
                         type="number"
                         step="0.01"
                         value={payrollFormData.baseSalary || ''}
                         onChange={(e) => {
-                          const baseSalary = parseFloat(e.target.value) || 0;
-                          const { deductions, liabilities } = calculateParafiscales(baseSalary, payrollFormData.bonuses);
-                          setPayrollFormData({
-                            ...payrollFormData,
-                            baseSalary,
-                            deductions,
-                            employerLiabilities: liabilities
-                          });
-                        }}
+                        const baseSalary = parseFloat(e.target.value) || 0;
+                        const { deductions, liabilities } = calculateParafiscales(baseSalary, payrollFormData.bonuses);
+                        setPayrollFormData({ 
+                          ...payrollFormData, 
+                          baseSalary,
+                          deductions,
+                          employerLiabilities: liabilities
+                        });
+                      }}
                         className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                         placeholder="0.00"
                       />
@@ -2440,10 +2448,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                         <TrendingUp size={18} /> Bonos Adicionales
                       </h3>
-                      <button
-                        type="button"
-                        onClick={() => setPayrollFormData({ ...payrollFormData, bonuses: [...payrollFormData.bonuses, { name: '', amount: 0 }] })}
-                        className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                      <button 
+                         type="button"
+                         onClick={() => setPayrollFormData({ ...payrollFormData, bonuses: [...payrollFormData.bonuses, { name: '', amount: 0 }] })}
+                         className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg hover:bg-emerald-500/20 transition-colors"
                       >
                         + Agregar
                       </button>
@@ -2451,7 +2459,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="space-y-3">
                       {payrollFormData.bonuses.map((bonus, idx) => (
                         <div key={idx} className="flex gap-2">
-                          <input
+                          <input 
                             type="text"
                             placeholder="Nombre del bono"
                             value={bonus.name}
@@ -2462,7 +2470,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                             }}
                             className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-emerald-500"
                           />
-                          <input
+                          <input 
                             type="number"
                             placeholder="0.00"
                             value={bonus.amount || ''}
@@ -2470,8 +2478,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               const newBonuses = [...payrollFormData.bonuses];
                               newBonuses[idx].amount = parseFloat(e.target.value) || 0;
                               const { deductions, liabilities } = calculateParafiscales(payrollFormData.baseSalary, newBonuses);
-                              setPayrollFormData({
-                                ...payrollFormData,
+                              setPayrollFormData({ 
+                                ...payrollFormData, 
                                 bonuses: newBonuses,
                                 deductions,
                                 employerLiabilities: liabilities
@@ -2490,7 +2498,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
                         <TrendingDown size={18} /> Deducciones Trabajador
                       </h3>
-                      <button
+                      <button 
                         type="button"
                         onClick={() => setPayrollFormData({ ...payrollFormData, deductions: [...payrollFormData.deductions, { name: '', amount: 0 }] })}
                         className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded-lg hover:bg-red-500/20 transition-colors"
@@ -2504,7 +2512,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         return (
                           <div key={idx} className="space-y-1">
                             <div className="flex gap-2">
-                              <input
+                              <input 
                                 type="text"
                                 placeholder="Nombre deducción"
                                 value={deduction.name}
@@ -2516,7 +2524,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-red-500"
                               />
                               <div className="relative">
-                                <input
+                                <input 
                                   type="number"
                                   placeholder="0.00"
                                   value={deduction.amount || ''}
@@ -2561,7 +2569,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <h3 className="text-sm font-bold text-orange-400 flex items-center gap-2">
                         <ShieldCheck size={18} /> Pasivos Patronales
                       </h3>
-                      <button
+                      <button 
                         type="button"
                         onClick={() => setPayrollFormData({ ...payrollFormData, employerLiabilities: [...payrollFormData.employerLiabilities, { name: '', amount: 0 }] })}
                         className="text-xs bg-orange-500/10 text-orange-500 px-2 py-1 rounded-lg hover:bg-orange-500/20 transition-colors"
@@ -2575,7 +2583,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         return (
                           <div key={idx} className="space-y-1">
                             <div className="flex gap-2">
-                              <input
+                              <input 
                                 type="text"
                                 placeholder="Nombre pasivo"
                                 value={liability.name}
@@ -2587,7 +2595,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
                               />
                               <div className="relative">
-                                <input
+                                <input 
                                   type="number"
                                   placeholder="0.00"
                                   value={liability.amount || ''}
@@ -2640,7 +2648,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="text-xs text-slate-500">Bs. {(calculateTotals(payrollFormData).totalEmployerCost * exchangeRate).toLocaleString()}</div>
                   </div>
                   <div className="flex items-end">
-                    <button
+                    <button 
                       type="submit"
                       className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-blue-900/30 flex items-center gap-2"
                     >
@@ -2659,15 +2667,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isAddingEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddingEmployee(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2683,7 +2691,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Información base para generación automática de nómina</p>
                   </div>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsAddingEmployee(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -2696,7 +2704,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Código (Asignado)</label>
-                    <input
+                    <input 
                       readOnly
                       type="text"
                       value={employeeFormData.code}
@@ -2706,7 +2714,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cédula / ID (Opcional)</label>
-                    <input
+                    <input 
                       disabled={!!editingEmployee}
                       type="text"
                       value={employeeIdInput}
@@ -2718,7 +2726,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nacionalidad</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.nationality}
@@ -2729,7 +2737,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nombres</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.name}
@@ -2740,7 +2748,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Apellidos</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.lastName}
@@ -2751,7 +2759,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Edad</label>
-                    <input
+                    <input 
                       required
                       type="number"
                       value={employeeFormData.age || ''}
@@ -2762,7 +2770,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Grado de Instrucción</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.educationLevel}
@@ -2773,7 +2781,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cargo</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.position}
@@ -2784,7 +2792,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Departamento</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.department}
@@ -2795,7 +2803,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Grupo de Horario (Turno)</label>
-                    <select
+                    <select 
                       value={employeeFormData.shiftGroup || ShiftGroup.NONE}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, shiftGroup: e.target.value as ShiftGroup })}
                       className="w-full px-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -2807,7 +2815,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Descripción del Cargo</label>
-                    <input
+                    <input 
                       type="text"
                       value={employeeFormData.positionDescription}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, positionDescription: e.target.value })}
@@ -2817,7 +2825,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Fecha de Ingreso</label>
-                    <input
+                    <input 
                       required
                       type="date"
                       value={employeeFormData.hireDate}
@@ -2827,7 +2835,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Fecha de Prestaciones Sociales al Día</label>
-                    <input
+                    <input 
                       type="date"
                       value={employeeFormData.socialBenefitsDate || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, socialBenefitsDate: e.target.value })}
@@ -2836,7 +2844,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Fecha de Egreso Proyectada</label>
-                    <input
+                    <input 
                       type="date"
                       value={employeeFormData.projectedExitDate || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectedExitDate: e.target.value })}
@@ -2845,7 +2853,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Correo Electrónico</label>
-                    <input
+                    <input 
                       type="email"
                       value={employeeFormData.email}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, email: e.target.value })}
@@ -2855,7 +2863,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Dirección del Proyecto</label>
-                    <input
+                    <input 
                       type="text"
                       value={employeeFormData.projectAddress || ''}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, projectAddress: e.target.value })}
@@ -2865,7 +2873,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Teléfono Directo</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.directPhone}
@@ -2876,7 +2884,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Teléfono de Emergencia</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.emergencyPhone}
@@ -2887,7 +2895,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Dirección Habitación</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.homeAddress}
@@ -2898,7 +2906,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sexo</label>
-                    <select
+                    <select 
                       required
                       value={employeeFormData.gender}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, gender: e.target.value })}
@@ -2910,7 +2918,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Usa Lentes</label>
-                    <select
+                    <select 
                       required
                       value={employeeFormData.wearsGlasses}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, wearsGlasses: e.target.value })}
@@ -2922,7 +2930,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Persona con Condición</label>
-                    <select
+                    <select 
                       required
                       value={employeeFormData.hasCondition}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, hasCondition: e.target.value })}
@@ -2934,7 +2942,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Estatura</label>
-                    <input
+                    <input 
                       required
                       type="text"
                       value={employeeFormData.height}
@@ -2945,7 +2953,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tienda Asignada</label>
-                    <select
+                    <select 
                       required
                       value={employeeFormData.storeId}
                       onChange={(e) => setEmployeeFormData({ ...employeeFormData, storeId: e.target.value })}
@@ -2960,7 +2968,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sueldo Base Mensual ($)</label>
-                    <input
+                    <input 
                       required
                       type="number"
                       step="0.01"
@@ -2968,8 +2976,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       onChange={(e) => {
                         const baseSalary = parseFloat(e.target.value) || 0;
                         const { deductions, liabilities } = calculateParafiscales(baseSalary, employeeFormData.defaultBonuses);
-                        setEmployeeFormData({
-                          ...employeeFormData,
+                        setEmployeeFormData({ 
+                          ...employeeFormData, 
                           baseSalary,
                           defaultDeductions: deductions,
                           defaultEmployerLiabilities: liabilities
@@ -2996,13 +3004,13 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       Calcular Aportes de Ley
                     </button>
                   </div>
-
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Default Bonuses */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bonos Fijos</h4>
-                        <button
+                        <button 
                           type="button"
                           onClick={() => setEmployeeFormData({ ...employeeFormData, defaultBonuses: [...employeeFormData.defaultBonuses, { name: '', amount: 0 }] })}
                           className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-500/20 transition-colors"
@@ -3013,7 +3021,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <div className="space-y-2">
                         {employeeFormData.defaultBonuses.map((bonus, idx) => (
                           <div key={idx} className="flex gap-2">
-                            <input
+                            <input 
                               type="text"
                               placeholder="Nombre bono"
                               value={bonus.name}
@@ -3024,7 +3032,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               }}
                               className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                             />
-                            <input
+                            <input 
                               type="number"
                               placeholder="0.00"
                               value={bonus.amount || ''}
@@ -3032,8 +3040,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                 const newBonuses = [...employeeFormData.defaultBonuses];
                                 newBonuses[idx].amount = parseFloat(e.target.value) || 0;
                                 const { deductions, liabilities } = calculateParafiscales(employeeFormData.baseSalary, newBonuses);
-                                setEmployeeFormData({
-                                  ...employeeFormData,
+                                setEmployeeFormData({ 
+                                  ...employeeFormData, 
                                   defaultBonuses: newBonuses,
                                   defaultDeductions: deductions,
                                   defaultEmployerLiabilities: liabilities
@@ -3050,7 +3058,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Deducciones Fijas</h4>
-                        <button
+                        <button 
                           type="button"
                           onClick={() => setEmployeeFormData({ ...employeeFormData, defaultDeductions: [...employeeFormData.defaultDeductions, { name: '', amount: 0 }] })}
                           className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-500/20 transition-colors"
@@ -3064,7 +3072,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           return (
                             <div key={idx} className="space-y-1">
                               <div className="flex gap-2">
-                                <input
+                                <input 
                                   type="text"
                                   placeholder="Nombre deducción"
                                   value={deduction.name}
@@ -3076,7 +3084,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                   className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <div className="relative">
-                                  <input
+                                  <input 
                                     type="number"
                                     placeholder="0.00"
                                     value={deduction.amount || ''}
@@ -3119,7 +3127,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pasivos Patronales</h4>
-                        <button
+                        <button 
                           type="button"
                           onClick={() => setEmployeeFormData({ ...employeeFormData, defaultEmployerLiabilities: [...employeeFormData.defaultEmployerLiabilities, { name: '', amount: 0 }] })}
                           className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-500/20 transition-colors"
@@ -3133,7 +3141,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           return (
                             <div key={idx} className="space-y-1">
                               <div className="flex gap-2">
-                                <input
+                                <input 
                                   type="text"
                                   placeholder="Nombre pasivo"
                                   value={liability.name}
@@ -3145,7 +3153,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                                   className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <div className="relative">
-                                  <input
+                                  <input 
                                     type="number"
                                     placeholder="0.00"
                                     value={liability.amount || ''}
@@ -3189,8 +3197,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <div className="bg-white/50 dark:bg-slate-950/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
+                      <input 
+                        type="checkbox" 
                         className="sr-only peer"
                         checked={employeeFormData.isActive}
                         onChange={(e) => setEmployeeFormData({ ...employeeFormData, isActive: e.target.checked })}
@@ -3199,7 +3207,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <span className="ml-3 text-sm font-bold text-slate-300">Empleado Activo</span>
                     </label>
                   </div>
-                  <button
+                  <button 
                     type="submit"
                     className="bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-indigo-900/30"
                   >
@@ -3215,12 +3223,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       {/* Modals */}
       <AnimatePresence>
         {isPPEModalOpen && ppeEmployee && (
-          <PPEModal
-            employee={ppeEmployee}
+          <PPEModal 
+            employee={ppeEmployee} 
             onClose={() => {
               setIsPPEModalOpen(false);
               setPpeEmployee(null);
-            }}
+            }} 
             onSave={onUpdateEmployee}
           />
         )}
@@ -3237,15 +3245,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {viewingEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingEmployee(null)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -3261,14 +3269,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-slate-500 dark:text-slate-400 font-mono text-sm">{viewingEmployee.id}</span>
                       <span className="text-slate-600">•</span>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${viewingEmployee.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                        }`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        viewingEmployee.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
                         {viewingEmployee.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </div>
                   </div>
                 </div>
-                <button
+                <button 
                   onClick={() => setViewingEmployee(null)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -3277,7 +3286,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
               </div>
 
               <div className="bg-slate-100 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
-                <button
+                <button 
                   onClick={() => {
                     setPpeEmployee(viewingEmployee);
                     setIsPPEModalOpen(true);
@@ -3287,7 +3296,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <ShieldCheck size={16} />
                   Seguridad Industrial (EPP)
                 </button>
-                <button
+                <button 
                   onClick={() => {
                     setPrestacionesEmployee(viewingEmployee);
                     setPrestacionesEndDate(new Date().toISOString().split('T')[0]);
@@ -3298,7 +3307,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <Landmark size={16} />
                   Calcular Prestaciones
                 </button>
-                <button
+                <button 
                   onClick={() => {
                     setAriEmployee(viewingEmployee);
                     setAriData({
@@ -3423,7 +3432,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <Calculator size={16} className="text-indigo-400" /> Configuración de Nómina
                   </h3>
-
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Bonos */}
                     <div className="space-y-3">
@@ -3470,7 +3479,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <ShieldCheck size={16} className="text-amber-500" /> Historial de Seguridad Industrial (EPP)
                   </h3>
-
+                  
                   {viewingEmployee.ppeAssignments && viewingEmployee.ppeAssignments.length > 0 ? (
                     <div className="space-y-4">
                       {viewingEmployee.ppeAssignments.map((assignment) => (
@@ -3530,7 +3539,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <p className="text-slate-500 font-mono text-sm">{viewingEntry.id} • {viewingEntry.month}</p>
                     </div>
                   </div>
-                  <button
+                  <button 
                     onClick={() => setViewingEntry(null)}
                     className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
                   >
@@ -3567,8 +3576,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       {viewingEntry.deductions.map((d, idx) => {
                         const { theoretical, diff, hasDiff } = getParafiscalDiff(d.name, d.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
                         return (
-                          <div key={idx} className={`p-4 rounded-xl border transition-all ${hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
-                            }`}>
+                          <div key={idx} className={`p-4 rounded-xl border transition-all ${
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
+                          }`}>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-sm font-medium text-slate-300">{d.name}</span>
                               <div className="flex items-center gap-3">
@@ -3608,8 +3618,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       {viewingEntry.employerLiabilities.map((l, idx) => {
                         const { theoretical, diff, hasDiff } = getParafiscalDiff(l.name, l.amount, viewingEntry.baseSalary, viewingEntry.bonuses);
                         return (
-                          <div key={idx} className={`p-4 rounded-xl border transition-all ${hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
-                            }`}>
+                          <div key={idx} className={`p-4 rounded-xl border transition-all ${
+                            hasDiff ? 'bg-orange-500/5 border-orange-500/30' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800'
+                          }`}>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-sm font-medium text-slate-300">{l.name}</span>
                               <div className="flex items-center gap-3">
@@ -3659,7 +3670,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 {(viewingEntry.bonoNocturnoAmount || viewingEntry.sundaysHolidaysAmount || viewingEntry.overtimeAmount) && (
                   <div className="mb-8 p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/20">
                     <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <Calculator size={16} /> Detalle de Componentes LOTTT
+                       <Calculator size={16} /> Detalle de Componentes LOTTT
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {viewingEntry.bonoNocturnoAmount ? (
@@ -3702,15 +3713,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isAriModalOpen && ariEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAriModalOpen(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -3726,7 +3737,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Cálculo de retención para {ariEmployee.name}</p>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsAriModalOpen(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -3742,14 +3753,14 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span className="text-slate-500 font-bold">Bs.</span>
                       </div>
-                      <input
-                        type="number"
+                      <input 
+                        type="number" 
                         value={ariData.estimatedIncomeBs || ''}
-                        onChange={(e) => setAriData({ ...ariData, estimatedIncomeBs: Number(e.target.value) })}
+                        onChange={(e) => setAriData({...ariData, estimatedIncomeBs: Number(e.target.value)})}
                         className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500">Equivale a ${(ariData.estimatedIncomeBs / exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
+                    <p className="text-[10px] text-slate-500">Equivale a ${(ariData.estimatedIncomeBs / exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})} USD</p>
                   </div>
 
                   <div className="space-y-2">
@@ -3758,10 +3769,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span className="text-slate-500 font-bold">Bs.</span>
                       </div>
-                      <input
-                        type="number"
+                      <input 
+                        type="number" 
                         value={ariData.estimatedExpensesBs || ''}
-                        onChange={(e) => setAriData({ ...ariData, estimatedExpensesBs: Number(e.target.value) })}
+                        onChange={(e) => setAriData({...ariData, estimatedExpensesBs: Number(e.target.value)})}
                         className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                       />
                     </div>
@@ -3769,22 +3780,22 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cargas Familiares</label>
-                    <input
-                      type="number"
+                    <input 
+                      type="number" 
                       min="0"
                       value={ariData.dependents}
-                      onChange={(e) => setAriData({ ...ariData, dependents: Number(e.target.value) })}
+                      onChange={(e) => setAriData({...ariData, dependents: Number(e.target.value)})}
                       className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor Unidad Tributaria (Bs)</label>
-                    <input
-                      type="number"
+                    <input 
+                      type="number" 
                       step="0.01"
                       value={ariData.taxUnitValueBs}
-                      onChange={(e) => setAriData({ ...ariData, taxUnitValueBs: Number(e.target.value) })}
+                      onChange={(e) => setAriData({...ariData, taxUnitValueBs: Number(e.target.value)})}
                       className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500 transition-all font-mono"
                     />
                   </div>
@@ -3795,27 +3806,28 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <Calculator size={16} className="text-purple-400" /> Resultados del Cálculo
                   </h3>
-
+                  
                   {(() => {
                     const result = calculateARI();
                     return (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
                           <span className="text-sm text-slate-500 dark:text-slate-400">Ingresos en UT</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">{result.incomeUT.toLocaleString(undefined, { maximumFractionDigits: 2 })} UT</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{result.incomeUT.toLocaleString(undefined, {maximumFractionDigits: 2})} UT</span>
                         </div>
-
+                        
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
                           <span className="text-sm text-slate-500 dark:text-slate-400">Obligación de Presentar AR-I</span>
-                          <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${result.isObligated ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'
-                            }`}>
+                          <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
+                            result.isObligated ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
                             {result.isObligated ? 'Obligatorio (> 1000 UT)' : 'No Obligatorio'}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
                           <span className="text-sm text-slate-500 dark:text-slate-400">Impuesto Anual Estimado</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">Bs. {result.totalTaxBs.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">Bs. {result.totalTaxBs.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                         </div>
 
                         <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
@@ -3827,9 +3839,9 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   })()}
                 </div>
               </div>
-
+              
               <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                <button
+                <button 
                   type="button"
                   onClick={() => setIsAriModalOpen(false)}
                   className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
@@ -3846,15 +3858,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isPrestacionesModalOpen && prestacionesEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsPrestacionesModalOpen(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -3870,7 +3882,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Liquidación estimativa para {prestacionesEmployee.name}</p>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsPrestacionesModalOpen(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -3890,8 +3902,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Cálculo</div>
-                    <input
-                      type="date"
+                    <input 
+                      type="date" 
                       value={prestacionesEndDate}
                       onChange={(e) => setPrestacionesEndDate(e.target.value)}
                       className="w-full bg-transparent text-slate-900 dark:text-white outline-none font-medium"
@@ -3903,8 +3915,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                       const result = calculatePrestaciones();
                       return result ? (
                         <div>
-                          <div className="text-slate-900 dark:text-white font-bold font-mono text-lg">${result.dailyIntegralSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                          <div className="text-xs text-slate-500">Bs. {(result.dailyIntegralSalary * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                          <div className="text-slate-900 dark:text-white font-bold font-mono text-lg">${result.dailyIntegralSalary.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                          <div className="text-xs text-slate-500">Bs. {(result.dailyIntegralSalary * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                         </div>
                       ) : <div className="text-slate-500">Fecha inválida</div>;
                     })()}
@@ -3964,7 +3976,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Monto Estimado</span>
-                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.totalGuaranteeAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.totalGuaranteeAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                               </div>
                             </div>
                           </div>
@@ -3991,7 +4003,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Monto Estimado</span>
-                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.literalCAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">${result.literalCAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
                               </div>
                             </div>
                           </div>
@@ -4007,17 +4019,17 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-3xl font-bold font-mono text-slate-900 dark:text-white">${result.finalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Bs. {(result.finalAmount * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                          <div className="text-3xl font-bold font-mono text-slate-900 dark:text-white">${result.finalAmount.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Bs. {(result.finalAmount * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                         </div>
                       </div>
                     </div>
                   );
                 })()}
               </div>
-
+              
               <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                <button
+                <button 
                   type="button"
                   onClick={() => {
                     const result = calculatePrestaciones();
@@ -4035,7 +4047,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   <HandCoins size={18} />
                   Solicitar Anticipo (75%)
                 </button>
-                <button
+                <button 
                   type="button"
                   onClick={() => setIsPrestacionesModalOpen(false)}
                   className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
@@ -4051,15 +4063,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isAnticipoModalOpen && anticipoEmployee && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAnticipoModalOpen(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -4075,7 +4087,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Solicitud para {anticipoEmployee.name} {anticipoEmployee.lastName}</p>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsAnticipoModalOpen(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -4087,11 +4099,11 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Acumulado Garantía</div>
-                    <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">${accumulatedPrestaciones.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">${accumulatedPrestaciones.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Máximo Anticipo (75%)</div>
-                    <div className="text-xl font-bold text-emerald-400 font-mono">${maxAnticipo.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <div className="text-xl font-bold text-emerald-400 font-mono">${maxAnticipo.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                   </div>
                 </div>
 
@@ -4100,7 +4112,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Monto a Solicitar ($)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
+                      <input 
                         type="number"
                         value={anticipoAmount}
                         onChange={(e) => {
@@ -4110,12 +4122,12 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                         className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-2xl text-slate-900 dark:text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">Equivalente a Bs. {(anticipoAmount * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Equivalente a Bs. {(anticipoAmount * exchangeRate).toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Motivo de la Solicitud</label>
-                    <textarea
+                    <textarea 
                       value={anticipoReason}
                       onChange={(e) => setAnticipoReason(e.target.value)}
                       placeholder="Ej: Gastos médicos, educación, vivienda..."
@@ -4131,16 +4143,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </p>
                 </div>
               </div>
-
+              
               <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                <button
+                <button 
                   type="button"
                   onClick={() => setIsAnticipoModalOpen(false)}
                   className="px-6 py-3 text-slate-300 hover:text-slate-900 dark:text-white font-bold transition-colors"
                 >
                   Cancelar
                 </button>
-                <button
+                <button 
                   onClick={() => {
                     generateAnticipoReceiptPDF(anticipoEmployee, anticipoAmount, accumulatedPrestaciones, anticipoReason);
                     setIsAnticipoModalOpen(false);
@@ -4160,15 +4172,15 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
       <AnimatePresence>
         {isFinanceModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsFinanceModalOpen(false)}
               className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
             />
-
-            <motion.div
+            
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -4184,7 +4196,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Registro de comprobantes de pago de nómina</p>
                 </div>
-                <button
+                <button 
                   onClick={() => setIsFinanceModalOpen(false)}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
                 >
@@ -4198,7 +4210,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Resumen de Nómina</h3>
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-slate-500" />
-                      <input
+                      <input 
                         type="month"
                         value={payrollDateFilter || new Date().toISOString().slice(0, 7)}
                         onChange={(e) => setPayrollDateFilter(e.target.value)}
@@ -4232,8 +4244,8 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                 <div className="space-y-4">
                   <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Comprobante de Pago de Nómina</label>
                   <div className="relative group">
-                    <input
-                      type="file"
+                    <input 
+                      type="file" 
                       accept="application/pdf,image/*"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
@@ -4266,16 +4278,16 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
                   </div>
                 </div>
               </div>
-
+              
               <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                <button
+                <button 
                   type="button"
                   onClick={() => setIsFinanceModalOpen(false)}
                   className="px-6 py-3 text-slate-500 hover:text-slate-900 dark:text-white font-bold transition-colors"
                 >
                   Cerrar
                 </button>
-                <button
+                <button 
                   disabled={!financeComprobante || isUploadingFinance}
                   onClick={() => {
                     setNotification('✅ Información de pago guardada exitosamente');

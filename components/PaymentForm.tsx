@@ -33,7 +33,8 @@ import {
   ArrowRight,
   Calendar,
   Lock,
-  Unlock
+  Unlock,
+  X
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role } from '../types';
 import { formatDate, getFrequencyDays, calculateNextDueDate, formatDateTime } from '../src/utils';
@@ -94,8 +95,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [specificType, setSpecificType] = React.useState(initialData?.specificType || '');
   
   // Archivos
-  const [file, setFile] = React.useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialData?.receiptUrl || null);
+  const [files, setFiles] = React.useState<File[]>([]);
+  const [attachments, setAttachments] = React.useState<string[]>(initialData?.attachments || [initialData?.receiptUrl, initialData?.receiptUrl2].filter(Boolean) as string[]);
+  const [previewUrls, setPreviewUrls] = React.useState<string[]>([]);
 
   // --- Justification State ---
   const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
@@ -160,7 +162,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         }
       }
 
-      setPreviewUrl(initialData.receiptUrl || null);
+      setAttachments(initialData.attachments || [initialData.receiptUrl, initialData.receiptUrl2].filter(Boolean) as string[]);
+      setFiles([]);
+      setPreviewUrls([]);
       setIsOverBudget(initialData.isOverBudget || false);
       
       // Initialize proposed fields
@@ -190,8 +194,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setSpecificType('');
       setTaxGroup('');
       setTaxItem('');
-      setPreviewUrl(null);
-      setFile(null);
+      setFiles([]);
+      setPreviewUrls([]);
+      setAttachments([]);
       setIsOverBudget(false);
       setDocDate('');
       setDocAmount('');
@@ -233,8 +238,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     setFrequency(PaymentFrequency.NONE);
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setSpecificType('');
-    setFile(null);
-    setPreviewUrl(null);
+    setFiles([]);
+    setAttachments([]);
+    setPreviewUrls([]);
     setIsOverBudget(false);
     setDocDate('');
     setDocAmount('');
@@ -487,7 +493,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             // Try to get specific date from RIF logic (Gaceta 43.273)
             // Use the first item in group as representative for code checking
             const repItem = config.items[0];
-            const rifDate = (storeObj && repItem) 
+            const rifDate = (storeObj && repItem && category) 
                ? getFiscalDueDate(category, repItem.code, storeObj.rifEnding || 0, now) 
                : null;
 
@@ -574,12 +580,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     });
   }, [payments, currentUser, stores]);
 
-  // Clean up preview URL
+  // Clean up preview URLs
   React.useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   React.useEffect(() => {
     const fetchHistoricalRate = async () => {
@@ -622,7 +628,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         let hasRed = false;
         let hasOrange = false;
         
-        const baseStatus = getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj);
+        const baseStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj) : null;
 
         groupConfig.items.forEach(item => {
             const itemPayments = payments.filter(p => {
@@ -727,7 +733,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         };
       }
 
-      const status = getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj);
+      const status = category ? getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj) : { status: 'En fecha', color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', icon: CheckCircle2 };
       // Map 'Próximo' to 'Enviado' (Orange) if we want to follow the user's color logic strictly
       // but 'Próximo' is a date status, not a payment status.
       // However, the user wants Orange for "sent to auditor".
@@ -785,7 +791,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             } else if (hasApprovedOrPaid) {
                 statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
             } else {
-                const dateStatus = getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj);
+                const dateStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj) : { status: 'En fecha', color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', icon: CheckCircle2 };
                 statusInfo = { 
                     ...dateStatus, 
                     status: dateStatus.status === 'Próximo' ? 'Próximo' : (dateStatus.status === 'En fecha' ? 'Al día' : dateStatus.status)
@@ -812,53 +818,61 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length > 0) {
         const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-        if (!allowedTypes.includes(selectedFile.type)) {
-            setErrors(prev => ({...prev, file: "Formato no permitido. Use PDF, JPG o PNG."}));
-            return;
-        }
-
-        // Nuevo: Ambos permiten 10MB porque los PDFs grandes se convierten a Imagen optimizada
         const limitMB = 10;
         const maxSize = limitMB * 1024 * 1024;
         
-        if (selectedFile.size > maxSize) {
-            setErrors(prev => ({
-                ...prev, 
-                file: `Archivo muy grande. El límite máximo es ${limitMB}MB.`
-            }));
-            return;
+        const validFiles: File[] = [];
+        const newPreviewUrls: string[] = [];
+
+        for (const file of selectedFiles) {
+            if (!allowedTypes.includes(file.type)) {
+                setErrors(prev => ({...prev, file: `Formato no permitido para ${file.name}. Use PDF, JPG o PNG.`}));
+                continue;
+            }
+            if (file.size > maxSize) {
+                setErrors(prev => ({...prev, file: `${file.name} es muy grande. El límite es ${limitMB}MB.`}));
+                continue;
+            }
+            validFiles.push(file);
+            if (file.type.startsWith('image/')) {
+                newPreviewUrls.push(URL.createObjectURL(file));
+            }
         }
 
-        setIsFileScanning(true);
-        setUploadProgress(0);
-        setFile(null); 
-        setPreviewUrl(null);
-        
-        // More robust simulated progress based on file size
-        const duration = Math.min(2000, Math.max(800, (selectedFile.size / 1024 / 1024) * 200));
-        const steps = 20;
-        const interval = duration / steps;
+        if (validFiles.length > 0) {
+            setIsFileScanning(true);
+            setUploadProgress(0);
+            
+            const duration = 1000;
+            const steps = 10;
+            const interval = duration / steps;
+            for (let i = 0; i <= 100; i += (100 / steps)) {
+                setUploadProgress(Math.min(100, Math.round(i)));
+                await new Promise(resolve => setTimeout(resolve, interval));
+            }
 
-        for (let i = 0; i <= 100; i += (100 / steps)) {
-            setUploadProgress(Math.min(100, Math.round(i)));
-            await new Promise(resolve => setTimeout(resolve, interval));
+            setFiles(prev => [...prev, ...validFiles]);
+            setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+            setIsFileScanning(false);
+            setErrors(prev => { const newErrs = {...prev}; delete newErrs.file; return newErrs; });
         }
-
-        if (selectedFile.type.startsWith('image/')) {
-            setPreviewUrl(URL.createObjectURL(selectedFile));
-        }
-        setFile(selectedFile);
-        setIsFileScanning(false);
-        setErrors(prev => { const newErrs = {...prev}; delete newErrs.file; return newErrs; });
     }
   };
 
-  const clearFile = (e: React.MouseEvent) => {
-      e.stopPropagation(); e.preventDefault();
-      setFile(null); setPreviewUrl(null);
+  const removeFile = (index: number, isExisting: boolean) => {
+    if (isExisting) {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    } else {
+        const fileToRemove = files[index];
+        const previewUrlToRemove = previewUrls[index];
+        if (previewUrlToRemove) URL.revokeObjectURL(previewUrlToRemove);
+        
+        setFiles(prev => prev.filter((_, i) => i !== index));
+        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const validate = () => {
@@ -882,7 +896,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    if (!file && !isFileScanning && !initialData?.receiptUrl) newErrors.file = "Comprobante requerido";
+    if (files.length === 0 && attachments.length === 0 && !isFileScanning) newErrors.file = "Al menos un comprobante es requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -917,7 +931,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             daysToExpire: daysToExpire ? parseInt(daysToExpire) : undefined,
             frequency,
             specificType,
-            file,
+            files,
+            attachments,
             notes,
             // Extra Data
             originalBudget: expectedBudget,
@@ -1147,10 +1162,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Guía de Categoría</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                     {[
-                                        { id: Category.NATIONAL_TAX, desc: 'Impuestos y contribuciones nacionales (SENIAT, INCES, IVSS).' },
                                         { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
                                         { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
-                                        { id: Category.INSTITUTIONS, desc: 'Instituciones Nacionales y Regionales (SNC, RUPDAE, FONACIT).' },
+                                        { id: Category.INSTITUTIONS, desc: 'Trámites ante instituciones nacionales y regionales (SNC, RUPDAE, FONACIT, INSALUD).' },
                                         { id: Category.TRANSPORT, desc: 'Documentos de chofer, vehículo y mantenimiento.' },
                                         { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
                                         { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
@@ -1168,10 +1182,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">Categoría Fiscal</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                         {[
-                            { id: Category.NATIONAL_TAX, label: 'Nacional', icon: Landmark },
                             { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2 },
                             { id: Category.OBJECT, label: 'Objeto', icon: FileText },
-                            { id: Category.INSTITUTIONS, label: 'Instituciones', icon: Landmark },
+                            { id: Category.INSTITUTIONS, label: 'Nacional y Regional', icon: Landmark },
                             { id: Category.TRANSPORT, label: 'Transporte', icon: FileText },
                             { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText },
                             { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText },
@@ -1716,98 +1729,75 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             {/* File Upload */}
                             <div className="space-y-6">
                                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo Principal</label>
-                                <label className={`relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-3xl transition-all group overflow-hidden ${
-                                    isSubmitting || isFileScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-slate-900/40'
-                                } ${
-                                    file || previewUrl ? 'border-emerald-500/50 bg-emerald-500/5' : 
-                                    initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/50 bg-red-500/5 hover:border-red-500' :
-                                    errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-700'
+                                <label className={`relative block rounded-[2.5rem] border-2 border-dashed transition-all duration-500 overflow-hidden group cursor-pointer ${
+                                    errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-800 hover:border-brand-500/50 bg-[#0a0c10]'
                                 }`}>
-                                    {/* Overlay de Carga de Archivo */}
-                                    {isFileScanning && (
-                                        <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-950/95 flex flex-col items-center justify-center backdrop-blur-md p-8 animate-in fade-in duration-300">
-                                            <div className="relative mb-6">
-                                                <div className="absolute inset-0 bg-brand-500/20 rounded-full blur-xl animate-pulse"></div>
-                                                <Scan className="w-12 h-12 text-brand-500 relative animate-bounce" />
-                                            </div>
-                                            <span className="text-sm font-black text-brand-500 uppercase tracking-[0.2em] mb-4 text-center">
-                                                Procesando y Validando<br/>
-                                                <span className="text-[10px] text-slate-400 lowercase tracking-normal font-medium italic">Verificando integridad del archivo...</span>
-                                            </span>
-                                            <div className="w-full max-w-[260px] bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden shadow-inner relative">
-                                                <div 
-                                                    className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(14,165,233,0.4)]" 
-                                                    style={{ width: `${uploadProgress}%` }}
-                                                ></div>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ transform: `translateX(${uploadProgress - 100}%)` }}></div>
-                                            </div>
-                                            <div className="flex justify-between w-full max-w-[260px] mt-3">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{uploadProgress}% Completado</span>
-                                                <span className="text-[10px] font-black text-brand-500 uppercase tracking-tighter animate-pulse">
-                                                    {uploadProgress < 30 ? 'Iniciando...' : uploadProgress < 70 ? 'Escaneando...' : 'Finalizando...'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex flex-col items-center justify-center w-full h-full p-4">
-                                        {file || previewUrl ? (
-                                            <div className="w-full h-full relative group/file">
-                                                {previewUrl ? (
-                                                    <div className="w-full h-full relative p-2">
-                                                        <img
-                                                            src={previewUrl}
-                                                            alt="Preview"
-                                                            className="w-full h-full object-contain rounded-2xl shadow-2xl bg-slate-50 dark:bg-slate-950/50"
-                                                        />
-                                                        <div className="absolute inset-0 m-2 rounded-2xl bg-slate-950/60 opacity-0 group-hover/file:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
-                                                            <button
-                                                                onClick={clearFile}
-                                                                type="button"
-                                                                className="bg-red-500 hover:bg-red-600 text-slate-900 dark:text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                                <span>Eliminar</span>
-                                                            </button>
-                                                        </div>
-                                                        <div className="absolute top-4 right-4 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg z-10 pointer-events-none animate-in zoom-in duration-300">
-                                                            <CheckCircle2 size={18} />
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800">
-                                                        <div className="bg-red-500/20 p-5 rounded-2xl mb-4 ring-4 ring-red-500/5 group-hover/file:scale-110 transition-transform duration-300">
-                                                            <FileText size={40} className="text-red-500 dark:text-red-400" />
-                                                        </div>
-                                                        <p className="text-sm font-black text-slate-900 dark:text-white truncate max-w-[240px] mb-1 uppercase tracking-tight">
-                                                            {file?.name || 'Documento Adjunto'}
-                                                        </p>
-                                                        {file && (
-                                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter mb-5 bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
-                                                                {(file.size / (1024 * 1024)).toFixed(2)} MB
-                                                            </p>
-                                                        )}
-                                                        <button
-                                                            onClick={clearFile}
-                                                            type="button"
-                                                            className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-all"
-                                                        >
-                                                            <Trash2 size={14} /> Eliminar Adjunto
-                                                        </button>
-                                                    </div>
-                                                )}
+                                    <div className="p-10 flex flex-col items-center justify-center min-h-[320px] relative z-10 text-center">
+                                        {isFileScanning ? (
+                                            <div className="flex flex-col items-center animate-in zoom-in duration-300">
+                                                <div className="w-16 h-16 border-4 border-brand-500/10 border-t-brand-500 rounded-full animate-spin mb-6"></div>
+                                                <p className="font-black uppercase tracking-widest text-brand-500 text-sm mb-2">Procesando Archivos...</p>
+                                                <div className="w-48 h-1.5 bg-brand-500/10 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-brand-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                                                </div>
                                             </div>
                                         ) : (
                                             <>
                                                 <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
                                                     <Upload size={32} />
                                                 </div>
-                                                <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Subir Comprobante</p>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Formatos: PDF, JPG, PNG</p>
-                                                <div className="mt-3 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
+                                                <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Cargar Comprobantes</p>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Seleccione uno o más (PDF, JPG, PNG)</p>
+                                                
+                                                {(files.length > 0 || attachments.length > 0) && (
+                                                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                                                        {attachments.map((url, idx) => (
+                                                            <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-slate-800">
+                                                                {url.startsWith('data:image/') || url.includes('firebasestorage') || url.includes('googleusercontent') ? (
+                                                                    <img src={url} alt="Soporte" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                                                        <FileText size={24} className="text-slate-600" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => removeFile(idx, true)}
+                                                                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {files.map((f, idx) => (
+                                                            <div key={`new-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-brand-500/20">
+                                                                {f.type.startsWith('image/') ? (
+                                                                    <img src={URL.createObjectURL(f)} alt="Nuevo Soporte" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full bg-brand-500/5 flex items-center justify-center">
+                                                                        <FileText size={24} className="text-brand-400" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => removeFile(idx, false)}
+                                                                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-6 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
                                                     <p className="text-[9px] text-brand-600 dark:text-brand-400 font-black uppercase tracking-widest text-center leading-tight">
-                                                        Límites: PDF e Imágenes 10MB<br/>
-                                                        (Conversión de PDF a Imagen Activa)
+                                                        Límites: PDF e Imágenes 10MB c/u<br/>
+                                                        (Multi-archivos activado)
                                                     </p>
                                                 </div>
                                             </>
@@ -1817,6 +1807,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="file" 
                                         className="hidden" 
                                         accept=".pdf,.jpg,.jpeg,.png" 
+                                        multiple
                                         onChange={handleFileChange} 
                                         disabled={isSubmitting || isFileScanning}
                                     />

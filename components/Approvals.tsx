@@ -746,57 +746,44 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                         </div>
                                         
-                                        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group border border-slate-100 dark:border-slate-800 shadow-inner flex flex-col gap-4 p-2 overflow-y-auto">
-                                            {selectedPayment.receiptUrl ? (
-                                                <div className="w-full min-h-[400px] flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800 rounded-xl relative">
-                                                    <div className="absolute top-2 left-2 bg-slate-900/50 text-white text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest z-10 backdrop-blur-sm">Principal</div>
-                                                    {isPdf(selectedPayment.receiptUrl) ? (
+                                        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group border border-slate-100 dark:border-slate-800 shadow-inner flex flex-col gap-6 p-4 overflow-y-auto">
+                                            {((selectedPayment.attachments && selectedPayment.attachments.length > 0) 
+                                                ? selectedPayment.attachments 
+                                                : [selectedPayment.receiptUrl, selectedPayment.receiptUrl2].filter(Boolean)
+                                            ).map((url, idx) => (
+                                                <div key={`attachment-${idx}`} className="w-full min-h-[400px] flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800 rounded-xl relative bg-slate-50/50 dark:bg-slate-950/20">
+                                                    <div className="absolute top-2 left-2 bg-slate-900/60 text-white text-[8px] px-2 py-1 rounded-lg uppercase font-black tracking-widest z-10 backdrop-blur-md border border-white/10">
+                                                        Soporte #{idx + 1} {idx === 0 ? '(Principal)' : ''}
+                                                    </div>
+                                                    <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                                        <button 
+                                                            onClick={() => openInNewTab(url!)}
+                                                            className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white transition-colors shadow-sm"
+                                                            title="Ver Pantalla Completa"
+                                                        >
+                                                            <ExternalLink size={14} />
+                                                        </button>
+                                                    </div>
+                                                    {isPdf(url) ? (
                                                         <embed
-                                                            src={selectedPayment.receiptUrl}
+                                                            src={url}
                                                             type="application/pdf"
-                                                            className="w-full h-full rounded-lg"
+                                                            className="w-full h-[600px] rounded-lg"
                                                         />
                                                     ) : (
                                                         <img 
-                                                            src={selectedPayment.receiptUrl} 
-                                                            alt="Recibo Principal" 
+                                                            src={url} 
+                                                            alt={`Soporte ${idx + 1}`} 
                                                             className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.02]"
                                                             onError={() => setImageError(true)}
                                                         />
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="w-full h-40 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                                                    <FileText size={24} strokeWidth={1} />
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest mt-2">Sin Soporte Principal</p>
-                                                </div>
-                                            )}
-
-                                            {selectedPayment.receiptUrl2 && (
-                                                <div className="w-full min-h-[400px] flex items-center justify-center p-2 border border-slate-100 dark:border-slate-800 rounded-xl relative mt-2">
-                                                    <div className="absolute top-2 left-2 bg-blue-600/50 text-white text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest z-10 backdrop-blur-sm">Adicional</div>
-                                                    <div className="absolute top-2 right-2 flex gap-2 z-10">
-                                                        <button 
-                                                            onClick={() => openInNewTab(selectedPayment.receiptUrl2!)}
-                                                            className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white transition-colors shadow-sm"
-                                                            title="Abrir en pestaña nueva"
-                                                        >
-                                                            <ExternalLink size={12} />
-                                                        </button>
-                                                    </div>
-                                                    {isPdf(selectedPayment.receiptUrl2) ? (
-                                                        <embed
-                                                            src={selectedPayment.receiptUrl2}
-                                                            type="application/pdf"
-                                                            className="w-full h-full rounded-lg"
-                                                        />
-                                                    ) : (
-                                                        <img 
-                                                            src={selectedPayment.receiptUrl2} 
-                                                            alt="Recibo Adicional" 
-                                                            className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.02]"
-                                                        />
-                                                    )}
+                                            ))}
+                                            {!(selectedPayment.attachments?.length) && !selectedPayment.receiptUrl && (
+                                                <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                                                    <FileText size={48} strokeWidth={1} className="text-slate-200 dark:text-slate-800 mb-4" />
+                                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Sin Comprobantes Disponibles</p>
                                                 </div>
                                             )}
                                         </div>

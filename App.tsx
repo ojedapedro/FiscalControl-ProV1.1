@@ -725,37 +725,25 @@ function App({}: AppProps = {}) {
           note: isUpdate ? 'Pago corregido tras devolución' : undefined
         };
 
-        let receiptUrl = isUpdate ? originalPayment?.receiptUrl : undefined;
-        let receiptUrl2 = isUpdate ? originalPayment?.receiptUrl2 : undefined;
+        let attachments: string[] = paymentData.attachments || [];
         
         const paymentId = paymentData.id || `PAG-${Math.floor(Math.random() * 10000)}`;
 
-        if (paymentData.file && paymentData.file instanceof File) {
-            try {
-                console.log("📂 Procesando archivo 1...");
-                receiptUrl = await fileToBase64(paymentData.file);
-                console.log("✅ Archivo 1 procesado.");
-            } catch (e: any) {
-                console.error("❌ Error processing file 1", e);
-                setNotification(e.message || "Error procesando el comprobante principal.");
-                throw e; 
-            }
-        } else if (paymentData.file && typeof paymentData.file === 'string') {
-            receiptUrl = paymentData.file;
-        }
-
-        if (paymentData.file2 && paymentData.file2 instanceof File) {
-            try {
-                console.log("📂 Procesando archivo 2...");
-                receiptUrl2 = await fileToBase64(paymentData.file2);
-                console.log("✅ Archivo 2 procesado.");
-            } catch (e: any) {
-                console.error("❌ Error processing file 2", e);
-                setNotification(e.message || "Error procesando el soporte adicional.");
-                throw e;
-            }
-        } else if (paymentData.file2 && typeof paymentData.file2 === 'string') {
-            receiptUrl2 = paymentData.file2;
+        if (paymentData.files && paymentData.files.length > 0) {
+            console.log(`📂 Procesando ${paymentData.files.length} archivos nuevos...`);
+            const newAttachments = await Promise.all(
+                paymentData.files.map(async (file: File, idx: number) => {
+                    try {
+                        console.log(`Procesando archivo ${idx + 1}: ${file.name}...`);
+                        return await fileToBase64(file);
+                    } catch (e: any) {
+                        console.error(`❌ Error processing file ${idx + 1}:`, e);
+                        throw new Error(`Error en archivo ${file.name}: ${e.message}`);
+                    }
+                })
+            );
+            attachments = [...attachments, ...newAttachments];
+            console.log("✅ Archivos procesados.");
         }
 
         // Create the payment object
@@ -771,12 +759,15 @@ function App({}: AppProps = {}) {
           history: isUpdate 
             ? [...(originalPayment?.history || []), log]
             : [log],
-          receiptUrl: receiptUrl,
-          receiptUrl2: receiptUrl2,
+          attachments: attachments,
+          // Mantener legacy fields por compatibilidad
+          receiptUrl: attachments[0] || undefined,
+          receiptUrl2: attachments[1] || undefined,
         };
         
         if ((paymentToSave as any).file) delete (paymentToSave as any).file;
         if ((paymentToSave as any).file2) delete (paymentToSave as any).file2;
+        if ((paymentToSave as any).files) delete (paymentToSave as any).files;
 
         console.log("💾 Guardando pago en Firestore...");
         if (isUpdate) {

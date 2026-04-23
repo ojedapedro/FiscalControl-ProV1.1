@@ -16,10 +16,9 @@ export enum PaymentStatus {
 }
 
 export enum Category {
-  NATIONAL_TAX = 'Impuesto Nacional',
   MUNICIPAL_TAX = 'Impuesto Municipal',
   OBJECT = 'Objeto',
-  INSTITUTIONS = 'Instituciones Nacionales y Regionales',
+  INSTITUTIONS = 'Nacional y Regional',
   TRANSPORT = 'Transporte',
   SENIAT_DECLARATIONS = 'SENIAT Declaraciones y Contabilidad',
   SENIAT_BOOKS = 'SENIAT Libros',
@@ -94,6 +93,7 @@ export interface Payment {
   status: PaymentStatus;
   receiptUrl?: string;
   receiptUrl2?: string;
+  attachments?: string[];
   notes?: string;
   rejectionReason?: string;
   submittedDate: string;
