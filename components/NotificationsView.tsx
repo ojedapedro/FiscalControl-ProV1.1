@@ -26,6 +26,7 @@ import { api } from '../services/api';
 import { firestoreService } from '../services/firestoreService';
 import { notificationService } from '../services/notificationService';
 import { formatTime } from '../src/utils';
+import { sendPushNotification, requestNotificationPermission } from '../src/utils/pushNotifications';
 import { Building2 } from 'lucide-react';
 
 interface NotificationsViewProps {
@@ -225,10 +226,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
   // Request Notification Permission
   useEffect(() => {
-    if (config.pushEnabled && 'Notification' in window) {
-      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        Notification.requestPermission();
-      }
+    if (config.pushEnabled) {
+      requestNotificationPermission();
     }
   }, [config.pushEnabled]);
 
@@ -272,11 +271,11 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
     if (newAlertsCount > 0) {
       if (newAlertsCount === 1 && lastAlert) {
-        new Notification('Forza 22', {
+        sendPushNotification('Forza 22', {
           body: `${(lastAlert as AlertItem).storeName}: ${(lastAlert as AlertItem).title} - ${(lastAlert as AlertItem).timeLabel}`
         });
       } else {
-        new Notification('Forza 22', {
+        sendPushNotification('Forza 22', {
           body: `Tienes ${newAlertsCount} nuevas alertas de pagos.`
         });
       }
@@ -317,8 +316,8 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   const handleTestNotification = async () => {
     setIsTesting(true);
     try {
-      if (config.pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Forza 22', {
+      if (config.pushEnabled && Notification.permission === 'granted') {
+        sendPushNotification('Forza 22', {
           body: 'Esta es una notificación de prueba.',
         });
       }

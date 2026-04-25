@@ -26,6 +26,7 @@ import { authService } from './services/auth';
 import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
+import { sendPushNotification, requestNotificationPermission } from './src/utils/pushNotifications';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { calculateNextDueDate } from './src/utils';
 import { getTaxConfig } from './src/taxConfigurations';
@@ -106,24 +107,22 @@ function App({}: AppProps = {}) {
     const hasShownPwaNotification = sessionStorage.getItem('pwa_notification_shown');
 
     if (isStandalone && !hasShownPwaNotification) {
-      if ('Notification' in window) {
-        if (Notification.permission === 'granted') {
-          new Notification('¡Bienvenido a Forza 22!', {
-            body: 'Estás usando la aplicación en modo PWA.',
-            icon: APP_LOGO_URL
-          });
-          sessionStorage.setItem('pwa_notification_shown', 'true');
-        } else if (Notification.permission !== 'denied') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              new Notification('¡Bienvenido a Forza 22!', {
-                body: 'Estás usando la aplicación en modo PWA.',
-                icon: APP_LOGO_URL
-              });
-              sessionStorage.setItem('pwa_notification_shown', 'true');
-            }
-          });
-        }
+      if (Notification.permission === 'granted') {
+        sendPushNotification('¡Bienvenido a Forza 22!', {
+          body: 'Estás usando la aplicación en modo PWA.',
+          icon: APP_LOGO_URL
+        });
+        sessionStorage.setItem('pwa_notification_shown', 'true');
+      } else if (Notification.permission !== 'denied') {
+        requestNotificationPermission().then(permission => {
+          if (permission === 'granted') {
+            sendPushNotification('¡Bienvenido a Forza 22!', {
+              body: 'Estás usando la aplicación en modo PWA.',
+              icon: APP_LOGO_URL
+            });
+            sessionStorage.setItem('pwa_notification_shown', 'true');
+          }
+        });
       }
     }
   }, []);
@@ -572,14 +571,10 @@ function App({}: AppProps = {}) {
   };
 
   const requestPermission = () => {
-    if (!('Notification' in window)) {
-      console.log("Este navegador no soporta notificaciones de escritorio");
-      return;
-    }
-    Notification.requestPermission().then(permission => {
+    requestNotificationPermission().then(permission => {
       setPushPermission(permission);
       if (permission === 'granted') {
-        new Notification("¡Notificaciones Activadas!", {
+        sendPushNotification("¡Notificaciones Activadas!", {
           body: "Ahora recibirás alertas importantes de Forza 22.",
           icon: APP_LOGO_URL
         });

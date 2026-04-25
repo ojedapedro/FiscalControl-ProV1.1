@@ -19,15 +19,13 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Script de diagnóstico de arranque -->
+    <!-- Registro de Service Worker para PWA y Notificaciones -->
     <script>
-      // Unregister any existing service workers to ensure the latest version is loaded
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('Service Worker unregistered to force update.');
-          }
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('SW: Registrado correctamente', reg.scope))
+            .catch(err => console.error('SW: Error al registrar', err));
         });
       }
 
