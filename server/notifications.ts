@@ -2,6 +2,7 @@ import twilio from 'twilio';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { SystemSettings, PaymentStatus } from '../types.ts';
+import { splitMessage } from '../src/utils.ts';
 import fs from 'fs';
 import path from 'path';
 
@@ -148,24 +149,28 @@ export async function checkAndSendNotifications() {
 
     const results = await Promise.all(uniqueRecipients.map(async (to) => {
       try {
-        // Soporte para Gateway Externo (CallMeBot, etc)
-        if (gatewayUrl && gatewayUrl.includes('[MESSAGE]')) {
-          const cleanPhone = to.replace('whatsapp:', '').replace('+', '');
-          const finalUrl = gatewayUrl
-            .replace('[PHONE]', cleanPhone)
-            .replace('[MESSAGE]', encodeURIComponent(message));
-          
-          await fetch(finalUrl);
-          return { to, success: true, method: 'gateway' };
+        const messageChunks = splitMessage(message, 1500);
+        
+        for (const chunk of messageChunks) {
+          // Soporte para Gateway Externo (CallMeBot, etc)
+          if (gatewayUrl && gatewayUrl.includes('[MESSAGE]')) {
+            const cleanPhone = to.replace('whatsapp:', '').replace('+', '');
+            const finalUrl = gatewayUrl
+              .replace('[PHONE]', cleanPhone)
+              .replace('[MESSAGE]', encodeURIComponent(chunk));
+            
+            await fetch(finalUrl);
+          } else {
+            // Si no hay gateway URL, usar Twilio (Default)
+            await client!.messages.create({
+              from: fromFormatted,
+              to: to,
+              body: chunk
+            });
+          }
         }
-
-        // Si no hay gateway URL, usar Twilio (Default)
-        await client!.messages.create({
-          from: fromFormatted,
-          to: to,
-          body: message
-        });
-        return { to, success: true, method: 'twilio' };
+        
+        return { to, success: true, method: gatewayUrl ? 'gateway' : 'twilio' };
       } catch (err: any) {
         let errorHint = '';
         if (err.message.includes('Channel')) {

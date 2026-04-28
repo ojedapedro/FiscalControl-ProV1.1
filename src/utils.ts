@@ -109,3 +109,33 @@ export const calculateNextDueDate = (currentDate: string, frequency: string): st
   
   return `${nextYear}-${nextMonth}-${nextDay}`;
 };
+
+export const splitMessage = (message: string, limit: number = 1500): string[] => {
+  if (message.length <= limit) return [message];
+  
+  const chunks: string[] = [];
+  let currentPos = 0;
+  
+  while (currentPos < message.length) {
+    let endPos = currentPos + limit;
+    if (endPos >= message.length) {
+      chunks.push(message.substring(currentPos));
+      break;
+    }
+    
+    // Try to find a good place to split (newline or space)
+    let lastIndex = message.lastIndexOf('\n', endPos);
+    if (lastIndex <= currentPos) {
+      lastIndex = message.lastIndexOf(' ', endPos);
+    }
+    
+    if (lastIndex > currentPos) {
+      endPos = lastIndex;
+    }
+    
+    chunks.push(message.substring(currentPos, endPos));
+    currentPos = endPos;
+  }
+  
+  return chunks;
+};

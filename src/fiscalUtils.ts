@@ -18,13 +18,12 @@ export const getFiscalDueDate = (category: Category, itemCode: string, rifEnding
   const monthIdx = date.getMonth(); // 0-11
   
   // Logic for SPE (Sujetos Pasivos Especiales) - IVA and Biweekly Retentions
-  // These usually have prefixes starting with 2.1 (IVA) or 7.3-7.6 (Biweekly SENIAT)
-  const isBiweekly = itemCode.startsWith('2.1') || 
-                     itemCode.startsWith('7.3') || 
+  // These usually have prefixes starting with 7.3-7.6 or 7.8 (Biweekly SENIAT)
+  const isBiweekly = itemCode.startsWith('7.3') || 
                      itemCode.startsWith('7.4') || 
                      itemCode.startsWith('7.5') || 
-                     itemCode.startsWith('7.6') ||
-                     itemCode.startsWith('2.3'); // IGTF
+                     itemCode.startsWith('7.8') || // IGTF
+                     itemCode.startsWith('2.1'); // Legacy check
 
   if (isBiweekly) {
     const day = date.getDate();
@@ -48,8 +47,8 @@ export const getFiscalDueDate = (category: Category, itemCode: string, rifEnding
     }
   }
 
-  // Pensions logic
-  if (itemCode.startsWith('7.8')) {
+  // Pensions logic (New code 7.10)
+  if (itemCode.startsWith('7.10') || itemCode.startsWith('7.8')) {
     const rifDates = FISCAL_CALENDAR_2026.pensiones[rifEnding as keyof typeof FISCAL_CALENDAR_2026.pensiones];
     return new Date(date.getFullYear(), monthIdx, rifDates[monthIdx]);
   }

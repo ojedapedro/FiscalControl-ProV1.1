@@ -155,8 +155,13 @@ function handleRequest(e) {
         } else if (!data.to || !data.message) {
           result = { status: 'error', message: 'Faltan datos para el envío de WhatsApp' };
         } else {
-          const sent = sendWhatsAppMessage(settings.whatsappGatewayUrl, data.to, data.message);
-          result = sent ? { status: 'success', message: 'WhatsApp enviado' } : { status: 'error', message: 'Error al enviar WhatsApp' };
+          const chunks = splitMessageGAS(data.message, 1500);
+          let allSent = true;
+          for (let i = 0; i < chunks.length; i++) {
+            const sent = sendWhatsAppMessage(settings.whatsappGatewayUrl, data.to, chunks[i]);
+            if (!sent) allSent = false;
+          }
+          result = allSent ? { status: 'success', message: 'WhatsApp enviado' } : { status: 'error', message: 'Error al enviar WhatsApp' };
         }
         break;
 
@@ -295,11 +300,46 @@ function checkDeadlinesAndNotify() {
 
   message += `\n_Ingrese a la plataforma para gestionar los pagos._`;
 
-  // Enviar un solo mensaje consolidado
-  Logger.log("Enviando reporte consolidado...");
-  sendWhatsAppMessage(settings.whatsappGatewayUrl, settings.whatsappPhone, message);
+  // Enviar mensajes en fragmentos si es necesario
+  const chunks = splitMessageGAS(message, 1500);
+  let success = true;
+  
+  for (let i = 0; i < chunks.length; i++) {
+    const sent = sendWhatsAppMessage(settings.whatsappGatewayUrl, settings.whatsappPhone, chunks[i]);
+    if (!sent) success = false;
+  }
 
   return totalAlerts;
+}
+
+function splitMessageGAS(message, limit) {
+  limit = limit || 1500;
+  if (message.length <= limit) return [message];
+  
+  const chunks = [];
+  let currentPos = 0;
+  
+  while (currentPos < message.length) {
+    let endPos = currentPos + limit;
+    if (endPos >= message.length) {
+      chunks.push(message.substring(currentPos));
+      break;
+    }
+    
+    let lastIndex = message.lastIndexOf('\n', endPos);
+    if (lastIndex <= currentPos) {
+      lastIndex = message.lastIndexOf(' ', endPos);
+    }
+    
+    if (lastIndex > currentPos) {
+      endPos = lastIndex;
+    }
+    
+    chunks.push(message.substring(currentPos, endPos));
+    currentPos = endPos;
+  }
+  
+  return chunks;
 }
 
 function sendWhatsAppMessage(gatewayUrl, phone, message) {

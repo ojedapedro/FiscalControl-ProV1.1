@@ -305,16 +305,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const salesBookPayment = React.useMemo(() => {
     // Definimos el mapeo de códigos de Patente a Libros de Venta SENIAT (Declaraciones)
     const PATENT_TO_SENIAT_CODE: Record<string, string> = {
-      '1.1.2': '7.2.1', // Patente Cod 1 -> Libro Venta Cod 1
-      '1.1.3': '7.2.2', // Patente Cod 2 -> Libro Venta Cod 2
-      '1.1.4': '7.2.3', // Patente Cod 3 -> Libro Venta Cod 4 (Note: logic follows the requested mapping)
-      '1.1.5': '7.2.4', // Patente Cod 4 -> Libro Venta Cod 5
-      '1.1.6': '7.2.5'  // Patente Cod 5 -> Libro Venta Cod 5
+      '1.2.2': '7.2.1', // Patente Cod 1 -> Libro Venta Cod 1
+      '1.2.3': '7.2.2', // Patente Cod 2 -> Libro Venta Cod 2
+      '1.2.4': '7.2.3', // Patente Cod 3 -> Libro Venta Cod 3
     };
 
     const targetSeniatCode = PATENT_TO_SENIAT_CODE[taxItem];
 
-    if (category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE' && !!dueDate && !!targetSeniatCode) {
+    if (category === Category.MUNICIPAL_TAX && (taxGroup === 'PATENTE' || taxGroup === 'VENTAS') && !!dueDate && !!targetSeniatCode) {
         const parts = dueDate.split('-');
         if (parts.length < 2) return null;
         const targetYear = parts[0];
@@ -349,8 +347,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     return null;
   }, [category, taxGroup, taxItem, dueDate, payments, store]);
 
-  const isPatenteGroup = category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE';
-  const isPatenteScaleItem = isPatenteGroup && ['1.1.2', '1.1.3', '1.1.4', '1.1.5', '1.1.6'].includes(taxItem);
+  const isPatenteGroup = category === Category.MUNICIPAL_TAX && (taxGroup === 'PATENTE' || taxGroup === 'VENTAS');
+  const isPatenteScaleItem = isPatenteGroup && ['1.2.2', '1.2.3', '1.2.4'].includes(taxItem);
   const isSalesBookMissing = isPatenteScaleItem && !!dueDate && !salesBookPayment;
 
   React.useEffect(() => {
@@ -374,8 +372,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         }
 
         // --- Logic for Patente Amount ---
-        if (!isManualOverride && category === Category.MUNICIPAL_TAX && taxGroup === 'PATENTE') {
-            if (taxItem === '1.1.1') {
+        if (!isManualOverride && category === Category.MUNICIPAL_TAX && (taxGroup === 'PATENTE' || taxGroup === 'VENTAS')) {
+            if (taxItem === '1.1.3') {
                 // Renewal is fixed $150
                 const amountVal = (itemData.amount! * (effectiveExchangeRate || 1)).toFixed(2);
                 if (amount !== amountVal) {
@@ -1162,15 +1160,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Guía de Categoría</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                     {[
-                                        { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía del municipio.' },
-                                        { id: Category.OBJECT, desc: 'Permisos, certificaciones y registros (SENCAMER, RACDA, SAPI).' },
-                                        { id: Category.INSTITUTIONS, desc: 'Trámites ante instituciones nacionales y regionales (SNC, RUPDAE, FONACIT, INSALUD).' },
-                                        { id: Category.TRANSPORT, desc: 'Documentos de chofer, vehículo y mantenimiento.' },
-                                        { id: Category.SENIAT_DECLARATIONS, desc: 'Declaraciones y Contabilidad SENIAT.' },
-                                        { id: Category.SENIAT_BOOKS, desc: 'Libros SENIAT (Mayor, Inventario, Actas, etc).' },
-                                        { id: Category.SYSTEMS, desc: 'Sistemas, Marketing y Oficinas.' },
-                                        { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones (INCES, IVSS, FAOV).' },
-                                        { id: Category.UTILITY, desc: 'Pagos de servicios públicos y privados (Agua, Electricidad).' },
+                                        { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía (Patentes, Inmuebles, Aseo).' },
+                                        { id: Category.OBJECT, desc: 'Certificaciones y registros relacionados con el objeto de la empresa (SENCAMER, RACDA).' },
+                                        { id: Category.INSTITUTIONS, desc: 'Trámites ante instituciones nacionales y permisos sanitarios (SNC, RUPDAE, FONACIT, INSALUD).' },
+                                        { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones patronales (IVSS, BANAVIH, INCES).' },
+                                        { id: Category.TRANSPORT, desc: 'Documentación legal de choferes, vehículos y control de mantenimiento.' },
+                                        { id: Category.UTILITY, desc: 'Servicios públicos, mantenimiento de sede, alquileres e insumos de limpieza.' },
+                                        { id: Category.SENIAT_DECLARATIONS, desc: 'Cumplimiento de obligaciones tributarias SENIAT (IVA, ISLR, IGTF, IGP).' },
+                                        { id: Category.SENIAT_BOOKS, desc: 'Mantenimiento de libros legales y contables obligatorios.' },
+                                        { id: Category.SYSTEMS, desc: 'Gastos de tecnología, marketing digital, papelería y mobiliario.' },
                                     ].find(c => c.id === category)?.desc}
                                 </p>
                             </div>
@@ -1182,15 +1180,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-4 ml-1">Categoría Fiscal</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
                         {[
-                            { id: Category.MUNICIPAL_TAX, label: 'Municipal', icon: Building2 },
+                            { id: Category.MUNICIPAL_TAX, label: 'Alcaldía', icon: Building2 },
                             { id: Category.OBJECT, label: 'Objeto', icon: FileText },
-                            { id: Category.INSTITUTIONS, label: 'Nacional y Regional', icon: Landmark },
+                            { id: Category.INSTITUTIONS, label: 'Inst. Nac.', icon: Landmark },
+                            { id: Category.PAYROLL, label: 'RRHH', icon: Users },
                             { id: Category.TRANSPORT, label: 'Transporte', icon: FileText },
+                            { id: Category.UTILITY, label: 'Servicios', icon: Zap },
                             { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText },
                             { id: Category.SENIAT_BOOKS, label: 'SENIAT Libros', icon: FileText },
                             { id: Category.SYSTEMS, label: 'Sistemas', icon: FileText },
-                            { id: Category.PAYROLL, label: 'RRHH', icon: Users },
-                            { id: Category.UTILITY, label: 'Servicio', icon: Zap },
                             { id: Category.INVENTORY, label: 'Inventario', icon: Calculator },
                             { id: Category.OTHER, label: 'Otros', icon: Plus },
                         ].filter(cat => {

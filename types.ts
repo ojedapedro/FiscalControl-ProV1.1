@@ -16,17 +16,17 @@ export enum PaymentStatus {
 }
 
 export enum Category {
-  MUNICIPAL_TAX = 'Impuesto Municipal',
-  OBJECT = 'Objeto',
-  INSTITUTIONS = 'Nacional y Regional',
-  TRANSPORT = 'Transporte',
-  SENIAT_DECLARATIONS = 'SENIAT Declaraciones y Contabilidad',
-  SENIAT_BOOKS = 'SENIAT Libros',
-  SYSTEMS = 'Sistemas, Marketing y Oficinas',
-  UTILITY = 'Servicio Público',
-  INVENTORY = 'Inventario',
-  PAYROLL = 'Nómina y Pasivos Laborales',
-  OTHER = 'Otro'
+  MUNICIPAL_TAX = '1 ALCALDIA',
+  OBJECT = '2 OBJETO',
+  INSTITUTIONS = '3 INSTITUCIONES NACIONALES Y REGIONALES',
+  PAYROLL = '4 RECURSOS HUMANOS',
+  TRANSPORT = '5 TRANSPORTE',
+  UTILITY = '6 SERVICIOS PUBLICOS Y MANTENIMIENTO',
+  SENIAT_DECLARATIONS = '7 SENIAT DECLARACIONES Y CONTABILIDAD',
+  SENIAT_BOOKS = '8 SENIAT LIBROS',
+  SYSTEMS = '9 SISTEMAS, MARKETING Y OFICINAS',
+  INVENTORY = '10 INVENTARIO',
+  OTHER = '11 OTROS'
 }
 
 export enum PaymentFrequency {

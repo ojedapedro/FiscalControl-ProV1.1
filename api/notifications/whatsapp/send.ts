@@ -1,6 +1,7 @@
 import twilio from 'twilio';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { splitMessage } from '../../../src/utils.ts';
 import fs from 'fs';
 import path from 'path';
 
@@ -55,15 +56,22 @@ export default async function handler(req: any, res: any) {
     }
 
     const cleanTo = to.replace('whatsapp:', '').replace('+', '').trim();
+    const messageChunks = splitMessage(message, 1500);
+    let lastResult = null;
 
     // 2. Si hay Gateway URL, intentar usarlo
     if (gatewayUrl && gatewayUrl.includes('[MESSAGE]')) {
-      const finalUrl = gatewayUrl
-        .replace('[PHONE]', cleanTo)
-        .replace('[MESSAGE]', encodeURIComponent(message));
+      let allOk = true;
+      for (const chunk of messageChunks) {
+        const finalUrl = gatewayUrl
+          .replace('[PHONE]', cleanTo)
+          .replace('[MESSAGE]', encodeURIComponent(chunk));
+        
+        const gatewayRes = await fetch(finalUrl);
+        if (!gatewayRes.ok) allOk = false;
+      }
       
-      const gatewayRes = await fetch(finalUrl);
-      if (gatewayRes.ok) {
+      if (allOk) {
         return res.json({ success: true, method: 'gateway' });
       }
     }
@@ -80,13 +88,18 @@ export default async function handler(req: any, res: any) {
       return `whatsapp:${cleanNum.startsWith('+') ? cleanNum : `+${cleanNum}`}`;
     };
 
-    const result = await client.messages.create({
-      from: formatTwilio(fromWhatsApp),
-      to: formatTwilio(to),
-      body: message
-    });
+    const fromFormatted = formatTwilio(fromWhatsApp);
+    const toFormatted = formatTwilio(to);
+
+    for (const chunk of messageChunks) {
+      lastResult = await client.messages.create({
+        from: fromFormatted,
+        to: toFormatted,
+        body: chunk
+      });
+    }
     
-    res.json({ success: true, sid: result.sid, method: 'twilio' });
+    res.json({ success: true, sid: lastResult?.sid, method: 'twilio' });
   } catch (err: any) {
     console.error('Send WhatsApp Error:', err.message);
     res.status(500).json({ error: 'Failed to send WhatsApp', details: err.message });
