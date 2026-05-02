@@ -47,8 +47,8 @@ service cloud.firestore {
 
     // Payments collection
     match /payments/{paymentId} {
-      // Nota: Acceso read abierto temporalmente para permitir auditoría automática desde el servidor
-      allow read: if true; 
+      // SEGURIDAD: Lectura requiere autenticación. El servidor debe usar firebase-admin SDK con Service Account.
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
       allow delete: if isAdmin() || isPresidencia();
@@ -56,7 +56,8 @@ service cloud.firestore {
 
     // Settings
     match /settings/global {
-      allow read: if true; 
+      // SEGURIDAD: Lectura requiere autenticación. Configuración global no debe ser pública.
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 

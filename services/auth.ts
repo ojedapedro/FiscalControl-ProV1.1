@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { cleanObject } from './firestoreService';
+import { SUPER_ADMIN_EMAIL } from '../constants';
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -26,7 +27,7 @@ export const authService = {
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
-        if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+        if (firebaseUser.email === SUPER_ADMIN_EMAIL) {
           if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
             const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
             await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
@@ -40,7 +41,8 @@ export const authService = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || email.split('@')[0],
           email: firebaseUser.email || email,
-          role: email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
+          // SEGURIDAD: Nuevos usuarios reciben rol Auditor (solo lectura). Un Super Admin debe promoverlos.
+          role: email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.AUDITOR,
           avatar: firebaseUser.photoURL || null
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
@@ -72,7 +74,7 @@ export const authService = {
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         // Force Super Admin role for the bootstrap email
-        if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+        if (firebaseUser.email === SUPER_ADMIN_EMAIL) {
           if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
             const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
             await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
@@ -85,7 +87,8 @@ export const authService = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
           email: firebaseUser.email || '',
-          role: firebaseUser.email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
+          // SEGURIDAD: Nuevos usuarios reciben rol Auditor (solo lectura). Un Super Admin debe promoverlos.
+          role: firebaseUser.email === SUPER_ADMIN_EMAIL ? Role.SUPER_ADMIN : Role.AUDITOR,
           avatar: firebaseUser.photoURL || null
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));
@@ -125,7 +128,7 @@ export const authService = {
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           // Force Super Admin role for the bootstrap email
-          if (firebaseUser.email === 'analistadedatosnova@gmail.com') {
+          if (firebaseUser.email === SUPER_ADMIN_EMAIL) {
             if (userData.role !== Role.SUPER_ADMIN || (userData.storeIds && userData.storeIds.length > 0)) {
               const updatedUser = { ...userData, role: Role.SUPER_ADMIN, storeIds: [] };
               await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(updatedUser));
@@ -142,7 +145,8 @@ export const authService = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
             email: firebaseUser.email || '',
-            role: firebaseUser.email === 'analistadedatosnova@gmail.com' ? Role.SUPER_ADMIN : Role.ADMIN,
+            // SEGURIDAD: Nuevos usuarios reciben rol Auditor (solo lectura). Un Super Admin debe promoverlos.
+            role: firebaseUser.email === SUPER_ADMIN_EMAIL ? Role.SUPER_ADMIN : Role.AUDITOR,
             avatar: firebaseUser.photoURL || null
           };
           await setDoc(doc(db, 'users', firebaseUser.uid), cleanObject(defaultUser));

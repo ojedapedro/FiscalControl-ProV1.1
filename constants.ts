@@ -5,6 +5,13 @@ import { Category, Payment, PaymentStatus, Store, AlertItem, Role, Employee, Pay
 // Nota: Si la imagen falla, la sidebar mostrará un icono por defecto.
 export const APP_LOGO_URL = "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png";
 
+/**
+ * SEGURIDAD: Email del Super Administrador.
+ * Si cambia este email, también debe actualizar firestore.rules manualmente 
+ * (Firebase Rules no soporta variables de entorno).
+ */
+export const SUPER_ADMIN_EMAIL = 'analistadedatosnova@gmail.com';
+
 export const MUNICIPAL_SALES_TAX_RATES: Record<string, number> = {
   'Chacao': 0.03, // 3% para Chacao
   'Maracaibo': 0.02, // 2% para Maracaibo

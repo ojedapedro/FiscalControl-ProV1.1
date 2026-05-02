@@ -1,3 +1,8 @@
+/**
+ * @deprecated Este archivo es redundante. Todas las rutas API están definidas en server.ts.
+ * Este módulo será eliminado en una futura versión. No importar ni utilizar.
+ * Punto de entrada real: server.ts
+ */
 import express from 'express';
 import Stripe from 'stripe';
 import { Resend } from 'resend';

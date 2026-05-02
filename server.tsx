@@ -30,11 +30,15 @@ import { createServer as createViteServer } from 'vite';
 
 console.log('🚀 [Server] server.tsx cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
-console.log('🔑 [Server] RESEND_API_KEY:', process.env.RESEND_API_KEY ? `Configurada (${process.env.RESEND_API_KEY.substring(0, 6)}...)` : 'NO CONFIGURADA');
+console.log('🔑 [Server] RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Configurada ✅' : 'NO CONFIGURADA ❌');
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { checkAndSendNotifications } from './server/notifications';
+
+// SEGURIDAD: Middleware de autenticación y rate limiting
+import { authMiddleware } from './server/authMiddleware';
+import { rateLimiter } from './server/rateLimiter';
 
 // Import API handlers
 import pingHandler from './api/ping.ts';
@@ -52,33 +56,61 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json({ limit: '5mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: { 
-      secure: true, 
-      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax',
       httpOnly: true 
     }
   }));
 
-  // Mount API routes
-  app.all('/api/ping', pingHandler);
-  app.all('/api/create-payment-intent', createPaymentIntentHandler);
-  app.all('/api/payroll/send-emails', sendEmailsHandler);
-  app.all('/api/notifications/send-email', sendEmailHandler);
-  app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
-  app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
+  // --- RUTAS API ---
+  
+  // Ping: Público (health check)
+  app.get('/api/ping', pingHandler);
 
-  // Global Error Handler
+  // Stripe: Autenticado + Rate Limited
+  app.post('/api/create-payment-intent', 
+    authMiddleware, 
+    rateLimiter({ maxRequests: 5, windowMs: 60000 }),
+    createPaymentIntentHandler
+  );
+
+  // Emails: Autenticado + Rate Limited
+  app.post('/api/payroll/send-emails', 
+    authMiddleware, 
+    rateLimiter({ maxRequests: 10, windowMs: 60000 }),
+    sendEmailsHandler
+  );
+  app.post('/api/notifications/send-email', 
+    authMiddleware, 
+    rateLimiter({ maxRequests: 15, windowMs: 60000 }),
+    sendEmailHandler
+  );
+
+  // WhatsApp: Autenticado + Rate Limited
+  app.post('/api/notifications/whatsapp/check', 
+    authMiddleware, 
+    rateLimiter({ maxRequests: 3, windowMs: 60000 }),
+    whatsappCheckHandler
+  );
+  app.post('/api/notifications/whatsapp/send', 
+    authMiddleware, 
+    rateLimiter({ maxRequests: 10, windowMs: 60000 }),
+    whatsappSendHandler
+  );
+
+  // Global Error Handler — SEGURIDAD: No exponer detalles internos en producción
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
     res.status(500).json({ 
-      error: 'Error interno del servidor', 
-      details: err.message
+      error: 'Error interno del servidor.',
+      ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
     });
   });
 

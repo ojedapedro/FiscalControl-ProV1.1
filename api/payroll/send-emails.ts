@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const key = process.env.RESEND_API_KEY;
-    console.log('🔍 [payroll-emails-v2] Verificando RESEND_API_KEY:', key ? `Presente (Empieza por ${key.substring(0, 3)}...)` : 'AUSENTE');
+    console.log('🔍 [payroll-emails-v2] Verificando RESEND_API_KEY:', key ? 'Presente ✅' : 'AUSENTE ❌');
 
     if (!key) {
       console.warn('⚠️ RESEND_API_KEY no configurada. Simulando envío de recibos de nómina (Modo Demo).');
@@ -73,7 +73,10 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     console.error('💥 Error fatal en send-emails:', err);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Error fatal en el servidor', details: err?.message || String(err), stack: err?.stack });
+      res.status(500).json({ 
+        error: 'Error fatal en el servidor de nómina.',
+        ...(process.env.NODE_ENV === 'development' ? { details: err?.message } : {})
+      });
     }
   }
 }

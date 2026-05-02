@@ -23,6 +23,10 @@ export default async function handler(req: any, res: any) {
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error: any) {
-    res.status(500).json({ error: error.message, stack: error.stack });
+    console.error('💥 Error en create-payment-intent:', error);
+    res.status(500).json({ 
+      error: 'Error al procesar el pago.',
+      ...(process.env.NODE_ENV === 'development' ? { details: error.message } : {})
+    });
   }
 }

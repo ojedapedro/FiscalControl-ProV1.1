@@ -1,5 +1,15 @@
 import { Resend } from 'resend';
 
+// SEGURIDAD: Escapar HTML para prevenir inyección en correos electrónicos
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -13,7 +23,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const key = process.env.RESEND_API_KEY;
-    console.log('🔍 [send-email-v2] Verificando RESEND_API_KEY:', key ? `Presente (Empieza por ${key.substring(0, 3)}...)` : 'AUSENTE');
+    console.log('🔍 [send-email-v2] Verificando RESEND_API_KEY:', key ? 'Presente' : 'AUSENTE');
     
     if (!key) {
       console.warn('⚠️ RESEND_API_KEY no configurada. Simulando envío de correo (Modo Demo).');
@@ -29,6 +39,10 @@ export default async function handler(req: any, res: any) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const targetEmail = process.env.RESEND_TEST_TO_EMAIL || to;
 
+    // SEGURIDAD: Sanitizar subject y body antes de insertar en HTML
+    const safeSubject = escapeHtml(subject);
+    const safeBody = escapeHtml(body);
+
     const { data, error } = await resendClient.emails.send({
       from: `Forza 22 <${fromEmail}>`,
       to: [targetEmail],
@@ -40,8 +54,8 @@ export default async function handler(req: any, res: any) {
               <h1 style="margin: 0; font-size: 24px;">Forza 22</h1>
             </div>
             <div style="padding: 30px;">
-              <h2 style="color: #0ea5e9; margin-top: 0;">${subject}</h2>
-              <div style="white-space: pre-wrap; font-size: 16px;">${body}</div>
+              <h2 style="color: #0ea5e9; margin-top: 0;">${safeSubject}</h2>
+              <div style="white-space: pre-wrap; font-size: 16px;">${safeBody}</div>
               <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
                 Este es un correo automático, por favor no responda a este mensaje.
                 <br>© ${new Date().getFullYear()} Forza 22
@@ -59,6 +73,9 @@ export default async function handler(req: any, res: any) {
     res.status(200).json({ success: true, data });
   } catch (err: any) {
     console.error('💥 Error en send-email:', err);
-    res.status(500).json({ error: 'Error interno del servidor', details: err.message });
+    res.status(500).json({ 
+      error: 'Error interno del servidor de correo.',
+      ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
+    });
   }
 }

@@ -1,26 +1,14 @@
 import twilio from 'twilio';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { adminDb } from './firebaseAdmin';
 import { SystemSettings, PaymentStatus } from '../types.ts';
 import { splitMessage } from '../src/utils.ts';
-import fs from 'fs';
-import path from 'path';
 
-// Initialize Firebase Client safely (Bypasses IAM issues by using REST/Web channel with open rules)
-let db: any = null;
-try {
-  const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
-  const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+/**
+ * SEGURIDAD: Este módulo ahora usa Firebase Admin SDK en lugar del Web SDK.
+ * Ya no depende de reglas de Firestore abiertas (allow read: if true).
+ * El Admin SDK tiene acceso completo y bypasea las reglas de seguridad.
+ */
 
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-  console.log('✅ [Notifications] Firebase Client (Web SDK) inicializado correctamente.');
-} catch (err: any) {
-  console.error('❌ [Notifications] Error inicializando Firebase Client:', err.message);
-}
-
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
 const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || process.env.TWILIO_WHATSAPP || 'whatsapp:+16415353606';
 const adminNumbers = (process.env.ADMIN_WHATSAPP_NUMBERS || process.env.ADMIN_WHATSAPP || '').split(',').filter(n => n.trim());
 const presidencyNumber = process.env.PRESIDENCY_WHATSAPP_NUMBER || process.env.PRESIDENCY_WHATSAPP || process.env.PRESIDENCY_WHA;
@@ -54,16 +42,16 @@ export async function checkAndSendNotifications() {
     return { success: false, message: 'Twilio no configurado.' };
   }
 
-  if (!db) {
-    return { success: false, message: 'Firebase no inicializado.' };
+  if (!adminDb) {
+    return { success: false, message: 'Firebase Admin no inicializado. Configure GOOGLE_APPLICATION_CREDENTIALS.' };
   }
 
-  console.log('🔍 [Notifications] Iniciando auditoría con reglas abiertas...');
+  console.log('🔍 [Notifications] Iniciando auditoría con Admin SDK...');
   
   try {
-    // 1. Obtener Configuración
-    const settingsDoc = await getDoc(doc(db, 'settings', 'global'));
-    const settings = settingsDoc.exists() ? settingsDoc.data() as SystemSettings : null;
+    // 1. Obtener Configuración (usando Admin SDK — bypasea reglas de seguridad)
+    const settingsDoc = await adminDb.collection('settings').doc('global').get();
+    const settings = settingsDoc.exists ? settingsDoc.data() as SystemSettings : null;
     
     if (settings && settings.whatsappEnabled === false) {
       return { success: true, message: 'WhatsApp desactivado.' };
@@ -74,9 +62,8 @@ export async function checkAndSendNotifications() {
     const gatewayUrl = settings?.whatsappGatewayUrl || '';
     const settingsPhone = settings?.whatsappPhone || '';
 
-    // 2. Obtener Pagos
-    const paymentsRef = collection(db, 'payments');
-    const snapshot = await getDocs(paymentsRef);
+    // 2. Obtener Pagos (usando Admin SDK)
+    const paymentsSnapshot = await adminDb.collection('payments').get();
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -85,7 +72,7 @@ export async function checkAndSendNotifications() {
     const criticalArr: any[] = [];
     const warningArr: any[] = [];
 
-    snapshot.forEach(docSnap => {
+    paymentsSnapshot.forEach(docSnap => {
       const p = docSnap.data();
       if (p.status === PaymentStatus.PAID || p.status === PaymentStatus.REJECTED) return;
 

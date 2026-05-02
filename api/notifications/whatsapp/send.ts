@@ -1,20 +1,9 @@
 import twilio from 'twilio';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '../../../server/firebaseAdmin';
 import { splitMessage } from '../../../src/utils.ts';
-import fs from 'fs';
-import path from 'path';
 
-// Initialize Firebase for settings check
-let db: any = null;
-try {
-  const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
-  const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-} catch (err) {
-  console.error('Error init firebase in send handler:', err);
-}
+// Firebase Admin SDK se importa desde el módulo centralizado
+const db = adminDb;
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -46,12 +35,12 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // 1. Verificar si hay un Gateway URL configurado en el sistema
+    // 1. Verificar si hay un Gateway URL configurado en el sistema (Admin SDK)
     let gatewayUrl = '';
     if (db) {
-      const settingsDoc = await getDoc(doc(db, 'settings', 'global'));
-      if (settingsDoc.exists()) {
-        gatewayUrl = settingsDoc.data().whatsappGatewayUrl || '';
+      const settingsDoc = await db.collection('settings').doc('global').get();
+      if (settingsDoc.exists) {
+        gatewayUrl = settingsDoc.data()?.whatsappGatewayUrl || '';
       }
     }
 
