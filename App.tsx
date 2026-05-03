@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { PresidencyDashboard } from './components/PresidencyDashboard';
 import { Sidebar } from './components/Sidebar';
 import { PaymentForm } from './components/PaymentForm';
@@ -26,10 +27,10 @@ import { authService } from './services/auth';
 import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
-import { sendPushNotification, requestNotificationPermission } from './src/utils/pushNotifications';
+import { sendPushNotification, requestNotificationPermission } from './utils/pushNotifications';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
-import { calculateNextDueDate } from './src/utils';
-import { getTaxConfig } from './src/taxConfigurations';
+import { calculateNextDueDate } from './utils';
+import { getTaxConfig } from './taxConfigurations';
 import * as pdfjsLib from 'pdfjs-dist';
 // Configurar Worker de PDF.js para conversión de PDF a Imagen (CDN sincronizado con la versión de la librería)
 const PDF_JS_VERSION = pdfjsLib.version;
