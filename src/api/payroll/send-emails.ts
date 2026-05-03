@@ -73,7 +73,7 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     console.error('💥 Error fatal en send-emails:', err);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Error fatal en el servidor', details: err?.message || String(err), stack: err?.stack });
+      res.status(500).json({ error: 'Error fatal en el servidor' });
     }
   }
 }

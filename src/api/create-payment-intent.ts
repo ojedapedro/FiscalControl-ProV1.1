@@ -23,6 +23,6 @@ export default async function handler(req: any, res: any) {
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error: any) {
-    res.status(500).json({ error: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Error interno en el procesamiento del pago.' });
   }
 }

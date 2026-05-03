@@ -47,8 +47,7 @@ service cloud.firestore {
 
     // Payments collection
     match /payments/{paymentId} {
-      // Nota: Acceso read abierto temporalmente para permitir auditoría automática desde el servidor
-      allow read: if true; 
+      allow read: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
       allow delete: if isAdmin() || isPresidencia();
@@ -61,13 +60,13 @@ service cloud.firestore {
     }
 
     // Other matches
-    match /employees/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
-    match /payroll/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+    match /employees/{id} { allow read: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia()); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+    match /payroll/{id} { allow read: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia()); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
     match /exchange_rates/{d} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /budgets/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
-    match /annual_budgets/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
+    match /budgets/{id} { allow read: if isAuthenticated() && (isAdmin() || isPresidencia() || isAuditor()); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
+    match /annual_budgets/{id} { allow read: if isAuthenticated() && (isAdmin() || isPresidencia() || isAuditor()); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
     match /categories/{id} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /stores/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia(); }
+    match /stores/{id} { allow read: if isAuthenticated() && (isAdmin() || isPresidencia()); allow write: if isAdmin() || isPresidencia(); }
 
     // Chat messages
     match /chat_messages/{messageId} {

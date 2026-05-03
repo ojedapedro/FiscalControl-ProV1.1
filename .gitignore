@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+firebase-applet-config.json
+.env
+.env.*

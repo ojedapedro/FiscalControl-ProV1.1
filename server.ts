@@ -6,6 +6,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { checkAndSendNotifications } from './src/server/notifications';
@@ -27,7 +29,7 @@ async function startServer() {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: process.env.NODE_ENV === 'production' && process.env.APP_URL ? process.env.APP_URL : "*",
       methods: ["GET", "POST"]
     }
   });
@@ -54,7 +56,25 @@ async function startServer() {
     });
   });
 
-  app.use(express.json({ limit: '50mb' }));
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    console.error('💥 ERROR FATAL: SESSION_SECRET no está configurado. Abortando inicio del servidor.');
+    process.exit(1);
+  }
+
+  app.set('trust proxy', 1);
+  
+  app.use(helmet({
+    contentSecurityPolicy: false, // Desactivado temporalmente para no romper Vite en desarrollo o dependencias en línea.
+  }));
+  
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 150, 
+    message: { error: 'Demasiadas peticiones desde esta IP, por favor intente nuevamente más tarde.' }
+  });
+  app.use('/api/', apiLimiter);
+
+  app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
