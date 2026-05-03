@@ -1,5 +1,5 @@
 
-import { Payment, PaymentStatus, Category, Store } from '../types';
+import { Payment, PaymentStatus, Category, Store } from './types';
 import { getTaxConfig } from './taxConfigurations';
 import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { FISCAL_CALENDAR_2026 } from './constants/fiscalCalendar';

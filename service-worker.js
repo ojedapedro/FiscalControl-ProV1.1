@@ -98,8 +98,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         const fetchPromise = fetch(event.request).then((networkResponse) => {
-          // Validar respuesta antes de cachear — SEGURIDAD: Paréntesis corregidos para precedencia correcta
-          if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+          // Validar respuesta antes de cachear
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic' || networkResponse.type === 'cors') {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_STATIC_NAME).then((cache) => {
               cache.put(event.request, responseToCache);

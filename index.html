@@ -3,7 +3,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,19 +34,9 @@
         const root = document.getElementById('root');
         if (root && root.childNodes.length === 0) {
            // Si hay error y el root está vacío, mostramos el error en pantalla
-           // SEGURIDAD: Usar textContent en vez de innerHTML para prevenir XSS
            setTimeout(() => {
              if(root.childNodes.length === 0) {
-               var errorDiv = document.createElement('div');
-               errorDiv.style.cssText = 'color:red; padding:20px;';
-               var h1 = document.createElement('h1');
-               h1.textContent = 'Error de Carga';
-               var p = document.createElement('p');
-               p.textContent = e.message;
-               errorDiv.appendChild(h1);
-               errorDiv.appendChild(p);
-               document.body.innerHTML = '';
-               document.body.appendChild(errorDiv);
+               document.body.innerHTML = '<div style="color:red; padding:20px;"><h1>Error de Carga</h1><p>'+e.message+'</p></div>';
              }
            }, 1000);
         }
@@ -56,7 +46,7 @@
   <body>
     <div id="root"></div>
     <!-- PUNTO DE ENTRADA CRÍTICO -->
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
       

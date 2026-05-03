@@ -1,14 +1,14 @@
 import twilio from 'twilio';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { splitMessage } from '../../../src/utils.ts';
+import { splitMessage } from '../../../utils.ts';
 import fs from 'fs';
 import path from 'path';
 
 // Initialize Firebase for settings check
 let db: any = null;
 try {
-  const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+  const configPath = path.resolve(process.cwd(), 'src/firebase-applet-config.json');
   const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   db = getFirestore(app, firebaseConfig.firestoreDatabaseId);

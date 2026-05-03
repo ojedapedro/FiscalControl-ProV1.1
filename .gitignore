@@ -22,22 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# SEGURIDAD: Archivos de test y depuración (no deben estar en producción)
-test-*.js
-test-*.ts
-debug-*.js
-debug-*.ts
-grep_output.txt
-
-# SEGURIDAD: Credenciales y Service Accounts
-*.pem
-*.key
-*-service-account*.json
-firebase-debug.log
-firestore-debug.log
-
-# SEGURIDAD: Variables de entorno (*.local ya está cubierto arriba)
-.env
-.env.production
-.env.staging

@@ -1,6 +1,5 @@
 
 import { SystemSettings, User } from '../types';
-import { auth } from '../firebase';
 
 // IMPORTANTE: REEMPLAZA ESTA URL CON LA QUE OBTENGAS AL IMPLEMENTAR EL SCRIPT EN GOOGLE
 // Ejemplo: https://script.google.com/macros/s/AKfycbx.../exec
@@ -9,34 +8,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyxVkNV8XIqvDgTOY5kj5FQ
 // Detectar si estamos usando la URL de ejemplo o una inválida para activar el modo offline
 const isMockMode = () => API_URL.includes('PLACEHOLDER') || !API_URL.startsWith('https://script.google.com');
 
-/**
- * SEGURIDAD: Obtener headers de autenticación con el Firebase ID Token.
- * Se envía en cada request API para que el servidor pueda verificar la identidad.
- */
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  try {
-    const user = auth.currentUser;
-    if (user) {
-      const token = await user.getIdToken();
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  } catch (e) {
-    console.warn('⚠️ No se pudo obtener el token de autenticación:', e);
-  }
-
-  return headers;
-}
-
 export const api = {
   // Forzar chequeo de notificaciones (Test Manual)
   triggerNotificationCheck: async () => {
      try {
-       const headers = await getAuthHeaders();
-       const response = await fetch('/api/notifications/whatsapp/check', { method: 'POST', headers });
+       const response = await fetch('/api/notifications/whatsapp/check', { method: 'POST' });
        return await response.json();
      } catch (e) {
        console.error("Error triggering check", e);
@@ -48,10 +24,9 @@ export const api = {
   
   sendWhatsApp: async (to: string, message: string) => {
     try {
-      const headers = await getAuthHeaders();
       const response = await fetch('/api/notifications/whatsapp/send', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, message })
       });
       const data = await response.json();
@@ -64,10 +39,9 @@ export const api = {
 
   sendEmail: async (to: string, subject: string, body: string) => {
     try {
-      const headers = await getAuthHeaders();
       const response = await fetch('/api/notifications/send-email', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, subject, body })
       });
       return await response.json();
@@ -79,10 +53,9 @@ export const api = {
 
   sendPayrollEmail: async (entry: any, email: string) => {
     try {
-      const headers = await getAuthHeaders();
       const response = await fetch('/api/payroll/send-emails', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           entries: [{
             ...entry,
@@ -99,10 +72,9 @@ export const api = {
 
   sendBulkPayrollEmails: async (entries: any[]) => {
     try {
-      const headers = await getAuthHeaders();
       const response = await fetch('/api/payroll/send-emails', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries })
       });
       return await response.json();
@@ -112,4 +84,3 @@ export const api = {
     }
   }
 };
-

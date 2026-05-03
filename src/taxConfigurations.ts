@@ -1,5 +1,5 @@
 
-import { Category, PaymentFrequency } from '../types';
+import { Category, PaymentFrequency } from './types';
 
 export interface TaxItem {
   code: string;

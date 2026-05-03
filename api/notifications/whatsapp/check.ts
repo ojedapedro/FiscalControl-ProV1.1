@@ -15,8 +15,9 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     console.error('💥 [API Check] Error:', err);
     res.status(500).json({ 
-      error: 'Error interno al procesar notificaciones.',
-      ...(process.env.NODE_ENV === 'development' ? { details: err.message, stack: err.stack } : {})
+      error: 'Error interno al procesar notificaciones', 
+      details: err.message, 
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
     });
   }
 }

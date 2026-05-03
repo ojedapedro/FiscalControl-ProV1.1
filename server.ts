@@ -1,34 +1,22 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Cargar variables de entorno antes de cualquier otra operación
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-dotenv.config(); // Fallback a .env
-
 import express from 'express';
 
-console.log('🚀 [Server] server.ts cargado');
+console.log('🚀 [Server] server.tsx cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
-console.log('🔑 [Server] RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Configurada ✅' : 'NO CONFIGURADA ❌');
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { checkAndSendNotifications } from './server/notifications';
-
-// SEGURIDAD: Middleware de autenticación, rate limiting, y headers HTTP
-import { authMiddleware } from './server/authMiddleware';
-import { rateLimiter } from './server/rateLimiter';
-import { securityHeaders } from './server/securityHeaders';
+import { checkAndSendNotifications } from './src/server/notifications';
 
 // Import API handlers
-import pingHandler from './api/ping.ts';
-import createPaymentIntentHandler from './api/create-payment-intent.ts';
-import sendEmailsHandler from './api/payroll/send-emails.ts';
-import sendEmailHandler from './api/notifications/send-email.ts';
-import whatsappCheckHandler from './api/notifications/whatsapp/check.ts';
-import whatsappSendHandler from './api/notifications/whatsapp/send.ts';
+import pingHandler from './src/api/ping.ts';
+import createPaymentIntentHandler from './src/api/create-payment-intent.ts';
+import sendEmailsHandler from './src/api/payroll/send-emails.ts';
+import sendEmailHandler from './src/api/notifications/send-email.ts';
+import whatsappCheckHandler from './src/api/notifications/whatsapp/check.ts';
+import whatsappSendHandler from './src/api/notifications/whatsapp/send.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +27,7 @@ async function startServer() {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || (process.env.NODE_ENV === 'development' ? '*' : []),
+      origin: "*",
       methods: ["GET", "POST"]
     }
   });
@@ -66,68 +54,33 @@ async function startServer() {
     });
   });
 
-  // SEGURIDAD: Headers HTTP de seguridad (CSP, HSTS, X-Frame-Options, etc.)
-  app.use(securityHeaders);
-
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: '50mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: { 
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'lax',
+      secure: true, 
+      sameSite: 'none',
       httpOnly: true 
     }
   }));
 
-  // --- RUTAS API ---
-  
-  // Ping: Público (health check)
-  app.get('/api/ping', pingHandler);
+  // Mount API routes
+  app.all('/api/ping', pingHandler);
+  app.all('/api/create-payment-intent', createPaymentIntentHandler);
+  app.all('/api/payroll/send-emails', sendEmailsHandler);
+  app.all('/api/notifications/send-email', sendEmailHandler);
+  app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
+  app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
 
-  // Stripe: Autenticado + Rate Limited (5 req/min)
-  app.post('/api/create-payment-intent', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 5, windowMs: 60000, message: 'Demasiados intentos de pago. Espere 1 minuto.' }),
-    createPaymentIntentHandler
-  );
-
-  // Emails de nómina: Autenticado + Rate Limited (10 req/min)
-  app.post('/api/payroll/send-emails', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 10, windowMs: 60000, message: 'Límite de envío de correos alcanzado.' }),
-    sendEmailsHandler
-  );
-
-  // Email genérico: Autenticado + Rate Limited (15 req/min)
-  app.post('/api/notifications/send-email', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 15, windowMs: 60000, message: 'Límite de envío de correos alcanzado.' }),
-    sendEmailHandler
-  );
-
-  // WhatsApp check: Autenticado + Rate Limited (3 req/min)
-  app.post('/api/notifications/whatsapp/check', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 3, windowMs: 60000 }),
-    whatsappCheckHandler
-  );
-
-  // WhatsApp send: Autenticado + Rate Limited (10 req/min)
-  app.post('/api/notifications/whatsapp/send', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 10, windowMs: 60000, message: 'Límite de envío de WhatsApp alcanzado.' }),
-    whatsappSendHandler
-  );
-
-  // Global Error Handler — SEGURIDAD: No exponer detalles internos en producción
+  // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
     res.status(500).json({ 
-      error: 'Error interno del servidor.',
-      ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
+      error: 'Error interno del servidor', 
+      details: err.message
     });
   });
 
