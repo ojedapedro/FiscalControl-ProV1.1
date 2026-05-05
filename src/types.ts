@@ -278,6 +278,16 @@ export interface BudgetEntry {
   notes?: string;
 }
 
+export interface AnnualBudget {
+  id?: string;
+  year: number;
+  months: {
+    [key: string]: number;
+  };
+  total: number;
+  storeId: string;
+}
+
 export enum InvoiceStatus {
   DRAFT = 'Borrador',
   SENT = 'Enviada',

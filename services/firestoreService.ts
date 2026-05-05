@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
-import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store, Invoice, Client, ChatMessage } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry, AnnualBudget, Employee, PayrollEntry, Store, Invoice, Client, ChatMessage } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -376,6 +376,27 @@ export const firestoreService = {
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
+  getAnnualBudgets: async (): Promise<AnnualBudget[]> => {
+    const path = 'annual_budgets';
+    try {
+      const snapshot = await getDocs(collection(db, path));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AnnualBudget));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  saveAnnualBudget: async (budget: AnnualBudget) => {
+    const path = `annual_budgets/${budget.id}`;
+    try {
+      await setDoc(doc(db, 'annual_budgets', budget.id as string), cleanObject(budget));
+      return { status: 'success' };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
 

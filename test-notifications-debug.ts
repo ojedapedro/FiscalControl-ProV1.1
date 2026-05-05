@@ -1,7 +1,7 @@
 import twilio from 'twilio';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { SystemSettings, PaymentStatus } from '../types.ts';
+import { SystemSettings, PaymentStatus } from './types.ts';
 import fs from 'fs';
 import path from 'path';
 

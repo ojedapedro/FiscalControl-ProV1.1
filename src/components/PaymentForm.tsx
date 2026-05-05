@@ -109,6 +109,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [proposedDaysToExpire, setProposedDaysToExpire] = React.useState<number | undefined>(initialData?.proposedDaysToExpire);
   const [proposedFrequency, setProposedFrequency] = React.useState<PaymentFrequency>(initialData?.proposedFrequency || PaymentFrequency.NONE);
   const [proposedJustification, setProposedJustification] = React.useState('');
+  const [isProposedEdited, setIsProposedEdited] = React.useState(false);
 
 
   // Campos del Soporte
@@ -167,12 +168,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setPreviewUrls([]);
       setIsOverBudget(initialData.isOverBudget || false);
       
-      // Initialize proposed fields
-      setProposedAmount(initialData.proposedAmount);
-      setProposedPaymentDate(initialData.proposedPaymentDate);
-      setProposedDueDate(initialData.proposedDueDate);
-      setProposedDaysToExpire(initialData.proposedDaysToExpire);
-      setProposedFrequency(initialData.proposedFrequency || PaymentFrequency.NONE);
+      // Initialize proposed fields - pre-fill with main values if proposed ones are empty
+      setProposedAmount(initialData.proposedAmount !== undefined ? initialData.proposedAmount : initialData.amount);
+      setProposedPaymentDate(initialData.proposedPaymentDate || initialData.paymentDate);
+      setProposedDueDate(initialData.proposedDueDate || initialData.dueDate);
+      setProposedDaysToExpire(initialData.proposedDaysToExpire !== undefined ? initialData.proposedDaysToExpire : (initialData.daysToExpire || 0));
+      setProposedFrequency(initialData.proposedFrequency && initialData.proposedFrequency !== PaymentFrequency.NONE ? initialData.proposedFrequency : (initialData.frequency || PaymentFrequency.NONE));
       setProposedJustification(initialData.proposedJustification || '');
 
       setDocDate(initialData.documentDate || '');
@@ -207,6 +208,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     }
     setErrors({});
     setIsManualOverride(false);
+    setIsProposedEdited(false);
     setShowSuccess(false);
   }, [initialData, currentUser]);
 
@@ -259,6 +261,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
     setErrors({});
     setIsManualOverride(false);
+    setIsProposedEdited(false);
     setShowSuccess(false);
   };
 
@@ -436,7 +439,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [paymentDate]);
 
   // --- Proposed Changes Handlers ---
+  // Sync proposed fields with main fields if not explicitly edited by the user
+  React.useEffect(() => {
+    if (!isProposedEdited && !initialData) {
+      const amountUsd = parseFloat(amount) / (effectiveExchangeRate || 1);
+      setProposedAmount(isNaN(amountUsd) ? undefined : amountUsd);
+      setProposedPaymentDate(paymentDate);
+      setProposedDueDate(dueDate);
+      setProposedDaysToExpire(parseInt(daysToExpire) || 0);
+      setProposedFrequency(frequency);
+    }
+  }, [amount, paymentDate, dueDate, daysToExpire, frequency, isProposedEdited, effectiveExchangeRate, initialData]);
+
   const handleProposedPaymentDateChange = React.useCallback((val: string) => {
+    setIsProposedEdited(true);
     setProposedPaymentDate(val);
     if (val && proposedDueDate) {
       const d1 = new Date(val);
@@ -448,6 +464,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [proposedDueDate]);
 
   const handleProposedDueDateChange = React.useCallback((val: string) => {
+    setIsProposedEdited(true);
     setProposedDueDate(val);
     if (val && proposedDaysToExpire !== undefined) {
       const d = new Date(val);
@@ -464,6 +481,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   }, [proposedDaysToExpire, proposedPaymentDate]);
 
   const handleProposedDaysToExpireChange = React.useCallback((val: string) => {
+    setIsProposedEdited(true);
     let days = parseInt(val);
     // Force negative if positive (as requested by user)
     if (!isNaN(days) && days > 0) {
@@ -648,9 +666,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             } else if (hasPendingOrUploaded) {
                 hasOrange = true;
             } else if (!hasApprovedOrPaid) {
-                if (baseStatus.status === 'Vencido') {
+                if (baseStatus && baseStatus.status === 'Vencido') {
                     hasRed = true;
-                } else if (baseStatus.status === 'Próximo') {
+                } else if (baseStatus && baseStatus.status === 'Próximo') {
                     hasOrange = true;
                 }
             }
@@ -1930,6 +1948,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 placeholder="0.00"
                                                 value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount !== undefined ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
                                                 onChange={(e) => {
+                                                    setIsProposedEdited(true);
                                                     const val = e.target.value;
                                                     setProposedAmountBsInput(val);
                                                     if (val === '') setProposedAmount(undefined);
@@ -1960,6 +1979,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             placeholder="0.00"
                                                             value={proposedAmount || ''}
                                                             onChange={(e) => {
+                                                                setIsProposedEdited(true);
                                                                 setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
                                                                 setProposedAmountBsInput(null);
                                                             }}
@@ -2024,6 +2044,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         <select
                                             value={proposedFrequency}
                                             onChange={(e) => {
+                                                setIsProposedEdited(true);
                                                 const newFreq = e.target.value as PaymentFrequency;
                                                 setProposedFrequency(newFreq);
                                                 if (newFreq !== PaymentFrequency.NONE) {

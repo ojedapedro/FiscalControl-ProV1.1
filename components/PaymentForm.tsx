@@ -648,9 +648,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             } else if (hasPendingOrUploaded) {
                 hasOrange = true;
             } else if (!hasApprovedOrPaid) {
-                if (baseStatus.status === 'Vencido') {
+                if (baseStatus && baseStatus.status === 'Vencido') {
                     hasRed = true;
-                } else if (baseStatus.status === 'Próximo') {
+                } else if (baseStatus && baseStatus.status === 'Próximo') {
                     hasOrange = true;
                 }
             }
