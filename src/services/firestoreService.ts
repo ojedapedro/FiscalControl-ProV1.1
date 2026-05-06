@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
-import { Payment, SystemSettings, User, BudgetEntry, AnnualBudget, Employee, PayrollEntry, Store, Invoice, Client, ChatMessage } from '../types';
+import { Payment, SystemSettings, User, BudgetEntry, Employee, PayrollEntry, Store, Invoice, Client, ChatMessage } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -99,25 +99,67 @@ export function cleanObject(obj: any): any {
   return newObj;
 }
 
+// Global cache to reduce reads. Persistent in localStorage to survive refreshes.
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY_PREFIX = 'fiscalControl_cache_';
+
+function getFromCache(key: string) {
+  try {
+    const cachedStr = localStorage.getItem(CACHE_KEY_PREFIX + key);
+    if (!cachedStr) return null;
+    
+    const cached = JSON.parse(cachedStr);
+    if (Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+    // Expired
+    localStorage.removeItem(CACHE_KEY_PREFIX + key);
+  } catch (e) {
+    console.warn('Cache read error:', e);
+  }
+  return null;
+}
+
+function setToCache(key: string, data: any) {
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Cache write error:', e);
+  }
+}
+
+function invalidateCache(key: string) {
+  localStorage.removeItem(CACHE_KEY_PREFIX + key);
+}
+
 // Test connection
 export async function testConnection() {
   if (!auth.currentUser) {
     console.log("Firestore connection test skipped: User not authenticated.");
     return;
   }
+  
+  // Use session cache for test connection to avoid multiple reads per session
+  if (getFromCache('test_conn')) return;
+
   try {
     const docRef = doc(db, 'test', 'connection');
-    const docSnap = await getDocFromServer(docRef);
+    // Using default getDoc instead of getDocFromServer to use cache if available
+    const docSnap = await getDoc(docRef);
+    setToCache('test_conn', true);
     if (docSnap.exists()) {
       console.log("Firestore connection successful (document exists).");
     } else {
-      console.log("Firestore connection successful (document does not exist, but read is allowed).");
+      console.log("Firestore connection successful (document does not exist).");
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes('permission-denied')) {
-      console.error("Firestore connection test failed: Missing or insufficient permissions. Please ensure security rules are published.");
+      console.error("Firestore connection test failed: Missing or insufficient permissions.");
     } else if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firestore connection test failed: The client is offline. Please check your Firebase configuration or internet connection.");
+      console.error("Firestore connection test failed: The client is offline.");
     } else {
       console.error("Firestore connection test failed with an unexpected error:", error);
     }
@@ -128,9 +170,14 @@ export const firestoreService = {
   // Users
   getUsers: async (): Promise<User[]> => {
     const path = 'users';
+    const cached = getFromCache(path);
+    if (cached) return cached;
+
     try {
       const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      setToCache(path, users);
+      return users;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return [];
@@ -141,6 +188,7 @@ export const firestoreService = {
     const path = `users/${user.id}`;
     try {
       await setDoc(doc(db, 'users', user.id), cleanObject(user));
+      invalidateCache('users');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -151,6 +199,7 @@ export const firestoreService = {
     const path = `users/${user.id}`;
     try {
       await updateDoc(doc(db, 'users', user.id), cleanObject(user));
+      invalidateCache('users');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -161,6 +210,7 @@ export const firestoreService = {
     const path = `users/${id}`;
     try {
       await deleteDoc(doc(db, 'users', id));
+      invalidateCache('users');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -170,6 +220,13 @@ export const firestoreService = {
   // Payments
   getPayments: async (limitCount?: number, lastDoc?: any): Promise<{ payments: Payment[], lastVisible: any }> => {
     const path = 'payments';
+
+    // Cache only the first page results for a short time
+    if (!lastDoc && !limitCount) {
+      const cached = getFromCache(path);
+      if (cached) return cached;
+    }
+
     try {
       let q = query(collection(db, path), orderBy('submittedDate', 'desc'));
       if (limitCount) {
@@ -181,16 +238,22 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
       const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      return { payments, lastVisible };
+      const result = { payments, lastVisible };
+
+      if (!lastDoc && !limitCount) {
+        setToCache(path, result);
+      }
+
+      return result;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return { payments: [], lastVisible: null };
     }
   },
 
-  subscribeToPayments: (callback: (payments: Payment[]) => void) => {
+  subscribeToPayments: (callback: (payments: Payment[]) => void, limitCount: number = 50) => {
     const path = 'payments';
-    return onSnapshot(query(collection(db, path), orderBy('submittedDate', 'desc')), (snapshot) => {
+    return onSnapshot(query(collection(db, path), orderBy('submittedDate', 'desc'), limit(limitCount)), (snapshot) => {
       const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
       callback(payments);
     }, (error) => {
@@ -202,6 +265,7 @@ export const firestoreService = {
     const path = `payments/${payment.id}`;
     try {
       await setDoc(doc(db, 'payments', payment.id), cleanObject(payment));
+      invalidateCache('payments');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -212,6 +276,7 @@ export const firestoreService = {
     const path = `payments/${payment.id}`;
     try {
       await updateDoc(doc(db, 'payments', payment.id), cleanObject(payment));
+      invalidateCache('payments');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -222,6 +287,7 @@ export const firestoreService = {
     const path = `payments/${id}`;
     try {
       await deleteDoc(doc(db, 'payments', id));
+      invalidateCache('payments');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -231,6 +297,12 @@ export const firestoreService = {
   // Employees
   getEmployees: async (limitCount?: number, lastDoc?: any): Promise<{ employees: Employee[], lastVisible: any }> => {
     const path = 'employees';
+
+    if (!lastDoc && !limitCount) {
+      const cached = getFromCache(path);
+      if (cached) return cached;
+    }
+
     try {
       let q = query(collection(db, path), orderBy('lastName', 'asc'));
       if (limitCount) {
@@ -242,7 +314,13 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const employees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee));
       const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      return { employees, lastVisible };
+      const result = { employees, lastVisible };
+
+      if (!lastDoc && !limitCount) {
+        setToCache(path, result);
+      }
+
+      return result;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return { employees: [], lastVisible: null };
@@ -253,6 +331,7 @@ export const firestoreService = {
     const path = `employees/${employee.id}`;
     try {
       await setDoc(doc(db, 'employees', employee.id), cleanObject(employee));
+      invalidateCache('employees');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -263,6 +342,7 @@ export const firestoreService = {
     const path = `employees/${employee.id}`;
     try {
       await updateDoc(doc(db, 'employees', employee.id), cleanObject(employee));
+      invalidateCache('employees');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -273,6 +353,7 @@ export const firestoreService = {
     const path = `employees/${id}`;
     try {
       await deleteDoc(doc(db, 'employees', id));
+      invalidateCache('employees');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -282,6 +363,12 @@ export const firestoreService = {
   // Payroll
   getPayrollEntries: async (limitCount?: number, lastDoc?: any): Promise<{ entries: PayrollEntry[], lastVisible: any }> => {
     const path = 'payroll';
+
+    if (!lastDoc && !limitCount) {
+      const cached = getFromCache(path);
+      if (cached) return cached;
+    }
+
     try {
       let q = query(collection(db, path), orderBy('submittedDate', 'desc'));
       if (limitCount) {
@@ -293,7 +380,13 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PayrollEntry));
       const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      return { entries, lastVisible };
+      const result = { entries, lastVisible };
+
+      if (!lastDoc && !limitCount) {
+        setToCache(path, result);
+      }
+
+      return result;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return { entries: [], lastVisible: null };
@@ -332,6 +425,10 @@ export const firestoreService = {
 
   // Budgets
   getBudgets: async (): Promise<BudgetEntry[]> => {
+    const path = 'budgets';
+    const cached = getFromCache(path);
+    if (cached) return cached;
+
     try {
       const budgetsRef = collection(db, 'budgets');
       const annualBudgetsRef = collection(db, 'annual_budgets');
@@ -352,6 +449,7 @@ export const firestoreService = {
         }
       });
       
+      setToCache(path, allBudgets);
       return allBudgets;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'budgets');
@@ -363,6 +461,7 @@ export const firestoreService = {
     const path = `budgets/${budget.id}`;
     try {
       await setDoc(doc(db, 'budgets', budget.id), cleanObject(budget));
+      invalidateCache('budgets');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -373,41 +472,26 @@ export const firestoreService = {
     const path = `budgets/${id}`;
     try {
       await deleteDoc(doc(db, 'budgets', id));
+      invalidateCache('budgets');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
   },
 
-  getAnnualBudgets: async (): Promise<AnnualBudget[]> => {
-    const path = 'annual_budgets';
-    try {
-      const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AnnualBudget));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, path);
-      return [];
-    }
-  },
-
-  saveAnnualBudget: async (budget: AnnualBudget) => {
-    const path = `annual_budgets/${budget.id}`;
-    try {
-      await setDoc(doc(db, 'annual_budgets', budget.id as string), cleanObject(budget));
-      return { status: 'success' };
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
-    }
-  },
-
   // Settings
   getSettings: async (): Promise<SystemSettings | null> => {
     const path = 'settings/global';
+    const cached = getFromCache(path);
+    if (cached) return cached;
+
     try {
       const docRef = doc(db, 'settings', 'global');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return docSnap.data() as SystemSettings;
+        const data = docSnap.data() as SystemSettings;
+        setToCache(path, data);
+        return data;
       }
       return null;
     } catch (error) {
@@ -420,6 +504,7 @@ export const firestoreService = {
     const path = 'settings/global';
     try {
       await setDoc(doc(db, 'settings', 'global'), cleanObject(settings));
+      invalidateCache('settings/global');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -484,9 +569,14 @@ export const firestoreService = {
   // --- STORES ---
   getStores: async (): Promise<Store[]> => {
     const path = 'stores';
+    const cached = getFromCache(path);
+    if (cached) return cached;
+
     try {
       const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store));
+      const stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store));
+      setToCache(path, stores);
+      return stores;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return [];
@@ -497,6 +587,7 @@ export const firestoreService = {
     const path = `stores/${store.id}`;
     try {
       await setDoc(doc(db, 'stores', store.id), cleanObject(store));
+      invalidateCache('stores');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -507,6 +598,7 @@ export const firestoreService = {
     const path = `stores/${store.id}`;
     try {
       await updateDoc(doc(db, 'stores', store.id), cleanObject(store));
+      invalidateCache('stores');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -517,6 +609,7 @@ export const firestoreService = {
     const path = `stores/${id}`;
     try {
       await deleteDoc(doc(db, 'stores', id));
+      invalidateCache('stores');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -526,6 +619,13 @@ export const firestoreService = {
   // Invoices
   getInvoices: async (limitCount?: number, lastDoc?: any): Promise<{ invoices: Invoice[], lastVisible: any }> => {
     const path = 'invoices';
+    
+    // Cache only the first page without lastDoc
+    if (!lastDoc && !limitCount) {
+      const cached = getFromCache(path);
+      if (cached) return cached;
+    }
+
     try {
       let q = query(collection(db, path), orderBy('issueDate', 'desc'));
       if (limitCount) {
@@ -537,7 +637,13 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const invoices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
       const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      return { invoices, lastVisible };
+      const result = { invoices, lastVisible };
+      
+      if (!lastDoc && !limitCount) {
+        setToCache(path, result);
+      }
+      
+      return result;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return { invoices: [], lastVisible: null };
@@ -548,6 +654,7 @@ export const firestoreService = {
     const path = `invoices/${invoice.id}`;
     try {
       await setDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
+      invalidateCache('invoices');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -558,6 +665,7 @@ export const firestoreService = {
     const path = `invoices/${invoice.id}`;
     try {
       await updateDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
+      invalidateCache('invoices');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -568,6 +676,7 @@ export const firestoreService = {
     const path = `invoices/${id}`;
     try {
       await deleteDoc(doc(db, 'invoices', id));
+      invalidateCache('invoices');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -577,9 +686,14 @@ export const firestoreService = {
   // Clients
   getClients: async (): Promise<Client[]> => {
     const path = 'clients';
+    const cached = getFromCache(path);
+    if (cached) return cached;
+
     try {
       const snapshot = await getDocs(collection(db, path));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+      const clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+      setToCache(path, clients);
+      return clients;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
       return [];
@@ -590,6 +704,7 @@ export const firestoreService = {
     const path = `clients/${client.id}`;
     try {
       await setDoc(doc(db, 'clients', client.id), cleanObject(client));
+      invalidateCache('clients');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -600,6 +715,7 @@ export const firestoreService = {
     const path = `clients/${client.id}`;
     try {
       await updateDoc(doc(db, 'clients', client.id), cleanObject(client));
+      invalidateCache('clients');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
@@ -610,6 +726,7 @@ export const firestoreService = {
     const path = `clients/${id}`;
     try {
       await deleteDoc(doc(db, 'clients', id));
+      invalidateCache('clients');
       return { status: 'success' };
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
@@ -666,15 +783,18 @@ export const firestoreService = {
     }
   },
 
-  subscribeToChat: (room: string = 'global', callback: (messages: ChatMessage[]) => void) => {
+  subscribeToChat: (room: string = 'global', callback: (messages: ChatMessage[]) => void, limitCount: number = 50) => {
     const path = 'chat_messages';
     const q = query(
       collection(db, path), 
       where('room', '==', room),
-      orderBy('timestamp', 'asc')
+      orderBy('timestamp', 'desc'), // Changed to desc for efficient limiting
+      limit(limitCount)
     );
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      const messages = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage))
+        .reverse(); // Reverse back to chronological order for UI
       callback(messages);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
