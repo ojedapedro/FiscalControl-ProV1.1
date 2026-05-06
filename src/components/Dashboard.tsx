@@ -178,13 +178,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Calcular totales reales basados en el estado de los pagos
-  const totalDue = filteredByStorePayments
-    .filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status))
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  const unpaidPayments = filteredByStorePayments.filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status));
+  const totalDue = unpaidPayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalDueBs = unpaidPayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
 
-  const totalOverdue = filteredByStorePayments
-    .filter(p => p.status === PaymentStatus.OVERDUE)
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  const overduePayments = filteredByStorePayments.filter(p => p.status === PaymentStatus.OVERDUE);
+  const totalOverdue = overduePayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalOverdueBs = overduePayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
 
   // Calcular total de pasivos laborales
   const totalLiabilities = payrollEntries.reduce((acc, entry) => {
@@ -384,7 +384,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalDue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
-              Bs. {(totalDue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              Bs. {totalDueBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold mt-3 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingUp size={14} />
@@ -403,7 +403,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
-              Bs. {(totalOverdue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              Bs. {totalOverdueBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
              <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-semibold mt-3 bg-red-50 dark:bg-red-900/20 w-fit px-2 py-1 rounded-lg">
               <TrendingDown size={14} />
@@ -571,7 +571,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-500">Bs. {(payment.amount * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="text-[10px] text-slate-500">
+                    Bs. {(payment.dueDateAmountBs || (payment.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                   <span className={`text-[10px] font-bold ${
                     payment.status === PaymentStatus.APPROVED ? 'text-green-600' : 
                     payment.status === PaymentStatus.REJECTED ? 'text-red-600' : 'text-orange-600'
@@ -707,6 +709,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                         <div className="col-span-2 flex flex-col items-end gap-0.5 w-full sm:w-auto">
                             <span className="font-bold text-sm text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-[10px] font-medium text-slate-500">
+                              Bs. {(payment.dueDateAmountBs || (payment.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                             <div className="flex items-center gap-2">
                               <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
                                   payment.status === PaymentStatus.PENDING || payment.status === PaymentStatus.UPLOADED ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :

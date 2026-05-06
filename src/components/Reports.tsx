@@ -72,6 +72,10 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
     const pendingPercent = (pendingValue / budgetTarget) * 100;
     const totalPercent = ((approvedValue + pendingValue) / budgetTarget) * 100;
 
+    const approvedBs = approvedEntry?.payload?.approvedBs || (approvedValue * exchangeRate);
+    const pendingBs = pendingEntry?.payload?.pendingBs || (pendingValue * exchangeRate);
+    const totalBs = approvedBs + pendingBs;
+
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-sm bg-opacity-95 min-w-[240px] z-50">
         <p className="font-bold text-slate-950 dark:text-slate-50 mb-3 text-sm border-b border-slate-700 pb-2 uppercase tracking-wider">{label}</p>
@@ -89,7 +93,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
                   ${approvedValue.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Bs. {(approvedValue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  Bs. {approvedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -113,7 +117,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
                   ${pendingValue.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Bs. {(pendingValue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  Bs. {pendingBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -134,7 +138,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
                 ${(approvedValue + pendingValue).toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-500">
-                Bs. {((approvedValue + pendingValue) * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                Bs. {totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -380,10 +384,18 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         const approvedAmount = monthlyPayments
             .filter(p => p.status === PaymentStatus.APPROVED)
             .reduce((sum, p) => sum + p.amount, 0);
+        
+        const approvedAmountBs = monthlyPayments
+            .filter(p => p.status === PaymentStatus.APPROVED)
+            .reduce((sum, p) => sum + (p.dueDateAmountBs || (p.amount * exchangeRate)), 0);
 
         const pendingAmount = monthlyPayments
             .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE)
             .reduce((sum, p) => sum + p.amount, 0);
+
+        const pendingAmountBs = monthlyPayments
+            .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED || p.status === PaymentStatus.OVERDUE)
+            .reduce((sum, p) => sum + (p.dueDateAmountBs || (p.amount * exchangeRate)), 0);
 
         // Calcular presupuesto para este mes específico
         const monthlyBudget = budgets.filter(b => {
@@ -394,9 +406,12 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         return {
             name: monthName,
             approved: approvedAmount,
+            approvedBs: approvedAmountBs,
             pending: pendingAmount,
+            pendingBs: pendingAmountBs,
             budget: monthlyBudget || 0,
-            total: approvedAmount + pendingAmount
+            total: approvedAmount + pendingAmount,
+            totalBs: approvedAmountBs + pendingAmountBs
         };
     });
   }, [payments, budgets, startDate, selectedStore, selectedMunicipality, stores]);
@@ -407,12 +422,16 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
   const budgetUtilization = (totalYTDExecuted / totalAnnualBudget) * 100;
   const availableBudget = totalAnnualBudget - totalYTDExecuted;
 
-  const totalApproved = filteredPayments
-    .filter(p => p.status === PaymentStatus.APPROVED)
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
+  const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalApprovedBs = approvedPayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
 
-  const totalRejectedCount = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED).length;
-  const totalPendingCount = filteredPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+  const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
+  const totalRejectedCount = rejectedPayments.length;
+  
+  const pendingPayments = filteredPayments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
+  const totalPendingCount = pendingPayments.length;
+  const totalPendingBs = pendingPayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
   
   // Calculate over-budget sum
   const totalOverBudgetSum = filteredPayments
@@ -657,9 +676,6 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
     document.body.removeChild(link);
   };
 
-  const approvedPayments = filteredPayments.filter(p => p.status === PaymentStatus.APPROVED);
-  const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);
-
   const statusData = [
     { name: 'Aprobados', value: approvedPayments.length, color: '#22c55e' },
     { name: 'Rechazados', value: rejectedPayments.length, color: '#ef4444' },
@@ -765,9 +781,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
         const kpiY = 60;
         doc.setFontSize(10);
         
-        doc.text(`Total Aprobado: $${totalApproved.toLocaleString()}`, 14, kpiY);
-        doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 80, kpiY);
-        doc.text(`Pendientes: ${totalPendingCount}`, 140, kpiY);
+        doc.text(`Total Aprobado: $${totalApproved.toLocaleString()} (Bs. ${totalApprovedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY);
+        doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 14, kpiY + 7);
+        doc.text(`Pendientes: ${totalPendingCount} (Bs. ${totalPendingBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY + 14);
 
         doc.text("Detalle de Transacciones", 14, 80);
         
@@ -777,12 +793,13 @@ export const Reports: React.FC<ReportsProps> = ({ payments, budgets, payrollEntr
                 p.storeName,
                 p.specificType,
                 `$${p.amount.toLocaleString()}`,
+                `Bs. ${(p.dueDateAmountBs || (p.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
                 p.status
             ]);
 
         autoTable(doc, {
             startY: 85,
-            head: [['Fecha', 'Tienda', 'Concepto', 'Monto', 'Estado']],
+            head: [['Fecha', 'Tienda', 'Concepto', 'Monto ($)', 'Monto (Bs.)', 'Estado']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [30, 41, 59] },

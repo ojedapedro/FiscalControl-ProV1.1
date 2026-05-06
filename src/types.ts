@@ -135,6 +135,10 @@ export interface Payment {
     proposedAmountApproved: boolean;
     observationsApproved: boolean;
   };
+
+  // Historic Rate Reference
+  dueDateRate?: number;
+  dueDateAmountBs?: number;
 }
 
 export interface ChartData {
@@ -276,16 +280,6 @@ export interface BudgetEntry {
   amount: number;
   category: Category;
   notes?: string;
-}
-
-export interface AnnualBudget {
-  id?: string;
-  year: number;
-  months: {
-    [key: string]: number;
-  };
-  total: number;
-  storeId: string;
 }
 
 export enum InvoiceStatus {

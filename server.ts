@@ -6,8 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { checkAndSendNotifications } from './src/server/notifications';
@@ -19,6 +17,7 @@ import sendEmailsHandler from './src/api/payroll/send-emails.ts';
 import sendEmailHandler from './src/api/notifications/send-email.ts';
 import whatsappCheckHandler from './src/api/notifications/whatsapp/check.ts';
 import whatsappSendHandler from './src/api/notifications/whatsapp/send.ts';
+import exchangeRateHandler from './src/api/exchange-rate.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +28,7 @@ async function startServer() {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' && process.env.APP_URL ? process.env.APP_URL : "*",
+      origin: "*",
       methods: ["GET", "POST"]
     }
   });
@@ -56,25 +55,7 @@ async function startServer() {
     });
   });
 
-  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-    console.error('💥 ERROR FATAL: SESSION_SECRET no está configurado. Abortando inicio del servidor.');
-    process.exit(1);
-  }
-
-  app.set('trust proxy', 1);
-  
-  app.use(helmet({
-    contentSecurityPolicy: false, // Desactivado temporalmente para no romper Vite en desarrollo o dependencias en línea.
-  }));
-  
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 150, 
-    message: { error: 'Demasiadas peticiones desde esta IP, por favor intente nuevamente más tarde.' }
-  });
-  app.use('/api/', apiLimiter);
-
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '50mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
@@ -94,6 +75,7 @@ async function startServer() {
   app.all('/api/notifications/send-email', sendEmailHandler);
   app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
   app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
+  app.all('/api/exchange-rate', exchangeRateHandler);
 
   // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {

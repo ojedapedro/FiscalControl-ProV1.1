@@ -115,11 +115,47 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Campos del Soporte
   const [docDate, setDocDate] = React.useState(initialData?.documentDate || '');
   const [docExchangeRate, setDocExchangeRate] = React.useState<number | null>(null);
-  const effectiveExchangeRate = docExchangeRate || exchangeRate;
   const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount?.toString() || '');
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
+  const [dueDateExchangeRate, setDueDateExchangeRate] = React.useState<number | null>(null);
+  const [isLoadingRate, setIsLoadingRate] = React.useState(false);
 
   const [notes, setNotes] = React.useState(initialData?.notes || '');
+
+  // Fetch exchange rate when due date changes for fiscal categories
+  React.useEffect(() => {
+    const isFiscalCategory = category === Category.MUNICIPAL_TAX || 
+                           category === Category.SENIAT_DECLARATIONS || 
+                           category === Category.INSTITUTIONS;
+    
+    if (isFiscalCategory && dueDate) {
+      const fetchRate = async () => {
+        setIsLoadingRate(true);
+        try {
+          const result = await firestoreService.getExchangeRateByDate(dueDate);
+          if (result.success && result.rate) {
+            setDueDateExchangeRate(result.rate);
+            // Optionally set it as the doc exchange rate if not manually set
+            if (!docExchangeRate) {
+              setDocExchangeRate(result.rate);
+            }
+          } else {
+            // If no historical rate, fallback to current global rate
+            setDueDateExchangeRate(null);
+          }
+        } catch (error) {
+          console.error("Error fetching due date rate:", error);
+        } finally {
+          setIsLoadingRate(false);
+        }
+      };
+      fetchRate();
+    } else {
+      setDueDateExchangeRate(null);
+    }
+  }, [dueDate, category]);
+
+  const effectiveExchangeRate = docExchangeRate || dueDateExchangeRate || exchangeRate;
 
   // Reset form when initialData changes
   React.useEffect(() => {
@@ -173,7 +209,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setProposedPaymentDate(initialData.proposedPaymentDate || initialData.paymentDate);
       setProposedDueDate(initialData.proposedDueDate || initialData.dueDate);
       setProposedDaysToExpire(initialData.proposedDaysToExpire !== undefined ? initialData.proposedDaysToExpire : (initialData.daysToExpire || 0));
-      setProposedFrequency(initialData.proposedFrequency && initialData.proposedFrequency !== PaymentFrequency.NONE ? initialData.proposedFrequency : (initialData.frequency || PaymentFrequency.NONE));
+      setProposedFrequency(initialData.proposedFrequency !== PaymentFrequency.NONE ? initialData.proposedFrequency : (initialData.frequency || PaymentFrequency.NONE));
       setProposedJustification(initialData.proposedJustification || '');
 
       setDocDate(initialData.documentDate || '');
@@ -666,9 +702,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             } else if (hasPendingOrUploaded) {
                 hasOrange = true;
             } else if (!hasApprovedOrPaid) {
-                if (baseStatus && baseStatus.status === 'Vencido') {
+                if (baseStatus.status === 'Vencido') {
                     hasRed = true;
-                } else if (baseStatus && baseStatus.status === 'Próximo') {
+                } else if (baseStatus.status === 'Próximo') {
                     hasOrange = true;
                 }
             }
@@ -964,7 +1000,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             proposedDaysToExpire,
             proposedFrequency,
             proposedJustification,
-            proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined
+            proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined,
+            // Historic Rate Reference
+            dueDateRate: category === Category.MUNICIPAL_TAX || category === Category.SENIAT_DECLARATIONS || category === Category.INSTITUTIONS ? (dueDateExchangeRate || undefined) : undefined,
+            dueDateAmountBs: category === Category.MUNICIPAL_TAX || category === Category.SENIAT_DECLARATIONS || category === Category.INSTITUTIONS ? (parseFloat(amount) || 0) : undefined
         });
         
         setShowSuccess(true);

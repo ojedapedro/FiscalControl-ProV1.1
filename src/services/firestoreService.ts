@@ -103,6 +103,14 @@ export function cleanObject(obj: any): any {
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const CACHE_KEY_PREFIX = 'fiscalControl_cache_';
 
+// --- OFFLINE MODE TOGGLE ---
+// CAMBIE A 'false' PARA VOLVER A CONECTAR LA BASE DE DATOS
+const IS_OFFLINE_MODE = true; 
+
+if (IS_OFFLINE_MODE) {
+  console.warn("⚠️ MODO OFFLINE ACTIVADO: La aplicación no está realizando peticiones a Firestore para ahorrar cuota.");
+}
+
 function getFromCache(key: string) {
   try {
     const cachedStr = localStorage.getItem(CACHE_KEY_PREFIX + key);
@@ -137,6 +145,7 @@ function invalidateCache(key: string) {
 
 // Test connection
 export async function testConnection() {
+  if (IS_OFFLINE_MODE) return;
   if (!auth.currentUser) {
     console.log("Firestore connection test skipped: User not authenticated.");
     return;
@@ -169,6 +178,7 @@ export async function testConnection() {
 export const firestoreService = {
   // Users
   getUsers: async (): Promise<User[]> => {
+    if (IS_OFFLINE_MODE) return [];
     const path = 'users';
     const cached = getFromCache(path);
     if (cached) return cached;
@@ -219,6 +229,7 @@ export const firestoreService = {
 
   // Payments
   getPayments: async (limitCount?: number, lastDoc?: any): Promise<{ payments: Payment[], lastVisible: any }> => {
+    if (IS_OFFLINE_MODE) return { payments: [], lastVisible: null };
     const path = 'payments';
 
     // Cache only the first page results for a short time
@@ -252,6 +263,10 @@ export const firestoreService = {
   },
 
   subscribeToPayments: (callback: (payments: Payment[]) => void, limitCount: number = 50) => {
+    if (IS_OFFLINE_MODE) {
+      callback([]);
+      return () => {};
+    }
     const path = 'payments';
     return onSnapshot(query(collection(db, path), orderBy('submittedDate', 'desc'), limit(limitCount)), (snapshot) => {
       const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
@@ -296,6 +311,7 @@ export const firestoreService = {
 
   // Employees
   getEmployees: async (limitCount?: number, lastDoc?: any): Promise<{ employees: Employee[], lastVisible: any }> => {
+    if (IS_OFFLINE_MODE) return { employees: [], lastVisible: null };
     const path = 'employees';
 
     if (!lastDoc && !limitCount) {
@@ -362,6 +378,7 @@ export const firestoreService = {
 
   // Payroll
   getPayrollEntries: async (limitCount?: number, lastDoc?: any): Promise<{ entries: PayrollEntry[], lastVisible: any }> => {
+    if (IS_OFFLINE_MODE) return { entries: [], lastVisible: null };
     const path = 'payroll';
 
     if (!lastDoc && !limitCount) {
@@ -425,6 +442,7 @@ export const firestoreService = {
 
   // Budgets
   getBudgets: async (): Promise<BudgetEntry[]> => {
+    if (IS_OFFLINE_MODE) return [];
     const path = 'budgets';
     const cached = getFromCache(path);
     if (cached) return cached;
@@ -481,6 +499,7 @@ export const firestoreService = {
 
   // Settings
   getSettings: async (): Promise<SystemSettings | null> => {
+    if (IS_OFFLINE_MODE) return null;
     const path = 'settings/global';
     const cached = getFromCache(path);
     if (cached) return cached;
@@ -512,6 +531,7 @@ export const firestoreService = {
   },
 
   bootstrap: async () => {
+    if (IS_OFFLINE_MODE) return;
     try {
       await testConnection();
       const settings = await firestoreService.getSettings();
@@ -568,6 +588,7 @@ export const firestoreService = {
 
   // --- STORES ---
   getStores: async (): Promise<Store[]> => {
+    if (IS_OFFLINE_MODE) return [];
     const path = 'stores';
     const cached = getFromCache(path);
     if (cached) return cached;
@@ -618,6 +639,7 @@ export const firestoreService = {
 
   // Invoices
   getInvoices: async (limitCount?: number, lastDoc?: any): Promise<{ invoices: Invoice[], lastVisible: any }> => {
+    if (IS_OFFLINE_MODE) return { invoices: [], lastVisible: null };
     const path = 'invoices';
     
     // Cache only the first page without lastDoc
@@ -685,6 +707,7 @@ export const firestoreService = {
 
   // Clients
   getClients: async (): Promise<Client[]> => {
+    if (IS_OFFLINE_MODE) return [];
     const path = 'clients';
     const cached = getFromCache(path);
     if (cached) return cached;
@@ -784,6 +807,10 @@ export const firestoreService = {
   },
 
   subscribeToChat: (room: string = 'global', callback: (messages: ChatMessage[]) => void, limitCount: number = 50) => {
+    if (IS_OFFLINE_MODE) {
+      callback([]);
+      return () => {};
+    }
     const path = 'chat_messages';
     const q = query(
       collection(db, path), 

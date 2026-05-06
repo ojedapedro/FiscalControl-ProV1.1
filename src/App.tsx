@@ -446,11 +446,29 @@ function App({}: AppProps = {}) {
   };
 
   const loadData = async () => {
+    if (isLoading) return;
     setIsLoading(true);
-    try {
-      await firestoreService.bootstrap();
+    
+    // Check if we already have data to avoid redundant reloads during navigation
+    const hasData = payments.length > 0 && budgets.length > 0;
+    const lastLoadTime = sessionStorage.getItem('last_data_load');
+    const now = Date.now();
+    
+    // Only fetch if no data or data is older than 2 minutes
+    if (hasData && lastLoadTime && (now - parseInt(lastLoadTime)) < 120000) {
+      console.log("Using fresh local data, skipping Firestore fetch");
+      setIsLoading(false);
+      return;
+    }
 
-      console.log("Loading data for user:", currentUser.email, "with role:", currentUser.role);
+    try {
+      // Only bootstrap ONCE per session
+      if (!sessionStorage.getItem('app_bootstrapped')) {
+        await firestoreService.bootstrap();
+        sessionStorage.setItem('app_bootstrapped', 'true');
+      }
+
+      console.log("Loading data for user:", currentUser?.email, "with role:", currentUser?.role);
       const canManageUsers = currentUser.role === Role.SUPER_ADMIN || 
                             currentUser.role === Role.ADMIN || 
                             currentUser.role === Role.AUDITOR ||
@@ -500,6 +518,8 @@ function App({}: AppProps = {}) {
         setExchangeRateInput(settingsData.exchangeRate);
         localStorage.setItem('fiscal_exchange_rate', settingsData.exchangeRate.toString());
       }
+      
+      sessionStorage.setItem('last_data_load', Date.now().toString());
     } catch (error: any) {
       console.error('Error loading data:', error);
       let errorMsg = '❌ Error conectando con Firestore';
@@ -1422,6 +1442,48 @@ function App({}: AppProps = {}) {
                                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-blue-500"
                            />
                        </div>
+                       <button 
+                           onClick={async () => {
+                               setIsLoading(true);
+                               setNotification('🌐 Obteniendo tasa BCV...');
+                               try {
+                                   const response = await fetch('/api/exchange-rate');
+                                   const data = await response.json();
+                                   if (data.success && data.rate) {
+                                       setExchangeRateInput(data.rate);
+                                       setExchangeRate(data.rate);
+                                       localStorage.setItem('fiscal_exchange_rate', data.rate.toString());
+                                       
+                                       // Guardar automáticamente en Firestore
+                                       const currentSettings = await firestoreService.getSettings() || {
+                                           whatsappEnabled: false,
+                                           whatsappPhone: '',
+                                           whatsappGatewayUrl: '',
+                                           daysBeforeWarning: 5,
+                                           daysBeforeCritical: 2,
+                                           emailEnabled: false,
+                                           exchangeRate: 1
+                                       };
+                                       await firestoreService.saveSettings({ ...currentSettings, exchangeRate: data.rate });
+                                       await firestoreService.saveExchangeRate(data.rate);
+                                       
+                                       setNotification(`✅ Tasa BCV actualizada: Bs. ${data.rate} (${data.lastUpdate || 'Hoy'})`);
+                                   } else {
+                                       setNotification('❌ No se pudo obtener la tasa oficial');
+                                   }
+                               } catch (err) {
+                                   console.error('Error fetching exchange rate:', err);
+                                   setNotification('❌ Error de conexión al obtener tasa');
+                               } finally {
+                                   setIsLoading(false);
+                                   setTimeout(() => setNotification(null), 5000);
+                               }
+                           }}
+                           title="Obtener tasa oficial del BCV"
+                           className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-2 rounded-lg text-slate-600 dark:text-slate-300 transition-colors flex items-center justify-center"
+                       >
+                           <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+                       </button>
                        <button 
                            onClick={async () => {
                                setIsLoading(true);
