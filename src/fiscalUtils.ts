@@ -128,11 +128,11 @@ export const getTaxStatus = (deadlineDay: number, category?: Category, itemCode?
 /**
  * Determina el estado del semáforo para una categoría fiscal específica en una tienda.
  * Reglas actualizadas:
- * 1. El semáforo es activado por el concepto de pago (desglose).
- * 2. Si hay Rojo, Naranja y Verde -> Prevalece el Rojo.
- * 3. Si hay Naranja y Verde -> Prevalece el Naranja (por vencerse o enviado al auditor).
- * 4. Si TODOS los conceptos están en Verde -> Verde (única condición para verde).
- * 5. Color Predominante: Las categorías sin actividad ya no son grises; ahora se muestran en Verde si no hay obligaciones pendientes, manteniendo la coherencia visual del semáforo.
+ * 1. Prioridad: Rojo > Naranja > Verde.
+ * 2. El Rojo se activa por pagos RECHAZADOS/VENCIDOS o por calendario VENCIDO.
+ * 3. El Naranja se activa por pagos PENDIENTES/CARGADOS o por calendario PRÓXIMO.
+ * 4. El Verde es el estado por defecto para conceptos al día o satisfechos (APROBADO/PAGADO).
+ * 5. Si no hay actividad para un concepto, se muestra en VERDE a menos que el calendario indique lo contrario.
  */
 export const getCategoryTrafficLight = (
   category: Category, 
@@ -147,16 +147,21 @@ export const getCategoryTrafficLight = (
   
   let hasRed = false;
   let hasAmber = false;
-  let hasMovements = false;
-  let allConceptsGreen = true;
 
   // Iterar por todos los grupos y conceptos definidos en la configuración fiscal
   Object.values(configMap).forEach(groupConfig => {
     groupConfig.items.forEach(item => {
-      // Obtener el estado del calendario para este concepto específico considerando RIF
+      // 1. Estado base desde el calendario
       const calendarStatus = getTaxStatus(groupConfig.deadlineDay, category, item.code, store);
+      let itemStatus: TrafficLightStatus = 'green';
       
-      // Buscar movimientos (pagos) para este concepto específico
+      if (calendarStatus.status === 'Vencido') {
+        itemStatus = 'red';
+      } else if (calendarStatus.status === 'Próximo') {
+        itemStatus = 'amber';
+      }
+      
+      // 2. Refinar estado con movimientos (pagos)
       const itemPayments = payments.filter(p => 
         p.storeId === storeId && 
         p.category === category && 
@@ -164,62 +169,44 @@ export const getCategoryTrafficLight = (
       );
 
       if (itemPayments.length > 0) {
-        hasMovements = true;
-        
-        const itemHasRed = itemPayments.some(p => 
+        // Prioridad dentro del concepto específico: Rojo > Ambar > Verde (Satisfecho)
+        const hasPaymentRed = itemPayments.some(p => 
           p.status === PaymentStatus.REJECTED || 
           p.status === PaymentStatus.OVERDUE
         );
         
-        const itemHasAmber = itemPayments.some(p => 
+        const hasPaymentAmber = itemPayments.some(p => 
           p.status === PaymentStatus.PENDING || 
           p.status === PaymentStatus.UPLOADED
         );
         
-        const itemHasGreen = itemPayments.some(p => 
+        const hasPaymentGreen = itemPayments.some(p => 
           p.status === PaymentStatus.APPROVED || 
           p.status === PaymentStatus.PAID
         );
 
-        if (itemHasRed) {
-          hasRed = true;
-          allConceptsGreen = false;
-        } else if (itemHasAmber) {
-          hasAmber = true;
-          allConceptsGreen = false;
-        } else if (!itemHasGreen) {
-          // Si tiene pagos pero ninguno es verde (ej. todos en otros estados)
-          allConceptsGreen = false;
-        }
-      } else {
-        // Si NO hay movimientos para este concepto, revisamos el calendario
-        if (calendarStatus.status === 'Vencido') {
-          hasRed = true;
-          allConceptsGreen = false;
-        } else if (calendarStatus.status === 'Próximo') {
-          hasAmber = true;
-          allConceptsGreen = false;
-        } else {
-          // Está "En fecha" pero no se ha pagado aún
-          allConceptsGreen = false;
+        if (hasPaymentRed) {
+          itemStatus = 'red';
+        } else if (hasPaymentAmber) {
+          // El ambar solo persiste si no hay rojos en los pagos
+          itemStatus = 'amber';
+        } else if (hasPaymentGreen) {
+          // Si el pago está APROBADO o PAGADO, la obligación está satisfecha
+          // Esto neutraliza las alertas del calendario para este concepto
+          itemStatus = 'green';
         }
       }
+
+      // 3. Aplicar prevalencia a nivel de categoría
+      if (itemStatus === 'red') hasRed = true;
+      if (itemStatus === 'amber') hasAmber = true;
     });
   });
 
-  // 1. Rojo prevalece sobre todo
+  // Prevalencia Final de Categoría
   if (hasRed) return 'red';
-
-  // 2. Naranja prevalece sobre verde (o si hay conceptos pendientes de pago)
   if (hasAmber) return 'amber';
-
-  // 3. Verde: Única condición es que TODOS los conceptos estén pagados/aprobados
-  if (allConceptsGreen) return 'green';
-
-  // 4. Gris: ELIMINADO según solicitud del usuario.
-  // Si no hay movimientos y no hay alertas de calendario, se considera "Verde" (Al día)
-  // por defecto, integrándose con la lógica de semáforo predominante.
-  return hasMovements ? 'amber' : 'green';
+  return 'green';
 };
 
 /**

@@ -105,7 +105,7 @@ const CACHE_KEY_PREFIX = 'fiscalControl_cache_';
 
 // --- OFFLINE MODE TOGGLE ---
 // CAMBIE A 'false' PARA VOLVER A CONECTAR LA BASE DE DATOS
-const IS_OFFLINE_MODE = true; 
+const IS_OFFLINE_MODE = false; 
 
 if (IS_OFFLINE_MODE) {
   console.warn("⚠️ MODO OFFLINE ACTIVADO: La aplicación no está realizando peticiones a Firestore para ahorrar cuota.");
