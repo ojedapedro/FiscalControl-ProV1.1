@@ -680,8 +680,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         let hasRed = false;
         let hasOrange = false;
         
-        const baseStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, groupConfig.items[0]?.code, storeObj) : null;
-
         groupConfig.items.forEach(item => {
             const itemPayments = payments.filter(p => {
                 const pDate = new Date(p.dueDate);
@@ -693,20 +691,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             });
 
             const hasApprovedOrPaid = itemPayments.some(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
+            
+            if (hasApprovedOrPaid) {
+                // Si está aprobado, no hay alerta
+                return;
+            }
+
             const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
             const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
-            if (hasRejected || hasOverdue) {
+            // Estado base desde el calendario para este ítem específico
+            const itemCalendarStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj) : null;
+
+            if (hasRejected || hasOverdue || (itemCalendarStatus?.status === 'Vencido')) {
                 hasRed = true;
-            } else if (hasPendingOrUploaded) {
+            } else if (hasPendingOrUploaded || (itemCalendarStatus?.status === 'Próximo')) {
                 hasOrange = true;
-            } else if (!hasApprovedOrPaid) {
-                if (baseStatus.status === 'Vencido') {
-                    hasRed = true;
-                } else if (baseStatus.status === 'Próximo') {
-                    hasOrange = true;
-                }
             }
         });
 
@@ -836,12 +837,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
             let statusInfo;
-            if (hasRejected || hasOverdue) {
+            if (hasApprovedOrPaid) {
+                statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
+            } else if (hasRejected || hasOverdue) {
                 statusInfo = { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
             } else if (hasPendingOrUploaded) {
                 statusInfo = { color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Enviado', icon: Clock };
-            } else if (hasApprovedOrPaid) {
-                statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
             } else {
                 const dateStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj) : { status: 'En fecha', color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', icon: CheckCircle2 };
                 statusInfo = { 

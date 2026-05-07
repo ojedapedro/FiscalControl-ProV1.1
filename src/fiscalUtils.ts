@@ -162,38 +162,47 @@ export const getCategoryTrafficLight = (
       }
       
       // 2. Refinar estado con movimientos (pagos)
-      const itemPayments = payments.filter(p => 
-        p.storeId === storeId && 
-        p.category === category && 
-        p.specificType.startsWith(item.code)
-      );
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      const itemPayments = payments.filter(p => {
+        const pDate = new Date(p.dueDate);
+        return p.storeId === storeId && 
+               p.category === category && 
+               p.specificType.startsWith(item.code) &&
+               pDate.getMonth() === currentMonth &&
+               pDate.getFullYear() === currentYear;
+      });
 
       if (itemPayments.length > 0) {
-        // Prioridad dentro del concepto específico: Rojo > Ambar > Verde (Satisfecho)
-        const hasPaymentRed = itemPayments.some(p => 
-          p.status === PaymentStatus.REJECTED || 
-          p.status === PaymentStatus.OVERDUE
-        );
-        
-        const hasPaymentAmber = itemPayments.some(p => 
-          p.status === PaymentStatus.PENDING || 
-          p.status === PaymentStatus.UPLOADED
-        );
-        
+        // La aprobación o pago tiene prioridad absoluta: si está satisfecho, el estado es verde
         const hasPaymentGreen = itemPayments.some(p => 
           p.status === PaymentStatus.APPROVED || 
           p.status === PaymentStatus.PAID
         );
-
-        if (hasPaymentRed) {
-          itemStatus = 'red';
-        } else if (hasPaymentAmber) {
-          // El ambar solo persiste si no hay rojos en los pagos
-          itemStatus = 'amber';
-        } else if (hasPaymentGreen) {
-          // Si el pago está APROBADO o PAGADO, la obligación está satisfecha
-          // Esto neutraliza las alertas del calendario para este concepto
+        
+        if (hasPaymentGreen) {
           itemStatus = 'green';
+        } else {
+          // Prioridad para pagos no satisfechos: Rojo > Ambar
+          const hasPaymentRed = itemPayments.some(p => 
+            p.status === PaymentStatus.REJECTED || 
+            p.status === PaymentStatus.OVERDUE
+          );
+          
+          if (hasPaymentRed) {
+            itemStatus = 'red';
+          } else {
+            const hasPaymentAmber = itemPayments.some(p => 
+              p.status === PaymentStatus.PENDING || 
+              p.status === PaymentStatus.UPLOADED
+            );
+            
+            if (hasPaymentAmber) {
+              itemStatus = 'amber';
+            }
+          }
         }
       }
 
