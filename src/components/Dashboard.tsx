@@ -31,6 +31,7 @@ import { formatDate, formatDateTime } from '../utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { StripePaymentModal } from './StripePaymentModal';
 import { getStoreFiscalHealth, getCategoryTrafficLight } from '../fiscalUtils';
+import { IS_OFFLINE_MODE } from '../services/firestoreService';
 
 interface DashboardProps {
   payments: Payment[];
@@ -290,6 +291,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Offline Mode Banner */}
+      {IS_OFFLINE_MODE && (
+        <div className="bg-amber-500 border-b border-amber-600 text-white px-4 py-2 rounded-xl flex items-center justify-between shadow-lg animate-pulse">
+          <div className="flex items-center gap-2">
+            <Wifi size={20} className="opacity-80" />
+            <span className="font-bold text-sm">Modo de Ahorro de Datos Activo: La conexión con la nube está pausada por límite de cuota. Los datos mostrados son locales.</span>
+          </div>
+          <div className="text-[10px] uppercase font-black tracking-widest opacity-80 border border-white/30 px-2 py-0.5 rounded">Offline</div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-950 dark:text-slate-50">Gestión de Pagos</h1>

@@ -185,10 +185,35 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             timeLabel = `Programado (${diffDays} días)`;
         }
 
-        // Si ya está cargado (Uploaded), baja la severidad visual aunque esté cerca la fecha
+        let auditDaysCount = undefined;
+        let auditSeverity: 'green' | 'amber' | 'red' | 'critical' | undefined = undefined;
+
+        // Si ya está cargado (Uploaded), calcula el tiempo en auditoría
         if (p.status === PaymentStatus.UPLOADED) {
             severity = 'scheduled';
-            timeLabel = 'En revisión por auditoría';
+            
+            if (p.submittedDate) {
+                const submittedDate = new Date(p.submittedDate);
+                const diffTimeAudit = today.getTime() - submittedDate.getTime();
+                auditDaysCount = Math.floor(diffTimeAudit / (1000 * 60 * 60 * 24));
+                
+                // Lógica de semáforo: 5 días (amber), 8 días (red), >8 días (critical)
+                if (auditDaysCount < 5) {
+                    auditSeverity = 'green';
+                } else if (auditDaysCount < 8) {
+                    auditSeverity = 'amber';
+                } else if (auditDaysCount === 8) {
+                    auditSeverity = 'red';
+                    severity = 'critical'; 
+                } else {
+                    auditSeverity = 'critical';
+                    severity = 'critical';
+                }
+                
+                timeLabel = `En auditoría (${auditDaysCount} días)`;
+            } else {
+                timeLabel = 'En revisión por auditoría';
+            }
         }
 
         return {
@@ -202,7 +227,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             severity,
             timeLabel,
             dueDate: effectiveDueDate,
-            paymentDate: p.paymentDate
+            paymentDate: p.paymentDate,
+            auditDaysCount,
+            auditSeverity
         };
       })
       .sort((a, b) => {
@@ -816,11 +843,32 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Estado / Tiempo</span>
                                         <p className={`text-sm font-bold ${
-                                            alert.severity === 'critical' ? 'text-red-500' : 'text-emerald-500'
+                                            alert.auditSeverity === 'critical' ? 'text-red-700 dark:text-red-400' :
+                                            alert.severity === 'critical' ? 'text-red-500' : 
+                                            alert.auditSeverity === 'amber' ? 'text-amber-500' :
+                                            alert.auditSeverity === 'green' ? 'text-emerald-500' :
+                                            'text-emerald-500'
                                         }`}>
                                             {alert.timeLabel}
                                         </p>
                                     </div>
+
+                                    {alert.auditDaysCount !== undefined && (
+                                        <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
+                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Días Auditor</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`w-2 h-2 rounded-full ${
+                                                    alert.auditSeverity === 'critical' ? 'bg-red-700 animate-pulse' :
+                                                    alert.auditSeverity === 'red' ? 'bg-red-500' :
+                                                    alert.auditSeverity === 'amber' ? 'bg-amber-500' :
+                                                    'bg-emerald-500'
+                                                }`}></span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                    {alert.auditDaysCount} {alert.auditDaysCount === 1 ? 'día' : 'días'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Fecha de Pago / Soporte</span>

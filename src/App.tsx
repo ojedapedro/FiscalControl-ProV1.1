@@ -762,6 +762,15 @@ function App({}: AppProps = {}) {
             console.log("✅ Archivos procesados.");
         }
 
+        // Determine status based on attachments
+        const newStatus = (attachments.length > 0) ? PaymentStatus.UPLOADED : PaymentStatus.PENDING;
+        
+        // If it's a correction or a new submission with attachments, we update the submission date
+        // to start the auditor's review timer.
+        const shouldUpdateSubmittedDate = !isUpdate || 
+            (isUpdate && originalPayment?.status === PaymentStatus.REJECTED) || 
+            (isUpdate && originalPayment?.status === PaymentStatus.PENDING && newStatus === PaymentStatus.UPLOADED);
+
         // Create the payment object
         const paymentToSave: Payment = {
           ...(originalPayment || {}),
@@ -769,9 +778,9 @@ function App({}: AppProps = {}) {
           id: paymentId,
           storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
           userId: currentUser?.id || originalPayment?.userId || 'U-UNK',
-          status: PaymentStatus.PENDING,
+          status: newStatus,
           rejectionReason: '',
-          submittedDate: isUpdate ? (originalPayment?.submittedDate || new Date().toISOString()) : new Date().toISOString(),
+          submittedDate: shouldUpdateSubmittedDate ? new Date().toISOString() : (originalPayment?.submittedDate || new Date().toISOString()),
           history: isUpdate 
             ? [...(originalPayment?.history || []), log]
             : [log],

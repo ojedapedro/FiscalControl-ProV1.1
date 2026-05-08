@@ -105,7 +105,7 @@ const CACHE_KEY_PREFIX = 'fiscalControl_cache_';
 
 // --- OFFLINE MODE TOGGLE ---
 // CAMBIE A 'false' PARA VOLVER A CONECTAR LA BASE DE DATOS
-const IS_OFFLINE_MODE = false; 
+export const IS_OFFLINE_MODE = false; 
 
 if (IS_OFFLINE_MODE) {
   console.warn("⚠️ MODO OFFLINE ACTIVADO: La aplicación no está realizando peticiones a Firestore para ahorrar cuota.");
@@ -195,6 +195,7 @@ export const firestoreService = {
   },
 
   createUser: async (user: User) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `users/${user.id}`;
     try {
       await setDoc(doc(db, 'users', user.id), cleanObject(user));
@@ -206,6 +207,7 @@ export const firestoreService = {
   },
 
   updateUser: async (user: User) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `users/${user.id}`;
     try {
       await updateDoc(doc(db, 'users', user.id), cleanObject(user));
@@ -217,6 +219,7 @@ export const firestoreService = {
   },
 
   deleteUser: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `users/${id}`;
     try {
       await deleteDoc(doc(db, 'users', id));
@@ -277,6 +280,7 @@ export const firestoreService = {
   },
 
   createPayment: async (payment: Payment) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payments/${payment.id}`;
     try {
       await setDoc(doc(db, 'payments', payment.id), cleanObject(payment));
@@ -288,6 +292,7 @@ export const firestoreService = {
   },
 
   updatePayment: async (payment: Payment) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payments/${payment.id}`;
     try {
       await updateDoc(doc(db, 'payments', payment.id), cleanObject(payment));
@@ -299,6 +304,7 @@ export const firestoreService = {
   },
 
   deletePayment: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payments/${id}`;
     try {
       await deleteDoc(doc(db, 'payments', id));
@@ -344,6 +350,7 @@ export const firestoreService = {
   },
 
   createEmployee: async (employee: Employee) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `employees/${employee.id}`;
     try {
       await setDoc(doc(db, 'employees', employee.id), cleanObject(employee));
@@ -355,6 +362,7 @@ export const firestoreService = {
   },
 
   updateEmployee: async (employee: Employee) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `employees/${employee.id}`;
     try {
       await updateDoc(doc(db, 'employees', employee.id), cleanObject(employee));
@@ -366,6 +374,7 @@ export const firestoreService = {
   },
 
   deleteEmployee: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `employees/${id}`;
     try {
       await deleteDoc(doc(db, 'employees', id));
@@ -411,6 +420,7 @@ export const firestoreService = {
   },
 
   createPayrollEntry: async (entry: PayrollEntry) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payroll/${entry.id}`;
     try {
       await setDoc(doc(db, 'payroll', entry.id), cleanObject(entry));
@@ -421,6 +431,7 @@ export const firestoreService = {
   },
 
   updatePayrollEntry: async (entry: PayrollEntry) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payroll/${entry.id}`;
     try {
       await updateDoc(doc(db, 'payroll', entry.id), cleanObject(entry));
@@ -431,6 +442,7 @@ export const firestoreService = {
   },
 
   deletePayrollEntry: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payroll/${id}`;
     try {
       await deleteDoc(doc(db, 'payroll', id));
@@ -476,6 +488,7 @@ export const firestoreService = {
   },
 
   createBudget: async (budget: BudgetEntry) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `budgets/${budget.id}`;
     try {
       await setDoc(doc(db, 'budgets', budget.id), cleanObject(budget));
@@ -487,6 +500,7 @@ export const firestoreService = {
   },
 
   deleteBudget: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `budgets/${id}`;
     try {
       await deleteDoc(doc(db, 'budgets', id));
@@ -520,6 +534,7 @@ export const firestoreService = {
   },
 
   saveSettings: async (settings: SystemSettings) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = 'settings/global';
     try {
       await setDoc(doc(db, 'settings', 'global'), cleanObject(settings));
@@ -559,6 +574,7 @@ export const firestoreService = {
 
   // --- EXCHANGE RATES ---
   getExchangeRateByDate: async (date: string) => {
+    if (IS_OFFLINE_MODE) return { success: true, rate: null };
     try {
       const docRef = doc(db, 'exchange_rates', date);
       const docSnap = await getDoc(docRef);
@@ -573,6 +589,7 @@ export const firestoreService = {
   },
 
   saveExchangeRate: async (rate: number, date?: string) => {
+    if (IS_OFFLINE_MODE) return { success: true };
     const targetDate = date || new Date().toISOString().split('T')[0];
     try {
       await setDoc(doc(db, 'exchange_rates', targetDate), cleanObject({
@@ -605,6 +622,7 @@ export const firestoreService = {
   },
 
   createStore: async (store: Store) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `stores/${store.id}`;
     try {
       await setDoc(doc(db, 'stores', store.id), cleanObject(store));
@@ -616,6 +634,7 @@ export const firestoreService = {
   },
 
   updateStore: async (store: Store) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `stores/${store.id}`;
     try {
       await updateDoc(doc(db, 'stores', store.id), cleanObject(store));
@@ -627,6 +646,7 @@ export const firestoreService = {
   },
 
   deleteStore: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `stores/${id}`;
     try {
       await deleteDoc(doc(db, 'stores', id));
@@ -673,6 +693,7 @@ export const firestoreService = {
   },
 
   createInvoice: async (invoice: Invoice) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `invoices/${invoice.id}`;
     try {
       await setDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
@@ -684,6 +705,7 @@ export const firestoreService = {
   },
 
   updateInvoice: async (invoice: Invoice) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `invoices/${invoice.id}`;
     try {
       await updateDoc(doc(db, 'invoices', invoice.id), cleanObject(invoice));
@@ -695,6 +717,7 @@ export const firestoreService = {
   },
 
   deleteInvoice: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `invoices/${id}`;
     try {
       await deleteDoc(doc(db, 'invoices', id));
@@ -724,6 +747,7 @@ export const firestoreService = {
   },
 
   createClient: async (client: Client) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `clients/${client.id}`;
     try {
       await setDoc(doc(db, 'clients', client.id), cleanObject(client));
@@ -735,6 +759,7 @@ export const firestoreService = {
   },
 
   updateClient: async (client: Client) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `clients/${client.id}`;
     try {
       await updateDoc(doc(db, 'clients', client.id), cleanObject(client));
@@ -746,6 +771,7 @@ export const firestoreService = {
   },
 
   deleteClient: async (id: string) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `clients/${id}`;
     try {
       await deleteDoc(doc(db, 'clients', id));
@@ -758,6 +784,7 @@ export const firestoreService = {
 
   // Storage
   uploadFile: async (file: File, path: string): Promise<string> => {
+    if (IS_OFFLINE_MODE) return "https://via.placeholder.com/150";
     return new Promise(async (resolve, reject) => {
       // Timeout de seguridad de 60 segundos
       const timeout = setTimeout(() => {
@@ -780,6 +807,7 @@ export const firestoreService = {
 
   // Chat
   getChatMessages: async (room: string = 'global', limitCount: number = 50): Promise<ChatMessage[]> => {
+    if (IS_OFFLINE_MODE) return [];
     const path = 'chat_messages';
     try {
       const q = query(
@@ -797,6 +825,7 @@ export const firestoreService = {
   },
 
   createChatMessage: async (message: ChatMessage) => {
+    if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `chat_messages/${message.id}`;
     try {
       await setDoc(doc(db, 'chat_messages', message.id), cleanObject(message));
