@@ -195,22 +195,24 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             if (p.submittedDate) {
                 const submittedDate = new Date(p.submittedDate);
                 const diffTimeAudit = today.getTime() - submittedDate.getTime();
-                auditDaysCount = Math.floor(diffTimeAudit / (1000 * 60 * 60 * 24));
+                const elapsedDays = Math.floor(diffTimeAudit / (1000 * 60 * 60 * 24));
+                const auditDaysRemaining = 8 - elapsedDays;
                 
-                // Lógica de semáforo: 5 días (amber), 8 días (red), >8 días (critical)
-                if (auditDaysCount < 5) {
+                // Lógica de semáforo (8 días para aprobar):
+                // 8 a 5 días: verde
+                // 4 a 1 días: naranja
+                // 0 o menos días: rojo (negativo)
+                if (auditDaysRemaining >= 5) {
                     auditSeverity = 'green';
-                } else if (auditDaysCount < 8) {
+                } else if (auditDaysRemaining >= 1) {
                     auditSeverity = 'amber';
-                } else if (auditDaysCount === 8) {
+                } else {
                     auditSeverity = 'red';
                     severity = 'critical'; 
-                } else {
-                    auditSeverity = 'critical';
-                    severity = 'critical';
                 }
                 
-                timeLabel = `En auditoría (${auditDaysCount} días)`;
+                auditDaysCount = auditDaysRemaining;
+                timeLabel = `En auditoría (${auditDaysCount} días restantes)`;
             } else {
                 timeLabel = 'En revisión por auditoría';
             }
@@ -855,7 +857,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
                                     {alert.auditDaysCount !== undefined && (
                                         <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
-                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Días Auditor</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Plazo Auditoría</span>
                                             <div className="flex items-center gap-1.5">
                                                 <span className={`w-2 h-2 rounded-full ${
                                                     alert.auditSeverity === 'critical' ? 'bg-red-700 animate-pulse' :
@@ -864,7 +866,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                                     'bg-emerald-500'
                                                 }`}></span>
                                                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                    {alert.auditDaysCount} {alert.auditDaysCount === 1 ? 'día' : 'días'}
+                                                    {alert.auditDaysCount} {Math.abs(alert.auditDaysCount) === 1 ? 'día' : 'días'}
                                                 </span>
                                             </div>
                                         </div>
