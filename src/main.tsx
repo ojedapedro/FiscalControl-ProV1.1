@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
@@ -12,13 +12,13 @@ if (container) {
   const root = createRoot(container);
 
   root.render(
-    <React.StrictMode>
+    <StrictMode>
       <ErrorBoundary>
         <ThemeProvider>
           <App />
         </ThemeProvider>
       </ErrorBoundary>
-    </React.StrictMode>
+    </StrictMode>
   );
 } else {
   console.error("FATAL: Element with id 'root' not found in the document.");

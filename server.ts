@@ -33,7 +33,7 @@ async function startServer() {
     }
   });
 
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 8080;
 
   // Socket.IO Logic
   io.on('connection', (socket) => {
@@ -103,7 +103,9 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`🚀 [Server] Servidor ejecutándose en el puerto ${PORT}`);
+    console.log(`🌍 [Server] URL: http://0.0.0.0:${PORT}`);
+    console.log(`📝 [Server] process.env.PORT detectado: ${process.env.PORT || 'no definido'}`);
     
     // Configurar chequeo diario de notificaciones (cada 24 horas)
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
