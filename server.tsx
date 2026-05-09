@@ -1,52 +1,23 @@
-import fs from 'fs';
-import path from 'path';
-
-// Load .env.local variables before anything else
-try {
-  const envPath = path.resolve(process.cwd(), '.env.local');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const eqIndex = trimmed.indexOf('=');
-        if (eqIndex > 0) {
-          const key = trimmed.substring(0, eqIndex).trim();
-          const value = trimmed.substring(eqIndex + 1).trim();
-          if (!process.env[key]) {
-            process.env[key] = value;
-          }
-        }
-      }
-    });
-    console.log('✅ [Server] Variables de entorno cargadas desde .env.local');
-  }
-} catch (err) {
-  console.warn('⚠️ [Server] No se pudo cargar .env.local:', err);
-}
-
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 
 console.log('🚀 [Server] server.tsx cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
-console.log('🔑 [Server] RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Configurada ✅' : 'NO CONFIGURADA ❌');
+import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import { checkAndSendNotifications } from './server/notifications';
-
-// SEGURIDAD: Middleware de autenticación y rate limiting
-import { authMiddleware } from './server/authMiddleware';
-import { rateLimiter } from './server/rateLimiter';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { checkAndSendNotifications } from './src/server/notifications';
 
 // Import API handlers
-import pingHandler from './api/ping.ts';
-import createPaymentIntentHandler from './api/create-payment-intent.ts';
-import sendEmailsHandler from './api/payroll/send-emails.ts';
-import sendEmailHandler from './api/notifications/send-email.ts';
-import whatsappCheckHandler from './api/notifications/whatsapp/check.ts';
-import whatsappSendHandler from './api/notifications/whatsapp/send.ts';
+import pingHandler from './src/api/ping.ts';
+import createPaymentIntentHandler from './src/api/create-payment-intent.ts';
+import sendEmailsHandler from './src/api/payroll/send-emails.ts';
+import sendEmailHandler from './src/api/notifications/send-email.ts';
+import whatsappCheckHandler from './src/api/notifications/whatsapp/check.ts';
+import whatsappSendHandler from './src/api/notifications/whatsapp/send.ts';
+import exchangeRateHandler from './src/api/exchange-rate.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,68 +25,70 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   console.log(`🚀 [Server] Iniciando servidor Express... (${new Date().toISOString()})`);
   const app = express();
-  const PORT = 3000;
+  const httpServer = createServer(app);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
 
-  app.use(express.json({ limit: '5mb' }));
+  const PORT = Number(process.env.PORT) || 3000;
+
+  // Socket.IO Logic
+  io.on('connection', (socket) => {
+    console.log(`🔌 [Socket] Nuevo usuario conectado: ${socket.id}`);
+
+    socket.on('join:room', (room) => {
+      socket.join(room);
+      console.log(`👥 [Socket] Usuario ${socket.id} se unió a la sala: ${room}`);
+    });
+
+    socket.on('chat:message', (message) => {
+      // Broadcast simple a todos en la sala. 
+      // La persistencia se maneja en el cliente vía Firestore para robustez.
+      io.to(message.room).emit('chat:message', message);
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`🔌 [Socket] Usuario desconectado: ${socket.id}`);
+    });
+  });
+
+  app.use(express.json({ limit: '50mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: { 
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'lax',
+      secure: true, 
+      sameSite: 'none',
       httpOnly: true 
     }
   }));
 
-  // --- RUTAS API ---
-  
-  // Ping: Público (health check)
-  app.get('/api/ping', pingHandler);
+  // Mount API routes
+  app.all('/api/ping', pingHandler);
+  app.all('/api/create-payment-intent', createPaymentIntentHandler);
+  app.all('/api/payroll/send-emails', sendEmailsHandler);
+  app.all('/api/notifications/send-email', sendEmailHandler);
+  app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
+  app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
+  app.all('/api/exchange-rate', exchangeRateHandler);
 
-  // Stripe: Autenticado + Rate Limited
-  app.post('/api/create-payment-intent', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 5, windowMs: 60000 }),
-    createPaymentIntentHandler
-  );
-
-  // Emails: Autenticado + Rate Limited
-  app.post('/api/payroll/send-emails', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 10, windowMs: 60000 }),
-    sendEmailsHandler
-  );
-  app.post('/api/notifications/send-email', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 15, windowMs: 60000 }),
-    sendEmailHandler
-  );
-
-  // WhatsApp: Autenticado + Rate Limited
-  app.post('/api/notifications/whatsapp/check', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 3, windowMs: 60000 }),
-    whatsappCheckHandler
-  );
-  app.post('/api/notifications/whatsapp/send', 
-    authMiddleware, 
-    rateLimiter({ maxRequests: 10, windowMs: 60000 }),
-    whatsappSendHandler
-  );
-
-  // Global Error Handler — SEGURIDAD: No exponer detalles internos en producción
+  // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
     res.status(500).json({ 
-      error: 'Error interno del servidor.',
-      ...(process.env.NODE_ENV === 'development' ? { details: err.message } : {})
+      error: 'Error interno del servidor', 
+      details: err.message
     });
   });
 
   // Vite middleware
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -124,12 +97,12 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
     // Configurar chequeo diario de notificaciones (cada 24 horas)
