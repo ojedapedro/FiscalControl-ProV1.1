@@ -155,18 +155,15 @@ export async function testConnection() {
   if (getFromCache('test_conn')) return;
 
   try {
-    const docRef = doc(db, 'test', 'connection');
+    // We use a path that should be public according to our rules (if deployed)
+    const docRef = doc(db, 'settings', 'global');
     // Using default getDoc instead of getDocFromServer to use cache if available
     const docSnap = await getDoc(docRef);
     setToCache('test_conn', true);
-    if (docSnap.exists()) {
-      console.log("Firestore connection successful (document exists).");
-    } else {
-      console.log("Firestore connection successful (document does not exist).");
-    }
+    console.log("Firestore connection successful.");
   } catch (error) {
     if (error instanceof Error && error.message.includes('permission-denied')) {
-      console.error("Firestore connection test failed: Missing or insufficient permissions.");
+      console.error("Firestore connection test failed: Missing or insufficient permissions. Please ensure that firestore.rules have been deployed to your Firebase project.");
     } else if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error("Firestore connection test failed: The client is offline.");
     } else {
