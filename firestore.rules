@@ -76,6 +76,11 @@ service cloud.firestore {
       allow update, delete: if false; 
     }
 
+    // Test connection
+    match /test/connection {
+      allow get: if isAuthenticated();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

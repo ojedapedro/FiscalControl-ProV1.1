@@ -1,5 +1,5 @@
 
-import { Payment, PaymentStatus, Category, Store } from './types';
+import { Payment, PaymentStatus, Category, Store, BudgetEntry } from './types';
 import { getTaxConfig } from './taxConfigurations';
 import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { FISCAL_CALENDAR_2026 } from './constants/fiscalCalendar';
@@ -138,6 +138,7 @@ export const getCategoryTrafficLight = (
   category: Category, 
   storeId: string, 
   payments: Payment[],
+  budgets: BudgetEntry[] = [],
   store?: Store
 ): TrafficLightStatus => {
   if (!storeId) return 'slate';
@@ -175,6 +176,29 @@ export const getCategoryTrafficLight = (
                pDate.getFullYear() === currentYear;
       });
 
+      // Budget Exceedance Logic for Variable Items
+      const totalPaid = itemPayments
+          .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID)
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      const assignedBudget = budgets.find(b => 
+          b.storeId === storeId && 
+          b.category === category && 
+          b.title.startsWith(item.code) &&
+          new Date(b.date).getMonth() === currentMonth &&
+          new Date(b.date).getFullYear() === currentYear
+      );
+
+      const budgetValue = assignedBudget ? assignedBudget.amount : item.amount;
+      const isVariable = item.isVariable === true;
+      const hasBaseAmount = item.amount !== undefined;
+      const hasAssignedBudget = !!assignedBudget;
+      const isBudgetExceeded = isVariable && hasBaseAmount && hasAssignedBudget && totalPaid > budgetValue;
+
+      if (isBudgetExceeded) {
+        itemStatus = 'red';
+      }
+
       if (itemPayments.length > 0) {
         // La aprobación o pago tiene prioridad absoluta: si está satisfecho, el estado es verde
         const hasPaymentGreen = itemPayments.some(p => 
@@ -182,9 +206,9 @@ export const getCategoryTrafficLight = (
           p.status === PaymentStatus.PAID
         );
         
-        if (hasPaymentGreen) {
+        if (hasPaymentGreen && !isBudgetExceeded) {
           itemStatus = 'green';
-        } else {
+        } else if (!isBudgetExceeded) {
           // Prioridad para pagos no satisfechos: Rojo > Ambar
           const hasPaymentRed = itemPayments.some(p => 
             p.status === PaymentStatus.REJECTED || 
@@ -221,14 +245,19 @@ export const getCategoryTrafficLight = (
 /**
  * Obtiene el estado general de salud fiscal de una tienda.
  */
-export const getStoreFiscalHealth = (storeId: string, payments: Payment[], store?: Store): TrafficLightStatus => {
+export const getStoreFiscalHealth = (
+  storeId: string, 
+  payments: Payment[], 
+  budgets: BudgetEntry[] = [],
+  store?: Store
+): TrafficLightStatus => {
   const categories = Object.values(Category);
   let hasRed = false;
   let allGreen = true;
   let hasPayments = false;
 
   categories.forEach(cat => {
-    const status = getCategoryTrafficLight(cat, storeId, payments, store);
+    const status = getCategoryTrafficLight(cat, storeId, payments, budgets, store);
     if (status === 'red') hasRed = true;
     if (status !== 'green' && status !== 'slate') allGreen = false;
     if (status !== 'slate') hasPayments = true;

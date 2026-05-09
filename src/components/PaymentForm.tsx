@@ -36,7 +36,7 @@ import {
   Unlock,
   X
 } from 'lucide-react';
-import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role } from '../types';
+import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role, BudgetEntry } from '../types';
 import { formatDate, getFrequencyDays, calculateNextDueDate, formatDateTime } from '../utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -52,9 +52,10 @@ interface PaymentFormProps {
   isEmbedded?: boolean;
   currentUser?: User | null;
   stores: Store[];
+  budgets: BudgetEntry[];
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser, stores }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, initialData, payments, isEmbedded = false, currentUser, stores, budgets }) => {
   const { exchangeRate } = useExchangeRate();
   const [store, setStore] = React.useState(initialData?.storeId || (currentUser?.storeIds && currentUser.storeIds.length > 0 ? currentUser.storeIds[0] : ''));
   
@@ -701,10 +702,29 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
+            // Budget Exceedance Logic
+            const totalPaid = itemPayments
+                .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID)
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+            
+            const assignedBudget = budgets.find(b => 
+                b.storeId === store && 
+                b.category === category && 
+                b.title.startsWith(item.code) &&
+                new Date(b.date).getMonth() === currentMonth &&
+                new Date(b.date).getFullYear() === currentYear
+            );
+
+            const budgetValue = assignedBudget ? assignedBudget.amount : item.amount;
+            const isVariable = item.isVariable === true;
+            const hasBaseAmount = item.amount !== undefined;
+            const hasAssignedBudget = !!assignedBudget;
+            const isBudgetExceeded = isVariable && hasBaseAmount && hasAssignedBudget && totalPaid > budgetValue;
+
             // Estado base desde el calendario para este ítem específico
             const itemCalendarStatus = category ? getTaxStatus(groupConfig.deadlineDay, category, item.code, storeObj) : null;
 
-            if (hasRejected || hasOverdue || (itemCalendarStatus?.status === 'Vencido')) {
+            if (hasRejected || hasOverdue || (itemCalendarStatus?.status === 'Vencido') || isBudgetExceeded) {
                 hasRed = true;
             } else if (hasPendingOrUploaded || (itemCalendarStatus?.status === 'Próximo')) {
                 hasOrange = true;
@@ -712,14 +732,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         });
 
         if (hasRed) {
-            return { key, label: groupConfig.label, color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
+            return { key, label: groupConfig.label, color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Acción Requerida', icon: AlertCircle };
         } else if (hasOrange) {
             return { key, label: groupConfig.label, color: 'bg-amber-500', text: 'text-amber-600', bgSoft: 'bg-amber-100', status: 'Enviado', icon: Clock };
         } else {
             return { key, label: groupConfig.label, color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
         }
     });
-  }, [category, store, payments, currentUser]);
+  }, [category, store, payments, currentUser, budgets]);
 
   const specificItemStatusList = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -752,6 +772,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       const hasPendingOrUploaded = itemPayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
       const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
       const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
+
+      // Budget Exceedance Logic
+      const totalPaid = itemPayments
+          .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID)
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      const assignedBudget = budgets.find(b => 
+          b.storeId === store && 
+          b.category === category && 
+          b.title.startsWith(item.code) &&
+          new Date(b.date).getMonth() === currentMonth &&
+          new Date(b.date).getFullYear() === currentYear
+      );
+
+      const budgetValue = assignedBudget ? assignedBudget.amount : item.amount;
+      const isVariable = item.isVariable === true;
+      const hasBaseAmount = item.amount !== undefined;
+      const hasAssignedBudget = !!assignedBudget;
+      const isBudgetExceeded = isVariable && hasBaseAmount && hasAssignedBudget && totalPaid > budgetValue;
+
+      if (isBudgetExceeded) {
+        return { 
+          ...item, 
+          color: 'bg-red-500', 
+          text: 'text-red-700', 
+          bgSoft: 'bg-red-100', 
+          status: 'Excedido', 
+          icon: AlertTriangle 
+        };
+      }
 
       if (hasRejected || hasOverdue) {
         return { 
@@ -797,7 +847,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         status: status.status === 'Próximo' ? 'Próximo' : (status.status === 'En fecha' ? 'Al día' : status.status)
       };
     });
-  }, [category, taxGroup, payments, store, currentUser]);
+  }, [category, taxGroup, payments, store, currentUser, budgets]);
 
   const allCategoryItemsStatus = React.useMemo(() => {
     const configMap = getTaxConfig(category);
@@ -836,8 +886,29 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             const hasRejected = itemPayments.some(p => p.status === PaymentStatus.REJECTED);
             const hasOverdue = itemPayments.some(p => p.status === PaymentStatus.OVERDUE);
 
+            // Budget Exceedance Logic for Variable Items
+            const totalPaid = itemPayments
+                .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID)
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+            
+            const assignedBudget = budgets.find(b => 
+                b.storeId === store && 
+                b.category === category && 
+                b.title.startsWith(item.code) &&
+                new Date(b.date).getMonth() === currentMonth &&
+                new Date(b.date).getFullYear() === currentYear
+            );
+
+            const budgetValue = assignedBudget ? assignedBudget.amount : item.amount;
+            const isVariable = item.isVariable === true;
+            const hasBaseAmount = item.amount !== undefined;
+            const hasAssignedBudget = !!assignedBudget;
+            const isBudgetExceeded = isVariable && hasBaseAmount && hasAssignedBudget && totalPaid > budgetValue;
+
             let statusInfo;
-            if (hasApprovedOrPaid) {
+            if (isBudgetExceeded) {
+                statusInfo = { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Presupuesto Excedido', icon: AlertTriangle };
+            } else if (hasApprovedOrPaid) {
                 statusInfo = { color: 'bg-emerald-500', text: 'text-emerald-600', bgSoft: 'bg-emerald-100', status: 'Al día', icon: CheckCircle2 };
             } else if (hasRejected || hasOverdue) {
                 statusInfo = { color: 'bg-red-500', text: 'text-red-600', bgSoft: 'bg-red-100', status: 'Vencido', icon: AlertCircle };
@@ -860,7 +931,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             items
         };
     }).filter(group => group.items.length > 0);
-  }, [category, store, payments, currentUser]);
+  }, [category, store, payments, currentUser, budgets]);
 
   const globalStatus = React.useMemo(() => {
     if (taxStatusList.some(i => i.status === 'Vencido')) return { color: 'bg-red-500', border: 'border-red-200', text: 'text-red-700', bg: 'bg-red-50', label: 'ACCIONES REQUERIDAS (VENCIDO)' };
@@ -1256,7 +1327,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                         }).map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = category === cat.id;
-                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments, storeObj);
+                            const rawTrafficLight = getCategoryTrafficLight(cat.id, store, filteredPayments, budgets, storeObj);
                             const trafficLight = rawTrafficLight;
                             
                             let trafficClasses = '';

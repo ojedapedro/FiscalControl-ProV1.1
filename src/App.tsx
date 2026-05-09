@@ -1136,6 +1136,7 @@ function App({}: AppProps = {}) {
         return (
           <Dashboard 
             payments={filteredPayments}
+            budgets={filteredBudgets}
             payrollEntries={filteredPayrollEntries}
             onNewPayment={() => setCurrentView('payments')}
             onEditPayment={(payment) => {
@@ -1187,6 +1188,7 @@ function App({}: AppProps = {}) {
               isEmbedded={true}
               currentUser={currentUser}
               stores={filteredStores}
+              budgets={filteredBudgets}
             />
             
             {/* Modal for Rejected Payments */}
@@ -1241,6 +1243,7 @@ function App({}: AppProps = {}) {
                           isEmbedded={true}
                           currentUser={currentUser}
                           stores={filteredStores}
+                          budgets={filteredBudgets}
                         />
                       </div>
                     ) : (
@@ -1298,7 +1301,7 @@ function App({}: AppProps = {}) {
       case 'presidency':
         return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={filteredBudgets} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
       case 'network':
-        return <StoreStatus payments={filteredPayments} userStoreIds={userStoreIds} stores={filteredStores} />;
+        return <StoreStatus payments={filteredPayments} budgets={filteredBudgets} userStoreIds={userStoreIds} stores={filteredStores} />;
       case 'calendar':
         return <CalendarView 
           payments={filteredPayments} 
@@ -1798,6 +1801,7 @@ function App({}: AppProps = {}) {
                         }} 
                         currentUser={currentUser}
                         stores={filteredStores}
+                        budgets={filteredBudgets}
                       />
                   </div>
                </div>

@@ -26,7 +26,7 @@ import {
   Building2,
   CheckCircle2
 } from 'lucide-react';
-import { Payment, PaymentStatus, PayrollEntry, Role, User, Category, Store } from '../types';
+import { Payment, PaymentStatus, PayrollEntry, Role, User, Category, Store, BudgetEntry } from '../types';
 import { formatDate, formatDateTime } from '../utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { StripePaymentModal } from './StripePaymentModal';
@@ -35,6 +35,7 @@ import { IS_OFFLINE_MODE } from '../services/firestoreService';
 
 interface DashboardProps {
   payments: Payment[];
+  budgets: BudgetEntry[];
   payrollEntries: PayrollEntry[];
   onNewPayment: () => void;
   onEditPayment: (payment: Payment) => void;
@@ -48,6 +49,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   payments, 
+  budgets,
   payrollEntries, 
   onNewPayment, 
   onEditPayment,
@@ -77,8 +79,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const fiscalHealth = React.useMemo(() => {
     if (selectedStoreId === 'all') return 'slate';
     const store = stores.find(s => s.id === selectedStoreId);
-    return getStoreFiscalHealth(selectedStoreId, payments, store);
-  }, [selectedStoreId, payments, stores]);
+    return getStoreFiscalHealth(selectedStoreId, payments, budgets, store);
+  }, [selectedStoreId, payments, budgets, stores]);
 
   const handleDownloadFiscalCategoryPDF = () => {
     const w = window as any;

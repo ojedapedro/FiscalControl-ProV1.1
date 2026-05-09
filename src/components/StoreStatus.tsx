@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Payment, PaymentStatus, Store } from '../types';
+import { Payment, PaymentStatus, Store, BudgetEntry } from '../types';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -29,11 +29,12 @@ import VenezuelaMap from './VenezuelaMap';
 
 interface StoreStatusProps {
   payments: Payment[];
+  budgets: BudgetEntry[];
   userStoreIds?: string[];
   stores: Store[];
 }
 
-export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreIds = [], stores }) => {
+export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, budgets, userStoreIds = [], stores }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
@@ -45,6 +46,9 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreIds
       storesToProcess = stores.filter(s => userStoreIds.includes(s.id));
     }
 
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
     return storesToProcess.map(store => {
         // Obtener pagos asociados a esta tienda
         const storePayments = payments.filter(p => p.storeId === store.id);
@@ -55,7 +59,23 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreIds
         const hasOverdue = storePayments.some(p => p.status === PaymentStatus.OVERDUE);
         const hasPending = storePayments.some(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
 
-        if (hasOverdue) {
+        // Budget Check for Store
+        const hasBudgetExceeded = budgets.some(b => {
+            if (b.storeId !== store.id) return false;
+            const bDate = new Date(b.date);
+            if (bDate.getMonth() !== currentMonth || bDate.getFullYear() !== currentYear) return false;
+            
+            // For this budget entry, find corresponding payments
+            const itemCodePrefix = b.title.split(' ')[0];
+            const totalPaid = storePayments
+                .filter(p => p.category === b.category && p.specificType.startsWith(itemCodePrefix))
+                .filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID)
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+            
+            return totalPaid > b.amount;
+        });
+
+        if (hasOverdue || hasBudgetExceeded) {
             calculatedStatus = 'Vencido';
         } else if (hasPending) {
             calculatedStatus = 'En Riesgo';
@@ -88,7 +108,7 @@ export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, userStoreIds
             }
         };
     });
-  }, [payments, stores, userStoreIds]);
+  }, [payments, budgets, stores, userStoreIds]);
 
   const toggleStoreSelection = (id: string) => {
     setSelectedStoreIds(prev => 
